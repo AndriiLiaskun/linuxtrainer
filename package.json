@@ -6,21 +6,48 @@
   "scripts": {
     "start": "electron .",
     "test": "node test/run.js",
-    "dist": "electron-builder --win"
+    "icon": "node assets/build-icon.js",
+    "dist": "electron-builder --win",
+    "release": "electron-builder --win --publish always"
   },
-  "keywords": ["linux", "devops", "training", "electron"],
+  "keywords": [
+    "linux",
+    "devops",
+    "training",
+    "electron"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
     "electron": "^43.4.1",
-    "electron-builder": "^26.15.3"
+    "electron-builder": "^26.15.3",
+    "png-to-ico": "^3.0.2",
+    "sharp": "^0.35.3"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   },
   "build": {
-    "appId": "com.linuxtrainer.app",
+    "appId": "com.andriiliaskun.linuxtrainer",
     "productName": "LinuxTrainer",
+    "icon": "assets/icon.ico",
     "directories": { "output": "dist" },
     "files": ["main.js", "renderer/**/*", "package.json"],
-    "win": { "target": "nsis" }
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "AndriiLiaskun",
+      "repo": "linuxtrainer"
+    }
   }
 }

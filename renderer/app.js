@@ -50,6 +50,11 @@ const el = {
   badgesGrid: $('badges-grid'),
   badgesClose: $('badges-close'),
   toastStack: $('toast-stack'),
+  appVersion: $('app-version'),
+  updateCheckBtn: $('update-check-btn'),
+  updateBanner: $('update-banner'),
+  updateBannerText: $('update-banner-text'),
+  updateInstallBtn: $('update-install-btn'),
 };
 
 // ---------------- Header stats ----------------
@@ -402,10 +407,66 @@ function showToast(title, body) {
 
 // ---------------- Boot ----------------
 
+// ---------------------------------------------------------------------
+// Auto-update UI (electron-updater, wired via IPC from main.js)
+// ---------------------------------------------------------------------
+
+function setupUpdater() {
+  let ipcRenderer = null;
+  try {
+    ipcRenderer = window.require('electron').ipcRenderer;
+  } catch (e) {
+    el.updateCheckBtn.disabled = true;
+    return;
+  }
+
+  ipcRenderer.invoke('updater:getVersion').then((v) => {
+    el.appVersion.textContent = 'v' + v;
+  });
+
+  el.updateCheckBtn.addEventListener('click', () => {
+    el.updateCheckBtn.disabled = true;
+    el.updateCheckBtn.textContent = 'Перевіряю…';
+    ipcRenderer.invoke('updater:check');
+    setTimeout(() => {
+      el.updateCheckBtn.disabled = false;
+      el.updateCheckBtn.textContent = 'Перевірити оновлення';
+    }, 3000);
+  });
+
+  el.updateInstallBtn.addEventListener('click', () => {
+    ipcRenderer.invoke('updater:install');
+  });
+
+  ipcRenderer.on('updater:state', (event, state) => {
+    if (state.status === 'downloading') {
+      el.updateBanner.classList.remove('hidden');
+      el.updateInstallBtn.classList.add('hidden');
+      const pct = state.progress ? Math.round(state.progress.percent) : 0;
+      const version = state.info ? state.info.version : '';
+      el.updateBannerText.innerHTML = '';
+      el.updateBannerText.append(`Завантажується оновлення ${version ? 'v' + version : ''}… ${pct}%`);
+    } else if (state.status === 'ready') {
+      el.updateBanner.classList.remove('hidden');
+      el.updateInstallBtn.classList.remove('hidden');
+      const version = state.info ? state.info.version : '';
+      el.updateBannerText.textContent = `Оновлення ${version ? 'v' + version + ' ' : ''}завантажено і готове до встановлення.`;
+    } else if (state.status === 'up-to-date') {
+      showToast('✅ Оновлень немає', 'У тебе вже остання версія.');
+      el.updateBanner.classList.add('hidden');
+    } else if (state.status === 'dev-mode') {
+      showToast('ℹ️ Режим розробки', 'Автооновлення працює лише у зібраній версії (npm run dist).');
+    } else if (state.status === 'error') {
+      showToast('⚠️ Помилка оновлення', state.error || 'Не вдалося перевірити оновлення.');
+    }
+  });
+}
+
 async function boot() {
   await progress.load();
   renderHeader();
   renderSidebar();
+  setupUpdater();
 }
 
 boot();
