@@ -236,7 +236,10 @@ function build() {
       hint: `mkdir ${repo} && cd ${repo} && git init && git remote add origin https://github.com/student/${repo}.git && git fetch origin`,
       solution: `mkdir ${repo} && cd ${repo} && git init && git remote add origin https://github.com/student/${repo}.git && git fetch origin`,
       xp: 25,
-      check: (ctx) => ctx.result.code === 0,
+      check: (ctx) => {
+        const r = ctx.state.gitRepos.get(ctx.fs.normalize(`/home/student/${repo}`));
+        return !!r && r.remotes.origin === `https://github.com/student/${repo}.git` && ctx.input.includes('fetch');
+      },
     });
   });
 

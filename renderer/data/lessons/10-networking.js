@@ -69,7 +69,7 @@ module.exports = {
       hint: 'scp <файл> user@host:/шлях',
       solution: 'scp documents/notes.txt student@api.internal:/tmp/',
       xp: 20,
-      check: (ctx) => h.succeeded(ctx.result),
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'notes.txt') && h.stdoutIncludes(ctx.result, '100%'),
     },
   ],
 };

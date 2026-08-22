@@ -169,7 +169,7 @@ function build() {
       hint: `touch ${name}.dat && file ${name}.dat`,
       solution: `touch ${name}.dat && file ${name}.dat`,
       xp: 15,
-      check: (ctx) => h.succeeded(ctx.result),
+      check: (ctx) => h.stdoutIncludes(ctx.result, `${name}.dat:`),
     });
   });
 

@@ -33,7 +33,7 @@ module.exports = {
       hint: 'tar -xf <архів>.tar',
       solution: 'tar -xf backup.tar',
       xp: 20,
-      check: (ctx) => h.succeeded(ctx.result),
+      check: (ctx) => h.succeeded(ctx.result) && ctx.input.includes('tar') && ctx.input.includes('backup.tar') && /-\w*x/.test(ctx.input),
     },
     {
       id: 'arch-4',

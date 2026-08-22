@@ -60,7 +60,7 @@ function build() {
         hint: `systemctl is-active ${name}`,
         solution: `systemctl is-active ${name}`,
         xp: 15,
-        check: (ctx) => h.succeeded(ctx.result),
+        check: (ctx) => h.stdoutTrim(ctx.result) === 'active',
       });
     } else {
       drills.push({

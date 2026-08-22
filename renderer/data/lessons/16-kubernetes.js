@@ -63,7 +63,7 @@ module.exports = {
       hint: 'kubectl logs <под>',
       solution: 'kubectl logs redis-0',
       xp: 20,
-      check: (ctx) => h.succeeded(ctx.result),
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'redis-0'),
     },
     {
       id: 'k8s-7',
@@ -195,7 +195,7 @@ module.exports = {
       hint: 'kubectl exec -it <под> -- sh',
       solution: 'kubectl exec -it web-deployment-7c9f8b6d-a1b2c -- sh',
       xp: 20,
-      check: (ctx) => h.succeeded(ctx.result),
+      check: (ctx) => h.succeeded(ctx.result) && ctx.input.includes('exec') && ctx.input.includes('web-deployment-7c9f8b6d-a1b2c'),
     },
   ],
 };

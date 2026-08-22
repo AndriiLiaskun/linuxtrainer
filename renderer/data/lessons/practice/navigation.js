@@ -78,7 +78,7 @@ function build() {
       hint: `ls -l ${p.path}`,
       solution: `ls -l ${p.path}`,
       xp: 15,
-      check: (ctx) => h.succeeded(ctx.result),
+      check: (ctx) => (ctx.result.stdout || '').startsWith('total '),
     });
   });
 
@@ -149,7 +149,7 @@ function build() {
       hint: `tree ${dir}`,
       solution: `tree ${dir}`,
       xp: 20,
-      check: (ctx) => h.succeeded(ctx.result),
+      check: (ctx) => h.stdoutIncludes(ctx.result, dir),
     });
   });
 

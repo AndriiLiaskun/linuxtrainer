@@ -15,7 +15,7 @@ module.exports = {
       hint: 'crontab -l',
       solution: 'crontab -l',
       xp: 15,
-      check: (ctx) => h.succeeded(ctx.result),
+      check: (ctx) => h.succeeded(ctx.result) && ctx.input.includes('crontab') && ctx.input.includes('-l'),
     },
     {
       id: 'cron-quiz-1',

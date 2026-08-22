@@ -64,7 +64,7 @@ function build() {
     hint: 'kubectl logs redis-0',
     solution: 'kubectl logs redis-0',
     xp: 15,
-    check: (ctx) => h.succeeded(ctx.result),
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'redis-0'),
   });
   drills.push({
     id: 'p-k8s-apply-deployment',
@@ -243,7 +243,7 @@ function build() {
       hint: `kubectl exec -it ${pod} -- sh`,
       solution: `kubectl exec -it ${pod} -- sh`,
       xp: 20,
-      check: (ctx) => h.succeeded(ctx.result),
+      check: (ctx) => h.succeeded(ctx.result) && ctx.input.includes('exec') && ctx.input.includes(pod),
     });
   });
 

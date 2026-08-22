@@ -129,7 +129,7 @@ function build() {
     hint: 'jobs',
     solution: 'jobs',
     xp: 10,
-    check: (ctx) => h.succeeded(ctx.result),
+    check: (ctx) => h.succeeded(ctx.result) && ctx.input.trim() === 'jobs',
   });
   drills.push({
     id: 'p-proc-history',
