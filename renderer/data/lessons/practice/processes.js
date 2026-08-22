@@ -95,6 +95,51 @@ function build() {
     xp: 10,
     check: (ctx) => h.stdoutTrim(ctx.result) === 'student',
   });
+  drills.push({
+    id: 'p-proc-id',
+    difficulty: 1,
+    prompt: 'Дізнайся UID, GID та групи поточного користувача.',
+    hint: 'id',
+    solution: 'id',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'uid=') && h.stdoutIncludes(ctx.result, 'student'),
+  });
+  drills.push({
+    id: 'p-proc-date',
+    difficulty: 1,
+    prompt: 'Перевір поточну дату й час системи.',
+    hint: 'date',
+    solution: 'date',
+    xp: 10,
+    check: (ctx) => h.succeeded(ctx.result) && h.stdoutTrim(ctx.result).length > 0,
+  });
+  drills.push({
+    id: 'p-proc-top',
+    difficulty: 2,
+    prompt: 'Перевір, який процес найбільше навантажує CPU (знімок top).',
+    hint: 'top',
+    solution: 'top',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'PID') && h.stdoutIncludes(ctx.result, 'python3 app.py'),
+  });
+  drills.push({
+    id: 'p-proc-jobs-empty',
+    difficulty: 1,
+    prompt: 'Перевір, чи є зараз фонові завдання в цій сесії.',
+    hint: 'jobs',
+    solution: 'jobs',
+    xp: 10,
+    check: (ctx) => h.succeeded(ctx.result),
+  });
+  drills.push({
+    id: 'p-proc-history',
+    difficulty: 2,
+    prompt: 'Виконай кілька команд (pwd, потім ls), а тоді перевір історію команд цієї сесії.',
+    hint: 'pwd && ls && history',
+    solution: 'pwd && ls && history',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'pwd') && h.stdoutIncludes(ctx.result, 'ls'),
+  });
 
   return drills;
 }

@@ -3,7 +3,13 @@ const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 
+// Lives in userData (%APPDATA%/linuxtrainer on Windows) — a directory
+// completely separate from the app's install folder, so NSIS
+// install/update/uninstall never touches it (verified: electron-updater's
+// silent NSIS update only replaces files under the install dir).
 const PROGRESS_FILE = () => path.join(app.getPath('userData'), 'progress.json');
+const BACKUP_FILE = () => path.join(app.getPath('userData'), 'progress.backup.json');
+const TMP_FILE = () => path.join(app.getPath('userData'), 'progress.json.tmp');
 
 function defaultProgress() {
   return {
@@ -19,19 +25,45 @@ function defaultProgress() {
   };
 }
 
-function loadProgress() {
+function readJsonIfValid(filePath) {
   try {
-    const raw = fs.readFileSync(PROGRESS_FILE(), 'utf8');
+    const raw = fs.readFileSync(filePath, 'utf8');
     const parsed = JSON.parse(raw);
-    return { ...defaultProgress(), ...parsed };
+    if (parsed && typeof parsed === 'object') return parsed;
   } catch (e) {
-    return defaultProgress();
+    // missing, unreadable, or corrupted — caller falls back
   }
+  return null;
+}
+
+function loadProgress() {
+  // Prefer the main file; if it's missing/corrupted (e.g. a crash mid-write
+  // sometime in the past, before the atomic-write fix below existed), fall
+  // back to the last known-good backup rather than silently resetting XP.
+  const primary = readJsonIfValid(PROGRESS_FILE());
+  const data = primary || readJsonIfValid(BACKUP_FILE());
+  return { ...defaultProgress(), ...(data || {}) };
 }
 
 function saveProgress(data) {
-  fs.mkdirSync(path.dirname(PROGRESS_FILE()), { recursive: true });
-  fs.writeFileSync(PROGRESS_FILE(), JSON.stringify(data, null, 2), 'utf8');
+  const dir = path.dirname(PROGRESS_FILE());
+  fs.mkdirSync(dir, { recursive: true });
+
+  // Keep a backup of the last known-good save before overwriting it.
+  if (fs.existsSync(PROGRESS_FILE())) {
+    try {
+      fs.copyFileSync(PROGRESS_FILE(), BACKUP_FILE());
+    } catch (e) {
+      // non-fatal — proceed with the save regardless
+    }
+  }
+
+  // Write to a temp file and rename into place: rename is atomic on the
+  // same volume, so a crash/power-loss mid-write can never leave
+  // progress.json half-written/corrupted.
+  const json = JSON.stringify(data, null, 2);
+  fs.writeFileSync(TMP_FILE(), json, 'utf8');
+  fs.renameSync(TMP_FILE(), PROGRESS_FILE());
   return true;
 }
 
@@ -99,7 +131,11 @@ ipcMain.handle('updater:check', () => {
 });
 
 ipcMain.handle('updater:install', () => {
-  if (updateState.status === 'ready') autoUpdater.quitAndInstall();
+  // isSilent=true, isForceRunAfter=true: install with no installer window
+  // (matches nsis.oneClick=true) and relaunch automatically. userData
+  // (progress.json — XP/streak/badges) lives outside the install directory
+  // and is never touched by this, on this or any future version.
+  if (updateState.status === 'ready') autoUpdater.quitAndInstall(true, true);
 });
 
 ipcMain.handle('updater:getVersion', () => app.getVersion());

@@ -157,6 +157,19 @@ function build() {
     });
   });
 
+  // less — pager for viewing a file's content.
+  ['documents/notes.txt', 'documents/servers.txt', 'projects/webapp/logs/app.log'].forEach((path, i) => {
+    drills.push({
+      id: `p-view-less-${i}`,
+      difficulty: 1,
+      prompt: `Перегляни вміст файлу ${path} через less.`,
+      hint: `less ${path}`,
+      solution: `less ${path}`,
+      xp: 10,
+      check: (ctx) => h.succeeded(ctx.result) && ctx.result.stdout.length > 0,
+    });
+  });
+
   return drills;
 }
 

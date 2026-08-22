@@ -80,6 +80,42 @@ function build() {
     });
   });
 
+  drills.push({
+    id: 'p-net-netstat',
+    difficulty: 1,
+    prompt: 'Перевір мережеві з\'єднання та порти, що слухають, через netstat (застарілий інструмент, але й досі трапляється).',
+    hint: 'netstat -tlnp',
+    solution: 'netstat -tlnp',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'LISTEN'),
+  });
+
+  HOSTS.slice(0, 3).forEach((host, i) => {
+    drills.push({
+      id: `p-net-nslookup-${i}`,
+      difficulty: 2,
+      prompt: `Дізнайся IP-адресу хосту ${host} через nslookup (альтернатива dig).`,
+      hint: `nslookup ${host}`,
+      solution: `nslookup ${host}`,
+      xp: 20,
+      check: (ctx) => h.succeeded(ctx.result) && h.stdoutIncludes(ctx.result, host),
+    });
+  });
+
+  const WGET_URLS = ['http://example.com/readme.txt', 'http://api.internal/config.json'];
+  WGET_URLS.forEach((url, i) => {
+    const name = url.split('/').pop();
+    drills.push({
+      id: `p-net-wget-${i}`,
+      difficulty: 2,
+      prompt: `Завантаж файл за посиланням ${url} командою wget.`,
+      hint: `wget ${url}`,
+      solution: `wget ${url}`,
+      xp: 20,
+      check: (ctx) => h.isFile(ctx.fs, `/home/student/${name}`),
+    });
+  });
+
   return drills;
 }
 

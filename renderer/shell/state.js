@@ -34,6 +34,7 @@ const AVAILABLE_PACKAGES = new Set([
   'nginx', 'docker.io', 'docker-ce', 'postgresql', 'python3', 'python3-pip',
   'nodejs', 'npm', 'htop', 'tree', 'vim', 'curl', 'wget', 'git', 'coreutils',
   'bash', 'openssh-client', 'openssh-server', 'net-tools', 'unzip', 'zip',
+  'httpd', 'apache2', 'mariadb-server', 'firewalld',
 ]);
 
 function freshDocker() {

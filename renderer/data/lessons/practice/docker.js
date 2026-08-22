@@ -89,6 +89,25 @@ function build() {
     check: (ctx) => ctx.state.docker.images.some((im) => im.repo === 'redis' && im.tag === '7'),
   });
 
+  drills.push({
+    id: 'p-docker-compose-up',
+    difficulty: 2,
+    prompt: 'Запусти всі сервіси, описані в docker-compose.yml, одразу.',
+    hint: 'docker-compose up',
+    solution: 'docker-compose up',
+    xp: 20,
+    check: (ctx) => h.succeeded(ctx.result) && h.stdoutIncludes(ctx.result, 'Starting services'),
+  });
+  drills.push({
+    id: 'p-docker-compose-down',
+    difficulty: 2,
+    prompt: 'Зупини й прибери всі сервіси docker-compose.',
+    hint: 'docker-compose down',
+    solution: 'docker-compose down',
+    xp: 20,
+    check: (ctx) => h.succeeded(ctx.result) && h.stdoutIncludes(ctx.result, 'Stopping services'),
+  });
+
   return drills;
 }
 

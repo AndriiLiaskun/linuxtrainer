@@ -1,6 +1,6 @@
 {
   "name": "linuxtrainer",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "DevOps/Linux термінал-тренажер у стилі Terminal Drill",
   "main": "main.js",
   "scripts": {
@@ -39,10 +39,11 @@
       "icon": "assets/icon.ico"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "oneClick": true,
+      "perMachine": false,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
     },
     "publish": {
       "provider": "github",

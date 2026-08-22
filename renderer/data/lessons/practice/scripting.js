@@ -126,6 +126,16 @@ function build() {
     check: (ctx) => h.stdoutTrim(ctx.result) !== '0',
   });
 
+  drills.push({
+    id: 'p-script-sleep',
+    difficulty: 1,
+    prompt: 'Виведи "start", зачекай (sleep) 2 секунди, потім виведи "done" — так у скриптах роблять паузу між кроками.',
+    hint: 'echo start && sleep 2 && echo done',
+    solution: 'echo start && sleep 2 && echo done',
+    xp: 15,
+    check: (ctx) => h.stdoutTrim(ctx.result) === 'start\ndone',
+  });
+
   return drills;
 }
 

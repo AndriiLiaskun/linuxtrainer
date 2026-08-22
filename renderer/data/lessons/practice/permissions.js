@@ -165,6 +165,16 @@ function build() {
     });
   });
 
+  drills.push({
+    id: 'p-perm-umask',
+    difficulty: 1,
+    prompt: "Перевір поточну маску прав за замовчуванням (umask) для нових файлів.",
+    hint: 'umask',
+    solution: 'umask',
+    xp: 10,
+    check: (ctx) => h.succeeded(ctx.result) && /^\d+$/.test(h.stdoutTrim(ctx.result)),
+  });
+
   return drills;
 }
 

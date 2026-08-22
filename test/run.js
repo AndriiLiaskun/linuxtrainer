@@ -4,6 +4,7 @@ const vimEditor = require('./vimEditor.test.js');
 const lineEditor = require('./lineEditor.test.js');
 const cheatsheet = require('./cheatsheet.test.js');
 const cheatsheetCoverage = require('./cheatsheetCoverage.test.js');
+const commandDrillCoverage = require('./commandDrillCoverage.test.js');
 const lessons = require('./lessons.test.js');
 
 console.log(`Engine tests: ${engine.passed} passed, ${engine.failed} failed`);
@@ -24,6 +25,9 @@ if (cheatsheet.failed) console.log(cheatsheet.failures.join('\n\n'));
 console.log(`\nCheatsheet vs REGISTRY coverage: ${cheatsheetCoverage.passed} passed, ${cheatsheetCoverage.failed} failed`);
 if (cheatsheetCoverage.failed) console.log(cheatsheetCoverage.failures.join('\n\n'));
 
+console.log(`\nCommand-drill coverage: ${commandDrillCoverage.passed} passed, ${commandDrillCoverage.failed} failed`);
+if (commandDrillCoverage.failed) console.log(commandDrillCoverage.failures.join('\n\n'));
+
 console.log(
   `\nLesson content: ${lessons.totalDrills} story drills + ${lessons.totalPractice} practice drills ` +
     `= ${lessons.totalAll} total across ${lessons.lessonCount} lessons, ${lessons.failed} failed`
@@ -37,6 +41,7 @@ const ok =
   lineEditor.failed === 0 &&
   cheatsheet.failed === 0 &&
   cheatsheetCoverage.failed === 0 &&
+  commandDrillCoverage.failed === 0 &&
   lessons.failed === 0;
 console.log(ok ? '\nAll good. ✔' : '\nFAILURES DETECTED.');
 process.exit(ok ? 0 : 1);

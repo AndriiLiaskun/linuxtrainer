@@ -173,6 +173,29 @@ function build() {
     });
   });
 
+  // rmdir — removes an EMPTY directory only (unlike rm -r).
+  NAMES.slice(0, 4).forEach((name, i) => {
+    const dir = `${name}-empty`;
+    drills.push({
+      id: `p-files-rmdir-${i}`,
+      difficulty: 2,
+      prompt: `Створи порожню директорію ${dir} і видали її командою rmdir.`,
+      hint: `mkdir ${dir} && rmdir ${dir}`,
+      solution: `mkdir ${dir} && rmdir ${dir}`,
+      xp: 20,
+      check: (ctx) => h.notExists(ctx.fs, `/home/student/${dir}`),
+    });
+  });
+  drills.push({
+    id: 'p-files-rmdir-fails-nonempty',
+    difficulty: 3,
+    prompt: 'Створи директорію full-dir з файлом всередині, і переконайся, що rmdir ВІДМОВЛЯЄТЬСЯ видаляти непорожню директорію (помилка).',
+    hint: 'mkdir full-dir && touch full-dir/f.txt && rmdir full-dir',
+    solution: 'mkdir full-dir && touch full-dir/f.txt && rmdir full-dir',
+    xp: 25,
+    check: (ctx) => ctx.result.code !== 0 && h.isDir(ctx.fs, '/home/student/full-dir'),
+  });
+
   return drills;
 }
 

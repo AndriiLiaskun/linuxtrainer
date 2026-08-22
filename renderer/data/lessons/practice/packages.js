@@ -81,6 +81,32 @@ function build() {
     check: (ctx) => ctx.result.code !== 0,
   });
 
+  const YUM_PKGS = ['httpd', 'tree', 'wget'];
+  YUM_PKGS.forEach((pkg, i) => {
+    drills.push({
+      id: `p-pkg-yum-${i}`,
+      difficulty: 1,
+      prompt: `На RHEL/CentOS встанови пакет ${pkg} через yum.`,
+      hint: `yum install -y ${pkg}`,
+      solution: `yum install -y ${pkg}`,
+      xp: 15,
+      check: (ctx) => ctx.state.packages.has(pkg),
+    });
+  });
+
+  const DNF_PKGS = ['vim', 'nodejs', 'git'];
+  DNF_PKGS.forEach((pkg, i) => {
+    drills.push({
+      id: `p-pkg-dnf-${i}`,
+      difficulty: 1,
+      prompt: `На Fedora/RHEL 8+ встанови пакет ${pkg} через dnf (наступник yum).`,
+      hint: `dnf install -y ${pkg}`,
+      solution: `dnf install -y ${pkg}`,
+      xp: 15,
+      check: (ctx) => ctx.state.packages.has(pkg),
+    });
+  });
+
   return drills;
 }
 

@@ -178,6 +178,26 @@ function build() {
     check: (ctx) => h.stdoutTrim(ctx.result) === 'a b c',
   });
 
+  // diff — compare two files line by line.
+  drills.push({
+    id: 'p-text-diff-same',
+    difficulty: 2,
+    prompt: 'Створи два однакові файли a.txt і b.txt (echo "same" в обидва), і порівняй їх командою diff — переконайся, що різниці немає.',
+    hint: 'echo same > a.txt && echo same > b.txt && diff a.txt b.txt',
+    solution: 'echo same > a.txt && echo same > b.txt && diff a.txt b.txt',
+    xp: 25,
+    check: (ctx) => h.succeeded(ctx.result) && h.stdoutTrim(ctx.result) === '',
+  });
+  drills.push({
+    id: 'p-text-diff-different',
+    difficulty: 2,
+    prompt: 'Створи два РІЗНІ файли a.txt ("one") і b.txt ("two"), і порівняй їх командою diff — переконайся, що різниця показана.',
+    hint: 'echo one > a.txt && echo two > b.txt && diff a.txt b.txt',
+    solution: 'echo one > a.txt && echo two > b.txt && diff a.txt b.txt',
+    xp: 25,
+    check: (ctx) => ctx.result.code !== 0 && h.stdoutIncludes(ctx.result, 'one') && h.stdoutIncludes(ctx.result, 'two'),
+  });
+
   return drills;
 }
 
