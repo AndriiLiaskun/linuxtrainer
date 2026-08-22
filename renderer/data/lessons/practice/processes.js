@@ -131,6 +131,28 @@ function build() {
     xp: 10,
     check: (ctx) => h.succeeded(ctx.result) && ctx.input.trim() === 'jobs',
   });
+
+  const BG_COMMANDS = ['sleep 30', 'sleep 60', 'whoami', 'pwd'];
+  BG_COMMANDS.forEach((cmd, i) => {
+    drills.push({
+      id: `p-proc-bg-${i}`,
+      difficulty: 2,
+      prompt: `Запусти команду "${cmd}" у фоновому режимі (символ &), а потім перевір список фонових завдань.`,
+      hint: `${cmd} & jobs`,
+      solution: `${cmd} & jobs`,
+      xp: 25,
+      check: (ctx) => h.stdoutIncludes(ctx.result, cmd) && ctx.state.backgroundJobs.length === 1,
+    });
+  });
+  drills.push({
+    id: 'p-proc-bg-multiple',
+    difficulty: 3,
+    prompt: 'Запусти дві різні команди у фоновому режимі одну за одною (sleep 10, потім whoami), а потім перевір, що в списку фонових завдань є обидві.',
+    hint: 'sleep 10 & whoami & jobs',
+    solution: 'sleep 10 & whoami & jobs',
+    xp: 30,
+    check: (ctx) => ctx.state.backgroundJobs.length === 2 && h.stdoutIncludes(ctx.result, 'sleep 10') && h.stdoutIncludes(ctx.result, 'whoami'),
+  });
   drills.push({
     id: 'p-proc-history',
     difficulty: 2,

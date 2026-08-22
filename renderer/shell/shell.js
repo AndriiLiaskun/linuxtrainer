@@ -157,13 +157,29 @@ class Shell {
         prevSep = seg.sep;
         continue;
       }
-      const shouldRun = prevSep === null || prevSep === ';' || (prevSep === '&&' && code === 0) || (prevSep === '||' && code !== 0);
+      const shouldRun =
+        prevSep === null || prevSep === ';' || prevSep === '&' || (prevSep === '&&' && code === 0) || (prevSep === '||' && code !== 0);
       if (shouldRun) {
         const r = this._runPipeline(seg.tokens);
-        stdout += r.stdout;
-        stderr += r.stderr;
-        code = r.code;
-        this.fs.env.__exitCode = code;
+        if (seg.sep === '&') {
+          // Background dispatch: our engine has no real concurrency (every
+          // command already completes synchronously), so we run it right
+          // away but announce it as a job like real bash does, and don't
+          // let its exit code override $? for the rest of the sequence —
+          // that's what makes "cmd &" distinct from just running "cmd".
+          this.state.jobCounter = (this.state.jobCounter || 0) + 1;
+          const jobId = this.state.jobCounter;
+          const pid = 1000 + jobId;
+          const cmdText = seg.tokens.map((t) => t.v).join(' ');
+          this.state.backgroundJobs.push(cmdText);
+          stdout += `[${jobId}] ${pid}\n` + r.stdout;
+          stderr += r.stderr;
+        } else {
+          stdout += r.stdout;
+          stderr += r.stderr;
+          code = r.code;
+          this.fs.env.__exitCode = code;
+        }
       }
       prevSep = seg.sep;
     }

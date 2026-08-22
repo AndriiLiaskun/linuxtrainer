@@ -167,6 +167,24 @@ function build() {
     });
   });
 
+  // sed with a real regex pattern (not just a literal word) — a character
+  // class + quantifier that matches ANY run of digits, whatever they are.
+  const SED_REGEX = [
+    { input: 'order-2024-item-15', pattern: '[0-9]+', repl: '#', expect: 'order-#-item-#' },
+    { input: 'user_442 logged in', pattern: '[0-9]+', repl: 'N', expect: 'user_N logged in' },
+  ];
+  SED_REGEX.forEach((s, i) => {
+    drills.push({
+      id: `p-text-sed-regex-${i}`,
+      difficulty: 3,
+      prompt: `У виводі echo "${s.input}" заміни КОЖНУ послідовність цифр на "${s.repl}", використавши регулярний вираз (клас символів [0-9] і квантифікатор +), а не конкретне число.`,
+      hint: `echo "${s.input}" | sed 's/${s.pattern}/${s.repl}/g'`,
+      solution: `echo "${s.input}" | sed 's/${s.pattern}/${s.repl}/g'`,
+      xp: 30,
+      check: (ctx) => h.stdoutTrim(ctx.result) === s.expect,
+    });
+  });
+
   // tr -s (squeeze repeated characters — useful for messy whitespace/logs).
   drills.push({
     id: 'p-text-tr-squeeze',

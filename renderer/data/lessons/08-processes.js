@@ -71,5 +71,14 @@ module.exports = {
       xp: 10,
       check: (ctx) => h.stdoutIncludes(ctx.result, 'load average'),
     },
+    {
+      id: 'proc-8',
+      difficulty: 2,
+      prompt: 'Запусти команду sleep 30 у фоновому режимі (символ &), не чекаючи її завершення, а потім одразу перевір список фонових завдань.',
+      hint: 'sleep 30 & jobs',
+      solution: 'sleep 30 & jobs',
+      xp: 25,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'sleep 30') && ctx.state.backgroundJobs.length === 1,
+    },
   ],
 };

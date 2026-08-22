@@ -200,13 +200,28 @@ function globExpand(word, fs) {
 function splitSequence(tokens) {
   const segments = [];
   let cur = [];
-  for (const t of tokens) {
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
     if (t.op && (t.v === '&&' || t.v === '||' || t.v === ';')) {
       segments.push({ tokens: cur, sep: t.v });
       cur = [];
-    } else {
-      cur.push(t);
+      continue;
     }
+    if (t.op && t.v === '&') {
+      // A lone '&' is the background operator, UNLESS it's immediately
+      // followed by '>'/'>>' — that's the combined-redirect "&>"/"&>>"
+      // (tokenized as two separate op tokens), which extractRedirects
+      // handles later on the pipeline itself, not here.
+      const next = tokens[i + 1];
+      if (next && next.op && (next.v === '>' || next.v === '>>')) {
+        cur.push(t);
+        continue;
+      }
+      segments.push({ tokens: cur, sep: '&' });
+      cur = [];
+      continue;
+    }
+    cur.push(t);
   }
   segments.push({ tokens: cur, sep: null });
   return segments.filter((s) => s.tokens.length > 0 || s.sep);

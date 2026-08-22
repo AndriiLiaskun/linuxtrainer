@@ -15,6 +15,21 @@ function c(label, key) {
 }
 
 const CHEATSHEET = [
+  {
+    icon: '🔗',
+    title: 'Оператори оболонки',
+    cmds: [
+      c('|', 'op:pipe'),
+      c('&&', 'op:and'),
+      c('||', 'op:or'),
+      c(';', 'op:semi'),
+      c('&', 'op:bg'),
+      c('>', 'op:redirect-out'),
+      c('>>', 'op:redirect-append'),
+      c('2>', 'op:redirect-err'),
+      c('&>', 'op:redirect-both'),
+    ],
+  },
   { icon: '🧭', title: 'Навігація', cmds: [c('pwd'), c('cd'), c('ls'), c('tree'), c('dirname'), c('basename'), c('realpath')] },
   { icon: '📁', title: 'Файли', cmds: [c('touch'), c('mkdir'), c('cp'), c('mv'), c('rm'), c('rmdir'), c('ln'), c('file')] },
   { icon: '📄', title: 'Перегляд', cmds: [c('cat'), c('head'), c('tail'), c('wc'), c('less'), c('diff')] },

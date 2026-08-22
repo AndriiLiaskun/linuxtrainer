@@ -146,6 +146,37 @@ function build() {
     check: (ctx) => h.stdoutLines(ctx.result).length === 4,
   });
 
+  // Regex features beyond literal substrings: alternation, character
+  // classes with quantifiers, -E extended regex (always on in this engine,
+  // even without -E — see the grep cheatsheet doc for the note).
+  drills.push({
+    id: 'p-search-regex-alternation',
+    difficulty: 3,
+    prompt: `У файлі ${LOG} знайди рядки, де рівень логування WARN АБО ERROR (тобто все, крім INFO), одним регулярним виразом з альтернативою.`,
+    hint: `grep -E 'WARN|ERROR' ${LOG}`,
+    solution: `grep -E 'WARN|ERROR' ${LOG}`,
+    xp: 30,
+    check: (ctx) => h.stdoutLines(ctx.result).length === 3 && !h.stdoutIncludes(ctx.result, 'INFO'),
+  });
+  drills.push({
+    id: 'p-search-regex-alternation-servers',
+    difficulty: 3,
+    prompt: 'У documents/servers.txt знайди сервери, назва яких починається на "web" АБО на "db", одним регулярним виразом.',
+    hint: "grep -E '^(web|db)-' documents/servers.txt",
+    solution: "grep -E '^(web|db)-' documents/servers.txt",
+    xp: 30,
+    check: (ctx) => h.stdoutLines(ctx.result).length === 3 && !h.stdoutIncludes(ctx.result, 'cache') && !h.stdoutIncludes(ctx.result, 'lb-'),
+  });
+  drills.push({
+    id: 'p-search-regex-quantifier',
+    difficulty: 3,
+    prompt: 'У documents/inventory.csv знайди рядки, де кількість товару (третє поле) — рівно двозначне число (клас символів [0-9] з квантифікатором {2}).',
+    hint: "grep -E ',[0-9]{2},' documents/inventory.csv",
+    solution: "grep -E ',[0-9]{2},' documents/inventory.csv",
+    xp: 30,
+    check: (ctx) => h.stdoutLines(ctx.result).length === 3 && h.stdoutIncludes(ctx.result, 'keyboard') && h.stdoutIncludes(ctx.result, 'headset'),
+  });
+
   // grep across a glob of files (not just one).
   drills.push({
     id: 'p-search-glob-grep',

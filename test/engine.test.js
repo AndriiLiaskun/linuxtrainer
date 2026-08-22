@@ -98,6 +98,23 @@ r = run(sh, 'mkdir seqdir && cd seqdir && pwd');
 check('&& chains on success', r.stdout, '/home/student/seqdir\n');
 r = run(sh, 'cd /nope || echo fallback');
 check('|| runs on failure', r.stdout, 'fallback\n');
+sh = new Shell();
+r = run(sh, 'pwd ; echo done');
+check('; always runs next regardless of exit code', r.stdout, '/home/student\ndone\n');
+
+// --- & background jobs ---
+sh = new Shell();
+r = run(sh, 'sleep 30 & jobs');
+check('& dispatches a job (announced as [1] <pid>)', /^\[1\] \d+\n/.test(r.stdout), true);
+check('& registers the job in state so jobs lists it', sh.state.backgroundJobs, ['sleep 30']);
+check('jobs output shows the backgrounded command', r.stdout.includes('sleep 30 &'), true);
+sh = new Shell();
+r = run(sh, 'sleep 1 & whoami & jobs');
+check('multiple & jobs each get their own [N] id', /\[1\] \d+\n\[2\] \d+\n/.test(r.stdout), true);
+check('multiple & jobs all tracked', sh.state.backgroundJobs.length, 2);
+sh = new Shell();
+r = run(sh, 'ls /nope &> both.log');
+check('&> combined redirect still parses as redirect, not background', sh.state.backgroundJobs.length, 0);
 
 // --- exit code ($?) ---
 sh = new Shell();
@@ -119,6 +136,19 @@ check('ls -l shows perms', r.stdout.startsWith('-rw-r-xr-x'), true);
 sh = new Shell();
 r = run(sh, 'grep ERROR projects/webapp/logs/app.log | wc -l');
 check('grep ERROR count via pipe', r.stdout.trim(), '2');
+
+// --- real regex support (not just literal substrings) ---
+sh = new Shell();
+r = run(sh, "grep -E 'WARN|ERROR' projects/webapp/logs/app.log");
+check('grep -E alternation matches WARN or ERROR lines', r.stdout.split('\n').filter(Boolean).length, 3);
+r = run(sh, "grep -E ',[0-9]{2},' documents/inventory.csv");
+check('grep -E character class + {n} quantifier', r.stdout.split('\n').filter(Boolean).length, 3);
+r = run(sh, "grep '^(web|db)-' documents/servers.txt");
+check('grep treats patterns as extended regex even without -E', r.stdout.split('\n').filter(Boolean).length, 3);
+r = run(sh, "echo 'order-2024-item-15' | sed 's/[0-9]+/#/g'");
+check('sed regex quantifier replaces every digit run, not literal text', r.stdout, 'order-#-item-#\n');
+r = run(sh, "echo 'John Smith' | sed 's/(\\w+) (\\w+)/\\2 \\1/'");
+check('sed supports capture-group backreferences (\\1, \\2)', r.stdout, 'Smith John\n');
 
 // --- find ---
 sh = new Shell();
