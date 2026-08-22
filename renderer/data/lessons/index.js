@@ -18,4 +18,5 @@ module.exports = [
   require('./15-cron'),
   require('./16-kubernetes'),
   require('./17-vim'),
+  require('./18-quests'),
 ];
