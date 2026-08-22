@@ -8,6 +8,7 @@ const parser = require('./parser');
 const base = require('./commands');
 const sys = require('./commands_system');
 const archive = require('./commands_archive');
+const k8s = require('./commands_k8s');
 
 const REGISTRY = {
   pwd: base.cmd_pwd,
@@ -78,6 +79,7 @@ const REGISTRY = {
   docker: sys.cmd_docker,
   'docker-compose': sys.cmd_docker_compose,
   crontab: sys.cmd_crontab,
+  kubectl: k8s.cmd_kubectl,
 
   tar: archive.cmd_tar,
   gzip: archive.cmd_gzip,

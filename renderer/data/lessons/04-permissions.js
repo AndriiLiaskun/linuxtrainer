@@ -9,6 +9,7 @@ module.exports = {
   drills: [
     {
       id: 'perm-1',
+      difficulty: 2,
       prompt: 'Створи файл deploy_key і зроби його доступним для читання й запису тільки власнику (числовий режим 600).',
       hint: 'chmod 600 <файл> — читання/запис для власника, нічого для інших.',
       solution: 'touch deploy_key && chmod 600 deploy_key',
@@ -17,6 +18,7 @@ module.exports = {
     },
     {
       id: 'perm-2',
+      difficulty: 2,
       prompt: 'Зроби файл projects/webapp/deploy.sh виконуваним для всіх (числовий режим 755).',
       hint: 'chmod 755 <файл> — rwx власнику, rx групі та іншим.',
       solution: 'chmod 755 projects/webapp/deploy.sh',
@@ -25,6 +27,7 @@ module.exports = {
     },
     {
       id: 'perm-3',
+      difficulty: 1,
       prompt: 'Створи файл secret.txt і забери всі права доступу навіть у власника (0000).',
       hint: 'chmod 000 <файл> прибирає всі права.',
       solution: 'touch secret.txt && chmod 000 secret.txt',
@@ -33,6 +36,7 @@ module.exports = {
     },
     {
       id: 'perm-4',
+      difficulty: 2,
       prompt: 'Створи файл run.sh і додай власнику право на виконання, використавши символьний режим (не змінюючи інші права).',
       hint: 'chmod u+x <файл> додає право виконання лише власнику.',
       solution: 'touch run.sh && chmod u+x run.sh',
@@ -44,6 +48,7 @@ module.exports = {
     },
     {
       id: 'perm-5',
+      difficulty: 3,
       prompt: 'Забери право на запис для групи і для інших у файлі documents/report.csv, залишивши права власника без змін.',
       hint: 'chmod go-w <файл>',
       solution: 'chmod go-w documents/report.csv',
@@ -55,6 +60,7 @@ module.exports = {
     },
     {
       id: 'perm-6',
+      difficulty: 2,
       prompt: 'Зміни власника файлу documents/notes.txt на root.',
       hint: 'chown <новий_власник> <файл>',
       solution: 'chown root documents/notes.txt',
@@ -63,6 +69,7 @@ module.exports = {
     },
     {
       id: 'perm-7',
+      difficulty: 2,
       prompt: 'Подивись на права доступу файлів у поточній директорії у форматі "довгого" списку та знайди рядок з deploy_key.',
       hint: 'ls -l | grep deploy_key',
       solution: 'ls -l | grep deploy_key',

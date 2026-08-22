@@ -9,6 +9,7 @@ module.exports = {
   drills: [
     {
       id: 'files-1',
+      difficulty: 1,
       prompt: 'Створи порожній файл із назвою scratch.txt у поточній директорії.',
       hint: 'Команда touch створює порожній файл (або оновлює час зміни існуючого).',
       solution: 'touch scratch.txt',
@@ -17,6 +18,7 @@ module.exports = {
     },
     {
       id: 'files-2',
+      difficulty: 1,
       prompt: 'Створи нову директорію з назвою backups.',
       hint: 'mkdir <назва>',
       solution: 'mkdir backups',
@@ -25,6 +27,7 @@ module.exports = {
     },
     {
       id: 'files-3',
+      difficulty: 2,
       prompt: 'Створи вкладену структуру директорій backups/2026/august однією командою (проміжні директорії ще не існують).',
       hint: 'Прапорець -p дозволяє створювати проміжні директорії.',
       solution: 'mkdir -p backups/2026/august',
@@ -33,6 +36,7 @@ module.exports = {
     },
     {
       id: 'files-4',
+      difficulty: 1,
       prompt: 'Скопіюй documents/notes.txt у backups/notes.txt.',
       hint: 'cp <джерело> <призначення>',
       solution: 'cp documents/notes.txt backups/notes.txt',
@@ -41,6 +45,7 @@ module.exports = {
     },
     {
       id: 'files-5',
+      difficulty: 2,
       prompt: 'Скопіюй усю директорію projects/webapp разом із вмістом у backups/webapp-copy.',
       hint: 'Для копіювання директорій потрібен прапорець -r (рекурсивно).',
       solution: 'cp -r projects/webapp backups/webapp-copy',
@@ -49,6 +54,7 @@ module.exports = {
     },
     {
       id: 'files-6',
+      difficulty: 1,
       prompt: 'Перейменуй файл scratch.txt на draft.txt.',
       hint: 'mv виконує і переміщення, і перейменування.',
       solution: 'mv scratch.txt draft.txt',
@@ -57,6 +63,7 @@ module.exports = {
     },
     {
       id: 'files-7',
+      difficulty: 1,
       prompt: 'Перемісти draft.txt у директорію backups.',
       hint: 'mv <файл> <директорія>',
       solution: 'mv draft.txt backups/',
@@ -65,6 +72,7 @@ module.exports = {
     },
     {
       id: 'files-8',
+      difficulty: 1,
       prompt: 'Видали файл backups/draft.txt.',
       hint: 'rm <файл>',
       solution: 'rm backups/draft.txt',
@@ -73,6 +81,7 @@ module.exports = {
     },
     {
       id: 'files-9',
+      difficulty: 2,
       prompt: 'Видали директорію backups разом із усім вмістом.',
       hint: 'rm -r видаляє директорії рекурсивно; -f пригнічує запитання/помилки.',
       solution: 'rm -rf backups',
@@ -81,6 +90,7 @@ module.exports = {
     },
     {
       id: 'files-10',
+      difficulty: 2,
       prompt: 'Створи символьне посилання current -> projects/webapp.',
       hint: 'ln -s <ціль> <назва_посилання>',
       solution: 'ln -s projects/webapp current',
@@ -89,6 +99,7 @@ module.exports = {
     },
     {
       id: 'files-11',
+      difficulty: 1,
       prompt: 'Створи одразу три файли: alpha.txt, beta.txt, gamma.txt однією командою touch.',
       hint: 'touch приймає декілька імен файлів через пробіл.',
       solution: 'touch alpha.txt beta.txt gamma.txt',

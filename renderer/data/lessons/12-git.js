@@ -9,6 +9,7 @@ module.exports = {
   drills: [
     {
       id: 'git-1',
+      difficulty: 2,
       prompt: 'Створи нову директорію myapp, перейди в неї та ініціалізуй git-репозиторій.',
       hint: 'mkdir + cd + git init',
       solution: 'mkdir myapp && cd myapp && git init',
@@ -17,6 +18,7 @@ module.exports = {
     },
     {
       id: 'git-2',
+      difficulty: 1,
       prompt: 'Створи файл README.md і перевір статус репозиторію.',
       hint: 'touch README.md && git status',
       solution: 'touch README.md && git status',
@@ -25,6 +27,7 @@ module.exports = {
     },
     {
       id: 'git-3',
+      difficulty: 1,
       prompt: 'Додай файл README.md в область підготовлених змін (staging).',
       hint: 'git add <файл>',
       solution: 'git add README.md',
@@ -36,6 +39,7 @@ module.exports = {
     },
     {
       id: 'git-4',
+      difficulty: 2,
       prompt: 'Зроби перший коміт із повідомленням "Initial commit".',
       hint: "git commit -m 'повідомлення'",
       solution: 'git commit -m "Initial commit"',
@@ -47,6 +51,7 @@ module.exports = {
     },
     {
       id: 'git-5',
+      difficulty: 2,
       prompt: 'Створи нову гілку feature/login і одразу перейди на неї.',
       hint: 'git checkout -b <назва_гілки>',
       solution: 'git checkout -b feature/login',
@@ -58,6 +63,7 @@ module.exports = {
     },
     {
       id: 'git-6',
+      difficulty: 1,
       prompt: 'Виведи список усіх гілок репозиторію.',
       hint: 'git branch',
       solution: 'git branch',
@@ -66,6 +72,7 @@ module.exports = {
     },
     {
       id: 'git-7',
+      difficulty: 1,
       prompt: 'Поверніся на гілку main.',
       hint: 'git checkout main',
       solution: 'git checkout main',
@@ -77,6 +84,7 @@ module.exports = {
     },
     {
       id: 'git-8',
+      difficulty: 1,
       prompt: 'Переглянь історію комітів у компактному однорядковому форматі.',
       hint: 'git log --oneline',
       solution: 'git log --oneline',
@@ -85,6 +93,7 @@ module.exports = {
     },
     {
       id: 'git-9',
+      difficulty: 3,
       prompt: 'Додай віддалений репозиторій origin, що вказує на https://github.com/student/myapp.git',
       hint: 'git remote add origin <url>',
       solution: 'git remote add origin https://github.com/student/myapp.git',

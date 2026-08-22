@@ -9,6 +9,7 @@ module.exports = {
   drills: [
     {
       id: 'nav-1',
+      difficulty: 1,
       prompt: 'Дізнайся, у якій директорії ти зараз знаходишся.',
       hint: 'Команда pwd (print working directory) виводить поточний шлях.',
       solution: 'pwd',
@@ -17,6 +18,7 @@ module.exports = {
     },
     {
       id: 'nav-2',
+      difficulty: 1,
       prompt: 'Виведи список файлів і директорій у поточній папці.',
       hint: 'Команда ls без прапорців.',
       solution: 'ls',
@@ -25,6 +27,7 @@ module.exports = {
     },
     {
       id: 'nav-3',
+      difficulty: 1,
       prompt: 'Покажи ВСІ файли в поточній директорії, включно з прихованими (наприклад .config).',
       hint: 'Прапорець -a показує приховані файли (ті, що починаються з крапки).',
       solution: 'ls -a',
@@ -33,6 +36,7 @@ module.exports = {
     },
     {
       id: 'nav-4',
+      difficulty: 1,
       prompt: 'Перейди у директорію projects.',
       hint: 'cd <назва_директорії>',
       solution: 'cd projects',
@@ -41,6 +45,7 @@ module.exports = {
     },
     {
       id: 'nav-5',
+      difficulty: 1,
       prompt: 'Тепер зайди у вкладену директорію webapp/src (одна команда, повний шлях).',
       hint: 'Можна перейти одразу у вкладену директорію, вказавши шлях через /.',
       solution: 'cd webapp/src',
@@ -49,6 +54,7 @@ module.exports = {
     },
     {
       id: 'nav-6',
+      difficulty: 1,
       prompt: 'Піднімись на один рівень вище (у директорію webapp).',
       hint: '.. означає "батьківська директорія".',
       solution: 'cd ..',
@@ -57,6 +63,7 @@ module.exports = {
     },
     {
       id: 'nav-7',
+      difficulty: 1,
       prompt: 'Поверніться одразу у домашню директорію користувача, незалежно від того, де ви зараз.',
       hint: 'cd без аргументів або cd ~ завжди веде додому.',
       solution: 'cd',
@@ -65,6 +72,7 @@ module.exports = {
     },
     {
       id: 'nav-8',
+      difficulty: 1,
       prompt: 'Перейди в кореневу директорію файлової системи (/).',
       hint: 'Абсолютний шлях "/" — це корінь.',
       solution: 'cd /',
@@ -73,6 +81,7 @@ module.exports = {
     },
     {
       id: 'nav-9',
+      difficulty: 1,
       prompt: 'З кореня перейди одразу у /var/log, використавши абсолютний шлях.',
       hint: 'Абсолютний шлях завжди починається з /.',
       solution: 'cd /var/log',
@@ -81,6 +90,7 @@ module.exports = {
     },
     {
       id: 'nav-10',
+      difficulty: 2,
       prompt: 'Виведи детальний список (з правами доступу, власником і розміром) вмісту поточної директорії.',
       hint: 'Прапорець -l вмикає "довгий" формат ls.',
       solution: 'ls -l',
@@ -89,6 +99,7 @@ module.exports = {
     },
     {
       id: 'nav-11',
+      difficulty: 2,
       prompt: 'Перейди в домашню директорію і виведи деревовидну структуру директорії projects.',
       hint: 'Команда tree <шлях> показує ієрархію файлів і папок.',
       solution: 'cd ~ && tree projects',

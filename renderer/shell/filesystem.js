@@ -362,6 +362,7 @@ class FileSystem {
     this.mkdir('/tmp', { parents: true, mode: 0o1777 });
     this.mkdir('/usr/bin', { parents: true });
     this.mkdir('/opt', { parents: true });
+    this.mkdir('/home/student/k8s', { parents: true });
 
     this.writeFile('/home/student/documents/notes.txt', 'TODO: learn grep and sed\nBuy coffee\nDeploy app on Friday\n');
     this.writeFile('/home/student/documents/report.csv', 'name,score\nalice,91\nbob,74\ncarol,88\n');
@@ -386,6 +387,32 @@ class FileSystem {
     );
     deploy.executable = true;
     deploy.mode = 0o755;
+
+    this.writeFile(
+      '/home/student/k8s/api-deployment.yaml',
+      'apiVersion: apps/v1\n' +
+        'kind: Deployment\n' +
+        'metadata:\n' +
+        '  name: api-deployment\n' +
+        'spec:\n' +
+        '  replicas: 3\n' +
+        '  template:\n' +
+        '    spec:\n' +
+        '      containers:\n' +
+        '        - name: api\n' +
+        '          image: myapp/api:2.0\n'
+    );
+    this.writeFile(
+      '/home/student/k8s/api-service.yaml',
+      'apiVersion: v1\n' +
+        'kind: Service\n' +
+        'metadata:\n' +
+        '  name: api-service\n' +
+        'spec:\n' +
+        '  type: ClusterIP\n' +
+        '  ports:\n' +
+        '    - port: 80\n'
+    );
 
     this.chmod('/home/student/documents/notes.txt', 0o644);
   }

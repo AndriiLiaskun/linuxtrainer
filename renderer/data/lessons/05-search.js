@@ -9,6 +9,7 @@ module.exports = {
   drills: [
     {
       id: 'search-1',
+      difficulty: 1,
       prompt: 'Знайди рядки зі словом ERROR у файлі projects/webapp/logs/app.log.',
       hint: 'grep <шаблон> <файл>',
       solution: 'grep ERROR projects/webapp/logs/app.log',
@@ -17,6 +18,7 @@ module.exports = {
     },
     {
       id: 'search-2',
+      difficulty: 1,
       prompt: 'Знайди рядки зі словом "error" у лозі без урахування регістру (великі/малі літери).',
       hint: 'Прапорець -i вимикає чутливість до регістру.',
       solution: 'grep -i error projects/webapp/logs/app.log',
@@ -25,6 +27,7 @@ module.exports = {
     },
     {
       id: 'search-3',
+      difficulty: 2,
       prompt: 'Порахуй, скільки рядків у лозі НЕ містять слова INFO (інверсія пошуку).',
       hint: 'Прапорець -v інвертує збіг; скомбінуй із wc -l через пайп.',
       solution: 'grep -v INFO projects/webapp/logs/app.log | wc -l',
@@ -33,6 +36,7 @@ module.exports = {
     },
     {
       id: 'search-4',
+      difficulty: 1,
       prompt: 'Виведи рядки зі словом ERROR разом із номерами рядків у файлі.',
       hint: 'Прапорець -n показує номер рядка.',
       solution: 'grep -n ERROR projects/webapp/logs/app.log',
@@ -41,6 +45,7 @@ module.exports = {
     },
     {
       id: 'search-5',
+      difficulty: 2,
       prompt: 'Знайди усі файли з розширенням .py у директорії projects.',
       hint: "find <директорія> -name '*.py'",
       solution: "find projects -name '*.py'",
@@ -49,6 +54,7 @@ module.exports = {
     },
     {
       id: 'search-6',
+      difficulty: 2,
       prompt: 'Знайди усі директорії (не файли) всередині projects.',
       hint: 'find <шлях> -type d',
       solution: 'find projects -type d',
@@ -57,6 +63,7 @@ module.exports = {
     },
     {
       id: 'search-7',
+      difficulty: 1,
       prompt: 'Просто підрахуй кількість рядків зі словом WARN у лозі (виведи лише число).',
       hint: 'grep -c рахує кількість рядків-збігів.',
       solution: 'grep -c WARN projects/webapp/logs/app.log',

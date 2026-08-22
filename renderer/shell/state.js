@@ -52,6 +52,24 @@ function freshGitRepos() {
   return new Map();
 }
 
+function freshK8s() {
+  return {
+    namespaces: ['default', 'kube-system'],
+    deployments: [
+      { name: 'web-deployment', namespace: 'default', replicas: 2, image: 'myapp:1.0' },
+    ],
+    pods: [
+      { name: 'web-deployment-7c9f8b6d-a1b2c', namespace: 'default', status: 'Running', ready: '1/1', restarts: 0, owner: 'web-deployment' },
+      { name: 'web-deployment-7c9f8b6d-x9y8z', namespace: 'default', status: 'Running', ready: '1/1', restarts: 0, owner: 'web-deployment' },
+      { name: 'redis-0', namespace: 'default', status: 'Running', ready: '1/1', restarts: 0, owner: null },
+    ],
+    services: [
+      { name: 'web-service', namespace: 'default', type: 'ClusterIP', clusterIP: '10.96.0.15', ports: '80/TCP' },
+    ],
+    podCounter: 1,
+  };
+}
+
 function freshNetwork() {
   return {
     hostname: 'devops-trainer',
@@ -77,6 +95,7 @@ class SessionState {
     this.services = freshServices();
     this.packages = freshPackages();
     this.docker = freshDocker();
+    this.k8s = freshK8s();
     this.gitRepos = freshGitRepos();
     this.network = freshNetwork();
     this.cronJobs = [];

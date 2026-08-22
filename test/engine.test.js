@@ -184,4 +184,16 @@ run(sh, 'touch a.txt b.txt c.log');
 r = run(sh, 'ls *.txt');
 check('glob expansion', r.stdout.trim().split(/\s+/).sort().join(','), 'a.txt,b.txt');
 
+// --- kubectl ---
+sh = new Shell();
+r = run(sh, 'kubectl get pods');
+check('kubectl get pods lists seeded pods', r.stdout.includes('web-deployment') && r.stdout.includes('redis-0'), true);
+r = run(sh, 'kubectl scale deployment web-deployment --replicas=4');
+check('kubectl scale ok', r.stdout.includes('scaled'), true);
+check('kubectl scale updates replica count', sh.state.k8s.deployments.find((d) => d.name === 'web-deployment').replicas, 4);
+r = run(sh, 'kubectl apply -f k8s/api-deployment.yaml');
+check('kubectl apply creates deployment', sh.state.k8s.deployments.some((d) => d.name === 'api-deployment' && d.replicas === 3), true);
+r = run(sh, 'kubectl delete pod redis-0');
+check('kubectl delete pod removes it', sh.state.k8s.pods.some((p) => p.name === 'redis-0'), false);
+
 module.exports = { passed, failed, failures };

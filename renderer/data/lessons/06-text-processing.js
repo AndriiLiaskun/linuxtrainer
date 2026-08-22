@@ -9,6 +9,7 @@ module.exports = {
   drills: [
     {
       id: 'text-1',
+      difficulty: 2,
       prompt: 'Виведи лише перше поле (ім\'я) з файлу documents/report.csv, використовуючи кому як роздільник.',
       hint: "cut -d',' -f1 <файл>",
       solution: "cut -d',' -f1 documents/report.csv",
@@ -17,6 +18,7 @@ module.exports = {
     },
     {
       id: 'text-2',
+      difficulty: 1,
       prompt: 'Відсортуй рядки файлу documents/notes.txt за алфавітом.',
       hint: 'sort <файл>',
       solution: 'sort documents/notes.txt',
@@ -25,6 +27,7 @@ module.exports = {
     },
     {
       id: 'text-3',
+      difficulty: 2,
       prompt: 'Заміни слово "hello" на "hi" у виводі команди echo "hello devops" (через пайп у sed).',
       hint: "echo '...' | sed 's/hello/hi/'",
       solution: "echo 'hello devops' | sed 's/hello/hi/'",
@@ -33,6 +36,7 @@ module.exports = {
     },
     {
       id: 'text-4',
+      difficulty: 3,
       prompt: 'Використай awk, щоб вивести другий стовпець (бали) з documents/report.csv, роздільник — кома.',
       hint: "awk -F',' '{print $2}' <файл>",
       solution: "awk -F',' '{print $2}' documents/report.csv",
@@ -41,6 +45,7 @@ module.exports = {
     },
     {
       id: 'text-5',
+      difficulty: 3,
       prompt: 'Виведи усі рядки лог-файлу, відсортовані так, щоб унікальні рівні (INFO/WARN/ERROR) можна було порахувати: спочатку виріж друге "слово" кожного рядка логів awk-ом, а потім прибери повтори командою uniq (використай сортування перед uniq).',
       hint: "awk '{print $3}' <лог> | sort | uniq",
       solution: "awk '{print $3}' projects/webapp/logs/app.log | sort | uniq",
@@ -52,6 +57,7 @@ module.exports = {
     },
     {
       id: 'text-6',
+      difficulty: 3,
       prompt: 'Порахуй, скільки разів кожен рівень логування (INFO/WARN/ERROR) зустрічається у лозі — використай sort та uniq -c.',
       hint: "awk '{print $3}' <лог> | sort | uniq -c",
       solution: "awk '{print $3}' projects/webapp/logs/app.log | sort | uniq -c",
@@ -60,6 +66,7 @@ module.exports = {
     },
     {
       id: 'text-7',
+      difficulty: 2,
       prompt: 'Переведи весь текст файлу documents/notes.txt у ВЕРХНІЙ регістр (через пайп у tr).',
       hint: "cat <файл> | tr 'a-z' 'A-Z'",
       solution: "cat documents/notes.txt | tr 'a-z' 'A-Z'",

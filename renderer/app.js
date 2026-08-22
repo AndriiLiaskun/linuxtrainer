@@ -3,6 +3,7 @@
 const { Shell } = require('./shell/shell.js');
 const lessons = require('./data/lessons/index.js');
 const { ProgressStore, levelFromXp, xpForLevel, BADGES } = require('./progress.js');
+const { DIFFICULTY } = require('./data/difficulty.js');
 
 const progress = new ProgressStore();
 
@@ -33,6 +34,7 @@ const el = {
   lessonTitleText: $('lesson-title-text'),
   lessonDots: $('lesson-dots'),
   drillIndex: $('drill-index'),
+  difficultyBadge: $('difficulty-badge'),
   drillPrompt: $('drill-prompt'),
   drillHint: $('drill-hint'),
   hintBtn: $('hint-btn'),
@@ -165,6 +167,11 @@ function renderDrill() {
 
   el.lessonProgressPill.textContent = `${done} / ${total}`;
   el.drillIndex.textContent = `Завдання ${currentDrillIndex + 1} з ${total}`;
+  const diff = DIFFICULTY[drill.difficulty] || DIFFICULTY[1];
+  el.difficultyBadge.textContent = diff.stars + ' ' + diff.label;
+  el.difficultyBadge.style.color = diff.color;
+  el.difficultyBadge.style.background = diff.color + '1a';
+  el.difficultyBadge.style.border = '1px solid ' + diff.color + '55';
   el.drillPrompt.textContent = drill.prompt;
   el.drillHint.classList.add('hidden');
   el.drillHint.classList.remove('solution');

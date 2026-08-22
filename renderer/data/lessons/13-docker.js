@@ -9,6 +9,7 @@ module.exports = {
   drills: [
     {
       id: 'docker-1',
+      difficulty: 1,
       prompt: 'Переглянь список доступних локально Docker-образів.',
       hint: 'docker images',
       solution: 'docker images',
@@ -17,6 +18,7 @@ module.exports = {
     },
     {
       id: 'docker-2',
+      difficulty: 2,
       prompt: 'Запусти контейнер з образу nginx у фоновому режимі з ім\'ям web.',
       hint: 'docker run -d --name <ім\'я> <образ>',
       solution: 'docker run -d --name web nginx',
@@ -25,6 +27,7 @@ module.exports = {
     },
     {
       id: 'docker-3',
+      difficulty: 1,
       prompt: 'Переглянь список запущених контейнерів.',
       hint: 'docker ps',
       solution: 'docker ps',
@@ -33,6 +36,7 @@ module.exports = {
     },
     {
       id: 'docker-4',
+      difficulty: 1,
       prompt: 'Переглянь логи контейнера web.',
       hint: 'docker logs <контейнер>',
       solution: 'docker logs web',
@@ -41,6 +45,7 @@ module.exports = {
     },
     {
       id: 'docker-5',
+      difficulty: 2,
       prompt: 'Зупини контейнер web.',
       hint: 'docker stop <контейнер>',
       solution: 'docker stop web',
@@ -52,6 +57,7 @@ module.exports = {
     },
     {
       id: 'docker-6',
+      difficulty: 1,
       prompt: 'Видали зупинений контейнер web.',
       hint: 'docker rm <контейнер>',
       solution: 'docker rm web',
@@ -60,6 +66,7 @@ module.exports = {
     },
     {
       id: 'docker-7',
+      difficulty: 3,
       prompt: 'Збери новий образ з тегом myapp:latest (припустимо, Dockerfile вже готовий).',
       hint: 'docker build -t <тег> .',
       solution: 'docker build -t myapp:latest .',

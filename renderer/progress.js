@@ -27,6 +27,8 @@ const BADGES = [
   { id: 'all-lessons', title: 'DevOps Master', desc: 'Заверши весь курс', icon: '👑' },
   { id: 'text-ninja', title: 'Text Ninja', desc: 'Заверши урок "Обробка тексту"', icon: '🥷' },
   { id: 'container-captain', title: 'Container Captain', desc: 'Заверши урок Docker', icon: '🐳' },
+  { id: 'helm-commander', title: 'Helm Commander', desc: 'Заверши урок Kubernetes', icon: '☸️' },
+  { id: 'hundred-drills', title: 'Сотня', desc: 'Виконай 100 дрилів', icon: '💯' },
 ];
 
 function hasElectron() {
@@ -149,6 +151,7 @@ class ProgressStore {
     if (!already) {
       if (this.totalCompleted() === 1) award('first-steps');
       if (this.totalCompleted() >= 50) award('fifty-drills');
+      if (this.totalCompleted() >= 100) award('hundred-drills');
       if (this.data.streak >= 3) award('streak-3');
       if (this.data.streak >= 7) award('streak-7');
 
@@ -157,6 +160,7 @@ class ProgressStore {
         award('lesson-complete');
         if (lessonId === 'text-processing') award('text-ninja');
         if (lessonId === 'docker') award('container-captain');
+        if (lessonId === 'kubernetes') award('helm-commander');
       }
       const allDone = allLessons.every((l) => this.completedCountFor(l.id) === l.drills.length);
       if (allDone) award('all-lessons');

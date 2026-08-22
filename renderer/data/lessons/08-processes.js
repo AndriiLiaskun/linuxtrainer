@@ -9,6 +9,7 @@ module.exports = {
   drills: [
     {
       id: 'proc-1',
+      difficulty: 2,
       prompt: 'Виведи список процесів користувача у розширеному форматі (з CPU/MEM).',
       hint: 'ps aux показує усі процеси з деталями.',
       solution: 'ps aux',
@@ -17,6 +18,7 @@ module.exports = {
     },
     {
       id: 'proc-2',
+      difficulty: 2,
       prompt: 'Знайди рядок процесу node server.js серед запущених процесів (скомбінуй ps і grep).',
       hint: 'ps aux | grep node',
       solution: 'ps aux | grep node',
@@ -25,6 +27,7 @@ module.exports = {
     },
     {
       id: 'proc-3',
+      difficulty: 2,
       prompt: 'Завершай процес node server.js (PID 1044) командою kill.',
       hint: 'kill <PID>',
       solution: 'kill 1044',
@@ -33,6 +36,7 @@ module.exports = {
     },
     {
       id: 'proc-4',
+      difficulty: 1,
       prompt: 'Перевір, скільки вільної та використаної оперативної пам\'яті у системі, у зручному для читання форматі.',
       hint: 'free -h',
       solution: 'free -h',
@@ -41,6 +45,7 @@ module.exports = {
     },
     {
       id: 'proc-5',
+      difficulty: 1,
       prompt: 'Перевір використання дискового простору у зручному для читання форматі.',
       hint: 'df -h',
       solution: 'df -h',
@@ -49,6 +54,7 @@ module.exports = {
     },
     {
       id: 'proc-6',
+      difficulty: 2,
       prompt: 'Дізнайся, скільки місця займає директорія projects (у зручному форматі).',
       hint: 'du -sh <директорія>',
       solution: 'du -sh projects',
@@ -57,6 +63,7 @@ module.exports = {
     },
     {
       id: 'proc-7',
+      difficulty: 1,
       prompt: 'Дізнайся час роботи системи (uptime) та середнє навантаження.',
       hint: 'uptime',
       solution: 'uptime',

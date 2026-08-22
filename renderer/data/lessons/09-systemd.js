@@ -9,6 +9,7 @@ module.exports = {
   drills: [
     {
       id: 'sysd-1',
+      difficulty: 1,
       prompt: 'Перевір статус сервісу nginx.',
       hint: 'systemctl status <сервіс>',
       solution: 'systemctl status nginx',
@@ -17,6 +18,7 @@ module.exports = {
     },
     {
       id: 'sysd-2',
+      difficulty: 1,
       prompt: 'Зупини сервіс docker.',
       hint: 'systemctl stop <сервіс>',
       solution: 'systemctl stop docker',
@@ -25,6 +27,7 @@ module.exports = {
     },
     {
       id: 'sysd-3',
+      difficulty: 1,
       prompt: 'Запусти сервіс postgresql.',
       hint: 'systemctl start <сервіс>',
       solution: 'systemctl start postgresql',
@@ -33,6 +36,7 @@ module.exports = {
     },
     {
       id: 'sysd-4',
+      difficulty: 2,
       prompt: 'Увімкни автозапуск сервісу postgresql при завантаженні системи.',
       hint: 'systemctl enable <сервіс>',
       solution: 'systemctl enable postgresql',
@@ -41,6 +45,7 @@ module.exports = {
     },
     {
       id: 'sysd-5',
+      difficulty: 2,
       prompt: 'Вимкни автозапуск сервісу cron.',
       hint: 'systemctl disable <сервіс>',
       solution: 'systemctl disable cron',
@@ -49,6 +54,7 @@ module.exports = {
     },
     {
       id: 'sysd-6',
+      difficulty: 2,
       prompt: 'Перезапусти сервіс nginx (наприклад, після зміни конфігурації).',
       hint: 'systemctl restart <сервіс>',
       solution: 'systemctl restart nginx',
@@ -57,6 +63,7 @@ module.exports = {
     },
     {
       id: 'sysd-7',
+      difficulty: 2,
       prompt: 'Виведи список усіх юнітів (сервісів) systemd.',
       hint: 'systemctl list-units',
       solution: 'systemctl list-units',
@@ -65,6 +72,7 @@ module.exports = {
     },
     {
       id: 'sysd-8',
+      difficulty: 2,
       prompt: 'Переглянь останні системні журнали (логи) для сервісу nginx.',
       hint: 'journalctl -u <сервіс>',
       solution: 'journalctl -u nginx',

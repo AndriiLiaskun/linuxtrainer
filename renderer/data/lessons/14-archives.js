@@ -9,6 +9,7 @@ module.exports = {
   drills: [
     {
       id: 'arch-1',
+      difficulty: 2,
       prompt: 'Створи tar-архів backup.tar із вмістом директорії documents.',
       hint: 'tar -cf <архів>.tar <джерело>',
       solution: 'tar -cf backup.tar documents',
@@ -17,6 +18,7 @@ module.exports = {
     },
     {
       id: 'arch-2',
+      difficulty: 1,
       prompt: 'Перевір вміст архіву backup.tar, не розпаковуючи його.',
       hint: 'tar -tf <архів>.tar',
       solution: 'tar -tf backup.tar',
@@ -25,6 +27,7 @@ module.exports = {
     },
     {
       id: 'arch-3',
+      difficulty: 2,
       prompt: 'Розпакуй архів backup.tar у поточній директорії.',
       hint: 'tar -xf <архів>.tar',
       solution: 'tar -xf backup.tar',
@@ -33,6 +36,7 @@ module.exports = {
     },
     {
       id: 'arch-4',
+      difficulty: 2,
       prompt: 'Стисни файл documents/notes.txt за допомогою gzip (залишивши оригінал завдяки -k).',
       hint: 'gzip -k <файл>',
       solution: 'gzip -k documents/notes.txt',
@@ -41,6 +45,7 @@ module.exports = {
     },
     {
       id: 'arch-5',
+      difficulty: 2,
       prompt: 'Створи zip-архів archive.zip із директорії documents.',
       hint: 'zip -r <архів>.zip <джерело>',
       solution: 'zip -r archive.zip documents',

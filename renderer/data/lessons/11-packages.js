@@ -9,6 +9,7 @@ module.exports = {
   drills: [
     {
       id: 'pkg-1',
+      difficulty: 1,
       prompt: 'Онови список доступних пакетів через apt.',
       hint: 'apt update',
       solution: 'apt update',
@@ -17,6 +18,7 @@ module.exports = {
     },
     {
       id: 'pkg-2',
+      difficulty: 1,
       prompt: 'Встанови пакет nginx через apt, автоматично підтверджуючи запити.',
       hint: 'apt install -y <пакет>',
       solution: 'apt install -y nginx',
@@ -25,6 +27,7 @@ module.exports = {
     },
     {
       id: 'pkg-3',
+      difficulty: 1,
       prompt: 'Встанови одразу два пакети: htop і tree.',
       hint: 'apt install можна передати декілька пакетів через пробіл.',
       solution: 'apt install -y htop tree',
@@ -33,6 +36,7 @@ module.exports = {
     },
     {
       id: 'pkg-4',
+      difficulty: 1,
       prompt: 'Видали пакет git, який більше не потрібен.',
       hint: 'apt remove <пакет>',
       solution: 'apt remove -y git',
@@ -41,6 +45,7 @@ module.exports = {
     },
     {
       id: 'pkg-5',
+      difficulty: 2,
       prompt: 'Виведи список усіх встановлених пакетів.',
       hint: 'apt list --installed',
       solution: 'apt list --installed',
@@ -49,6 +54,7 @@ module.exports = {
     },
     {
       id: 'pkg-6',
+      difficulty: 2,
       prompt: 'Спробуй встановити пакет із назвою totally-fake-package і переконайся, що команда завершується помилкою.',
       hint: 'Неіснуючий пакет призводить до помилки "Unable to locate package".',
       solution: 'apt install -y totally-fake-package',

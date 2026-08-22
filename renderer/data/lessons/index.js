@@ -16,4 +16,5 @@ module.exports = [
   require('./13-docker'),
   require('./14-archives'),
   require('./15-cron'),
+  require('./16-kubernetes'),
 ];

@@ -9,6 +9,7 @@ module.exports = {
   drills: [
     {
       id: 'net-1',
+      difficulty: 1,
       prompt: 'Перевір доступність хосту example.com за допомогою 4 пакетів (типова кількість).',
       hint: 'ping -c 4 <хост>',
       solution: 'ping -c 4 example.com',
@@ -17,6 +18,7 @@ module.exports = {
     },
     {
       id: 'net-2',
+      difficulty: 2,
       prompt: 'Виконай GET-запит до http://api.internal/status за допомогою curl.',
       hint: 'curl <url>',
       solution: 'curl http://api.internal/status',
@@ -25,6 +27,7 @@ module.exports = {
     },
     {
       id: 'net-3',
+      difficulty: 2,
       prompt: 'Виконай POST-запит до http://api.internal/deploy за допомогою curl.',
       hint: 'curl -X POST <url>',
       solution: 'curl -X POST http://api.internal/deploy',
@@ -33,6 +36,7 @@ module.exports = {
     },
     {
       id: 'net-4',
+      difficulty: 2,
       prompt: 'Перевір, які TCP-порти зараз слухають на сервері.',
       hint: 'ss -tln або просто ss',
       solution: 'ss',
@@ -41,6 +45,7 @@ module.exports = {
     },
     {
       id: 'net-5',
+      difficulty: 2,
       prompt: 'Знайди IP-адресу хосту example.com через DNS-запит.',
       hint: 'dig <хост> або nslookup <хост>',
       solution: 'dig example.com',
@@ -49,6 +54,7 @@ module.exports = {
     },
     {
       id: 'net-6',
+      difficulty: 1,
       prompt: 'Підключись по SSH до сервера api.internal.',
       hint: 'ssh <хост>',
       solution: 'ssh api.internal',
@@ -57,6 +63,7 @@ module.exports = {
     },
     {
       id: 'net-7',
+      difficulty: 2,
       prompt: 'Скопіюй файл documents/notes.txt на віддалений сервер api.internal у /tmp/ через scp.',
       hint: 'scp <файл> user@host:/шлях',
       solution: 'scp documents/notes.txt student@api.internal:/tmp/',

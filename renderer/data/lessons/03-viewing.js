@@ -9,6 +9,7 @@ module.exports = {
   drills: [
     {
       id: 'view-1',
+      difficulty: 1,
       prompt: 'Виведи весь вміст файлу documents/notes.txt на екран.',
       hint: 'cat <файл>',
       solution: 'cat documents/notes.txt',
@@ -17,6 +18,7 @@ module.exports = {
     },
     {
       id: 'view-2',
+      difficulty: 1,
       prompt: 'Виведи перші 2 рядки лог-файлу projects/webapp/logs/app.log.',
       hint: 'head -n <число> <файл>',
       solution: 'head -n 2 projects/webapp/logs/app.log',
@@ -25,6 +27,7 @@ module.exports = {
     },
     {
       id: 'view-3',
+      difficulty: 1,
       prompt: 'Виведи останні 3 рядки лог-файлу projects/webapp/logs/app.log.',
       hint: 'tail -n <число> <файл>',
       solution: 'tail -n 3 projects/webapp/logs/app.log',
@@ -33,6 +36,7 @@ module.exports = {
     },
     {
       id: 'view-4',
+      difficulty: 1,
       prompt: 'Порахуй, скільки рядків у файлі documents/notes.txt.',
       hint: 'wc -l <файл> виводить кількість рядків.',
       solution: 'wc -l documents/notes.txt',
@@ -41,6 +45,7 @@ module.exports = {
     },
     {
       id: 'view-5',
+      difficulty: 2,
       prompt: 'Виведи вміст notes.txt із номерами рядків.',
       hint: 'cat -n додає нумерацію рядків.',
       solution: 'cat -n documents/notes.txt',
@@ -49,6 +54,7 @@ module.exports = {
     },
     {
       id: 'view-6',
+      difficulty: 2,
       prompt: 'З\'єднай вміст двох файлів documents/notes.txt і documents/report.csv в один вивід (одна команда).',
       hint: 'cat приймає декілька файлів одразу.',
       solution: 'cat documents/notes.txt documents/report.csv',

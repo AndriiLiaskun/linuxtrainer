@@ -9,6 +9,7 @@ module.exports = {
   drills: [
     {
       id: 'script-1',
+      difficulty: 2,
       prompt: 'Створи змінну оточення APP_ENV зі значенням production і виведи її значення.',
       hint: 'VAR=значення, потім echo $VAR',
       solution: 'APP_ENV=production && echo $APP_ENV',
@@ -17,6 +18,7 @@ module.exports = {
     },
     {
       id: 'script-2',
+      difficulty: 2,
       prompt: 'Виведи значення змінної APP_ENV всередині подвійних лапок разом із текстом "Env: ".',
       hint: 'Подвійні лапки дозволяють підстановку змінних: "Env: $APP_ENV"',
       solution: 'echo "Env: $APP_ENV"',
@@ -25,6 +27,7 @@ module.exports = {
     },
     {
       id: 'script-3',
+      difficulty: 2,
       prompt: 'Переконайся, що одинарні лапки НЕ підставляють значення змінної — виведи буквально $APP_ENV.',
       hint: "У одинарних лапках $ не інтерпретується: echo '$APP_ENV'",
       solution: "echo '$APP_ENV'",
@@ -33,6 +36,7 @@ module.exports = {
     },
     {
       id: 'script-4',
+      difficulty: 3,
       prompt: 'Використай підстановку команди $(...), щоб вивести поточну робочу директорію разом із текстом "CWD: ".',
       hint: 'echo "CWD: $(pwd)"',
       solution: 'echo "CWD: $(pwd)"',
@@ -41,6 +45,7 @@ module.exports = {
     },
     {
       id: 'script-5',
+      difficulty: 2,
       prompt: 'Експортуй змінну DEBUG зі значенням 1, щоб вона була доступна дочірнім процесам.',
       hint: 'export VAR=значення',
       solution: 'export DEBUG=1',
@@ -49,6 +54,7 @@ module.exports = {
     },
     {
       id: 'script-6',
+      difficulty: 2,
       prompt: 'Напиши цикл for, який виводить числа 1, 2 та 3, кожне на своєму рядку.',
       hint: 'for i in 1 2 3; do echo $i; done',
       solution: 'for i in 1 2 3; do echo $i; done',
@@ -57,6 +63,7 @@ module.exports = {
     },
     {
       id: 'script-7',
+      difficulty: 3,
       prompt: 'Напиши цикл for, який створює три файли: srv1.log, srv2.log, srv3.log.',
       hint: 'for n in 1 2 3; do touch srv$n.log; done',
       solution: 'for n in 1 2 3; do touch srv$n.log; done',
@@ -68,6 +75,7 @@ module.exports = {
     },
     {
       id: 'script-8',
+      difficulty: 3,
       prompt: 'Використай умову if, щоб вивести "exists", якщо файл documents/notes.txt існує, інакше "missing".',
       hint: 'if [ -f шлях ]; then echo exists; else echo missing; fi',
       solution: 'if [ -f documents/notes.txt ]; then echo exists; else echo missing; fi',
@@ -76,6 +84,7 @@ module.exports = {
     },
     {
       id: 'script-9',
+      difficulty: 3,
       prompt: 'Перевір код завершення (exit code) команди, яка точно провалиться — спробуй перейти в неіснуючу директорію /no-such-dir, а потім виведи $?.',
       hint: 'Після невдалої команди $? міститиме ненульовий код.',
       solution: 'cd /no-such-dir; echo $?',
