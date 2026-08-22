@@ -1,0 +1,26 @@
+{
+  "name": "linuxtrainer",
+  "version": "1.0.0",
+  "description": "DevOps/Linux термінал-тренажер у стилі Terminal Drill",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/run.js",
+    "dist": "electron-builder --win"
+  },
+  "keywords": ["linux", "devops", "training", "electron"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^43.4.1",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.linuxtrainer.app",
+    "productName": "LinuxTrainer",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "renderer/**/*", "package.json"],
+    "win": { "target": "nsis" }
+  }
+}

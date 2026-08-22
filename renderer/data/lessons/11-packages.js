@@ -1,0 +1,59 @@
+'use strict';
+const h = require('./helpers');
+
+module.exports = {
+  id: 'packages',
+  title: 'Пакетні менеджери',
+  icon: '📦',
+  description: 'apt, yum — встановлення та керування пакетами.',
+  drills: [
+    {
+      id: 'pkg-1',
+      prompt: 'Онови список доступних пакетів через apt.',
+      hint: 'apt update',
+      solution: 'apt update',
+      xp: 10,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'Reading package lists'),
+    },
+    {
+      id: 'pkg-2',
+      prompt: 'Встанови пакет nginx через apt, автоматично підтверджуючи запити.',
+      hint: 'apt install -y <пакет>',
+      solution: 'apt install -y nginx',
+      xp: 15,
+      check: (ctx) => ctx.state.packages.has('nginx'),
+    },
+    {
+      id: 'pkg-3',
+      prompt: 'Встанови одразу два пакети: htop і tree.',
+      hint: 'apt install можна передати декілька пакетів через пробіл.',
+      solution: 'apt install -y htop tree',
+      xp: 20,
+      check: (ctx) => ctx.state.packages.has('htop') && ctx.state.packages.has('tree'),
+    },
+    {
+      id: 'pkg-4',
+      prompt: 'Видали пакет git, який більше не потрібен.',
+      hint: 'apt remove <пакет>',
+      solution: 'apt remove -y git',
+      xp: 15,
+      check: (ctx) => !ctx.state.packages.has('git'),
+    },
+    {
+      id: 'pkg-5',
+      prompt: 'Виведи список усіх встановлених пакетів.',
+      hint: 'apt list --installed',
+      solution: 'apt list --installed',
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'coreutils'),
+    },
+    {
+      id: 'pkg-6',
+      prompt: 'Спробуй встановити пакет із назвою totally-fake-package і переконайся, що команда завершується помилкою.',
+      hint: 'Неіснуючий пакет призводить до помилки "Unable to locate package".',
+      solution: 'apt install -y totally-fake-package',
+      xp: 15,
+      check: (ctx) => h.failed(ctx.result),
+    },
+  ],
+};

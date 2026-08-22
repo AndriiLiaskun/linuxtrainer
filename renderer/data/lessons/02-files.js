@@ -1,0 +1,102 @@
+'use strict';
+const h = require('./helpers');
+
+module.exports = {
+  id: 'files',
+  title: 'Файли та директорії',
+  icon: '📁',
+  description: 'touch, mkdir, cp, mv, rm, ln — керування файлами.',
+  drills: [
+    {
+      id: 'files-1',
+      prompt: 'Створи порожній файл із назвою scratch.txt у поточній директорії.',
+      hint: 'Команда touch створює порожній файл (або оновлює час зміни існуючого).',
+      solution: 'touch scratch.txt',
+      xp: 10,
+      check: (ctx) => h.isFile(ctx.fs, '/home/student/scratch.txt'),
+    },
+    {
+      id: 'files-2',
+      prompt: 'Створи нову директорію з назвою backups.',
+      hint: 'mkdir <назва>',
+      solution: 'mkdir backups',
+      xp: 10,
+      check: (ctx) => h.isDir(ctx.fs, '/home/student/backups'),
+    },
+    {
+      id: 'files-3',
+      prompt: 'Створи вкладену структуру директорій backups/2026/august однією командою (проміжні директорії ще не існують).',
+      hint: 'Прапорець -p дозволяє створювати проміжні директорії.',
+      solution: 'mkdir -p backups/2026/august',
+      xp: 20,
+      check: (ctx) => h.isDir(ctx.fs, '/home/student/backups/2026/august'),
+    },
+    {
+      id: 'files-4',
+      prompt: 'Скопіюй documents/notes.txt у backups/notes.txt.',
+      hint: 'cp <джерело> <призначення>',
+      solution: 'cp documents/notes.txt backups/notes.txt',
+      xp: 15,
+      check: (ctx) => h.isFile(ctx.fs, '/home/student/backups/notes.txt') && h.contentContains(ctx.fs, '/home/student/backups/notes.txt', 'TODO'),
+    },
+    {
+      id: 'files-5',
+      prompt: 'Скопіюй усю директорію projects/webapp разом із вмістом у backups/webapp-copy.',
+      hint: 'Для копіювання директорій потрібен прапорець -r (рекурсивно).',
+      solution: 'cp -r projects/webapp backups/webapp-copy',
+      xp: 20,
+      check: (ctx) => h.isDir(ctx.fs, '/home/student/backups/webapp-copy/src') && h.isFile(ctx.fs, '/home/student/backups/webapp-copy/README.md'),
+    },
+    {
+      id: 'files-6',
+      prompt: 'Перейменуй файл scratch.txt на draft.txt.',
+      hint: 'mv виконує і переміщення, і перейменування.',
+      solution: 'mv scratch.txt draft.txt',
+      xp: 15,
+      check: (ctx) => h.notExists(ctx.fs, '/home/student/scratch.txt') && h.isFile(ctx.fs, '/home/student/draft.txt'),
+    },
+    {
+      id: 'files-7',
+      prompt: 'Перемісти draft.txt у директорію backups.',
+      hint: 'mv <файл> <директорія>',
+      solution: 'mv draft.txt backups/',
+      xp: 15,
+      check: (ctx) => h.notExists(ctx.fs, '/home/student/draft.txt') && h.isFile(ctx.fs, '/home/student/backups/draft.txt'),
+    },
+    {
+      id: 'files-8',
+      prompt: 'Видали файл backups/draft.txt.',
+      hint: 'rm <файл>',
+      solution: 'rm backups/draft.txt',
+      xp: 10,
+      check: (ctx) => h.notExists(ctx.fs, '/home/student/backups/draft.txt'),
+    },
+    {
+      id: 'files-9',
+      prompt: 'Видали директорію backups разом із усім вмістом.',
+      hint: 'rm -r видаляє директорії рекурсивно; -f пригнічує запитання/помилки.',
+      solution: 'rm -rf backups',
+      xp: 20,
+      check: (ctx) => h.notExists(ctx.fs, '/home/student/backups'),
+    },
+    {
+      id: 'files-10',
+      prompt: 'Створи символьне посилання current -> projects/webapp.',
+      hint: 'ln -s <ціль> <назва_посилання>',
+      solution: 'ln -s projects/webapp current',
+      xp: 20,
+      check: (ctx) => h.isSymlink(ctx.fs, '/home/student/current') && h.isDir(ctx.fs, '/home/student/current'),
+    },
+    {
+      id: 'files-11',
+      prompt: 'Створи одразу три файли: alpha.txt, beta.txt, gamma.txt однією командою touch.',
+      hint: 'touch приймає декілька імен файлів через пробіл.',
+      solution: 'touch alpha.txt beta.txt gamma.txt',
+      xp: 15,
+      check: (ctx) =>
+        h.isFile(ctx.fs, '/home/student/alpha.txt') &&
+        h.isFile(ctx.fs, '/home/student/beta.txt') &&
+        h.isFile(ctx.fs, '/home/student/gamma.txt'),
+    },
+  ],
+};

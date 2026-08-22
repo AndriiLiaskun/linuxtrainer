@@ -1,0 +1,12 @@
+const engine = require('./engine.test.js');
+const lessons = require('./lessons.test.js');
+
+console.log(`Engine tests: ${engine.passed} passed, ${engine.failed} failed`);
+if (engine.failed) console.log(engine.failures.join('\n\n'));
+
+console.log(`\nLesson content: ${lessons.totalDrills} drills across ${lessons.lessonCount} lessons, ${lessons.failed} failed`);
+if (lessons.failed) console.log(lessons.failures.join('\n\n'));
+
+const ok = engine.failed === 0 && lessons.failed === 0;
+console.log(ok ? '\nAll good. ✔' : '\nFAILURES DETECTED.');
+process.exit(ok ? 0 : 1);

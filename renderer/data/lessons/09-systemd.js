@@ -1,0 +1,75 @@
+'use strict';
+const h = require('./helpers');
+
+module.exports = {
+  id: 'systemd',
+  title: 'systemd та сервіси',
+  icon: '🛠️',
+  description: 'systemctl, journalctl — керування сервісами Linux.',
+  drills: [
+    {
+      id: 'sysd-1',
+      prompt: 'Перевір статус сервісу nginx.',
+      hint: 'systemctl status <сервіс>',
+      solution: 'systemctl status nginx',
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'nginx') && h.stdoutIncludes(ctx.result, 'active (running)'),
+    },
+    {
+      id: 'sysd-2',
+      prompt: 'Зупини сервіс docker.',
+      hint: 'systemctl stop <сервіс>',
+      solution: 'systemctl stop docker',
+      xp: 15,
+      check: (ctx) => ctx.state.services.docker.active === false,
+    },
+    {
+      id: 'sysd-3',
+      prompt: 'Запусти сервіс postgresql.',
+      hint: 'systemctl start <сервіс>',
+      solution: 'systemctl start postgresql',
+      xp: 15,
+      check: (ctx) => ctx.state.services.postgresql.active === true,
+    },
+    {
+      id: 'sysd-4',
+      prompt: 'Увімкни автозапуск сервісу postgresql при завантаженні системи.',
+      hint: 'systemctl enable <сервіс>',
+      solution: 'systemctl enable postgresql',
+      xp: 15,
+      check: (ctx) => ctx.state.services.postgresql.enabled === true,
+    },
+    {
+      id: 'sysd-5',
+      prompt: 'Вимкни автозапуск сервісу cron.',
+      hint: 'systemctl disable <сервіс>',
+      solution: 'systemctl disable cron',
+      xp: 15,
+      check: (ctx) => ctx.state.services.cron.enabled === false,
+    },
+    {
+      id: 'sysd-6',
+      prompt: 'Перезапусти сервіс nginx (наприклад, після зміни конфігурації).',
+      hint: 'systemctl restart <сервіс>',
+      solution: 'systemctl restart nginx',
+      xp: 15,
+      check: (ctx) => ctx.state.services.nginx.active === true,
+    },
+    {
+      id: 'sysd-7',
+      prompt: 'Виведи список усіх юнітів (сервісів) systemd.',
+      hint: 'systemctl list-units',
+      solution: 'systemctl list-units',
+      xp: 20,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'sshd') && h.stdoutIncludes(ctx.result, 'nginx'),
+    },
+    {
+      id: 'sysd-8',
+      prompt: 'Переглянь останні системні журнали (логи) для сервісу nginx.',
+      hint: 'journalctl -u <сервіс>',
+      solution: 'journalctl -u nginx',
+      xp: 20,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'nginx'),
+    },
+  ],
+};

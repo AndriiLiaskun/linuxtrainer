@@ -1,0 +1,59 @@
+'use strict';
+const h = require('./helpers');
+
+module.exports = {
+  id: 'viewing',
+  title: 'Перегляд файлів',
+  icon: '📄',
+  description: 'cat, head, tail, wc — читання вмісту файлів.',
+  drills: [
+    {
+      id: 'view-1',
+      prompt: 'Виведи весь вміст файлу documents/notes.txt на екран.',
+      hint: 'cat <файл>',
+      solution: 'cat documents/notes.txt',
+      xp: 10,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'Deploy app on Friday'),
+    },
+    {
+      id: 'view-2',
+      prompt: 'Виведи перші 2 рядки лог-файлу projects/webapp/logs/app.log.',
+      hint: 'head -n <число> <файл>',
+      solution: 'head -n 2 projects/webapp/logs/app.log',
+      xp: 15,
+      check: (ctx) => h.stdoutLines(ctx.result).length === 2 && h.stdoutIncludes(ctx.result, 'Starting service'),
+    },
+    {
+      id: 'view-3',
+      prompt: 'Виведи останні 3 рядки лог-файлу projects/webapp/logs/app.log.',
+      hint: 'tail -n <число> <файл>',
+      solution: 'tail -n 3 projects/webapp/logs/app.log',
+      xp: 15,
+      check: (ctx) => h.stdoutLines(ctx.result).length === 3 && h.stdoutIncludes(ctx.result, 'Recovered connection'),
+    },
+    {
+      id: 'view-4',
+      prompt: 'Порахуй, скільки рядків у файлі documents/notes.txt.',
+      hint: 'wc -l <файл> виводить кількість рядків.',
+      solution: 'wc -l documents/notes.txt',
+      xp: 15,
+      check: (ctx) => h.stdoutTrim(ctx.result).split(/\s+/)[0] === '3',
+    },
+    {
+      id: 'view-5',
+      prompt: 'Виведи вміст notes.txt із номерами рядків.',
+      hint: 'cat -n додає нумерацію рядків.',
+      solution: 'cat -n documents/notes.txt',
+      xp: 15,
+      check: (ctx) => /^\s*1\t/m.test(ctx.result.stdout),
+    },
+    {
+      id: 'view-6',
+      prompt: 'З\'єднай вміст двох файлів documents/notes.txt і documents/report.csv в один вивід (одна команда).',
+      hint: 'cat приймає декілька файлів одразу.',
+      solution: 'cat documents/notes.txt documents/report.csv',
+      xp: 20,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'TODO') && h.stdoutIncludes(ctx.result, 'alice,91'),
+    },
+  ],
+};

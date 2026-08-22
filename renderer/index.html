@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+<title>LinuxTrainer — DevOps тренажер</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-glyph">❯_</span>
+        <span class="brand-name">LinuxTrainer</span>
+      </div>
+
+      <div class="stats-card">
+        <div class="stat-row">
+          <span class="stat-icon">🔥</span>
+          <span class="stat-value" id="streak-value">0</span>
+          <span class="stat-label">днів поспіль</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-icon">⭐</span>
+          <span class="stat-value" id="level-value">Lvl 1</span>
+        </div>
+        <div class="xp-bar-track">
+          <div class="xp-bar-fill" id="xp-bar-fill"></div>
+        </div>
+        <div class="xp-caption" id="xp-caption">0 / 100 XP</div>
+      </div>
+
+      <nav class="lesson-list" id="lesson-list"></nav>
+
+      <button class="badges-btn" id="badges-btn">🏅 Досягнення</button>
+    </aside>
+
+    <main class="content">
+
+      <section id="welcome-screen" class="welcome-screen">
+        <div class="welcome-glyph">❯_</div>
+        <h1>LinuxTrainer</h1>
+        <p>Тренажер термінала для DevOps-практики. Обери урок зліва, щоб почати.</p>
+      </section>
+
+      <section id="lesson-screen" class="lesson-screen hidden">
+        <header class="lesson-header">
+          <div class="lesson-header-top">
+            <button class="back-btn" id="back-btn">← Уроки</button>
+            <div class="lesson-progress-pill" id="lesson-progress-pill">0 / 0</div>
+          </div>
+          <h1 id="lesson-title"><span id="lesson-icon"></span> <span id="lesson-title-text"></span></h1>
+          <div class="lesson-dots" id="lesson-dots"></div>
+        </header>
+
+        <div class="drill-card">
+          <div class="drill-prompt-row">
+            <span class="drill-index" id="drill-index">Завдання 1</span>
+            <button class="hint-btn" id="hint-btn">💡 Підказка</button>
+            <button class="solution-btn" id="solution-btn">🔓 Відповідь</button>
+          </div>
+          <p class="drill-prompt" id="drill-prompt">—</p>
+          <p class="drill-hint hidden" id="drill-hint"></p>
+        </div>
+
+        <div class="terminal" id="terminal">
+          <div class="terminal-titlebar">
+            <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+            <span class="terminal-title" id="terminal-title">student@devops-trainer</span>
+          </div>
+          <div class="terminal-body" id="terminal-body">
+            <div class="terminal-output" id="terminal-output"></div>
+            <div class="terminal-input-line">
+              <span class="prompt-text" id="prompt-text">student@devops-trainer:~$</span>
+              <input type="text" id="terminal-input" autocomplete="off" spellcheck="false" />
+            </div>
+          </div>
+        </div>
+
+        <div class="success-toast hidden" id="success-toast">
+          <div class="success-icon">✔</div>
+          <div class="success-text">
+            <div class="success-title">Правильно!</div>
+            <div class="success-sub" id="success-sub">+10 XP</div>
+          </div>
+          <button class="next-btn" id="next-btn">Далі →</button>
+        </div>
+      </section>
+
+      <section id="lesson-complete-screen" class="lesson-complete-screen hidden">
+        <div class="complete-glyph">🎉</div>
+        <h1>Урок завершено!</h1>
+        <p id="lesson-complete-text"></p>
+        <button class="back-btn primary" id="complete-back-btn">← До списку уроків</button>
+      </section>
+
+    </main>
+
+    <div class="modal-overlay hidden" id="badges-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>🏅 Досягнення</h2>
+          <button class="modal-close" id="badges-close">✕</button>
+        </div>
+        <div class="badges-grid" id="badges-grid"></div>
+      </div>
+    </div>
+
+    <div class="toast-stack" id="toast-stack"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

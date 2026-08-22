@@ -1,0 +1,67 @@
+'use strict';
+const h = require('./helpers');
+
+module.exports = {
+  id: 'networking',
+  title: 'Мережа',
+  icon: '🌐',
+  description: 'ping, curl, ss, dig, ssh — базові мережеві інструменти.',
+  drills: [
+    {
+      id: 'net-1',
+      prompt: 'Перевір доступність хосту example.com за допомогою 4 пакетів (типова кількість).',
+      hint: 'ping -c 4 <хост>',
+      solution: 'ping -c 4 example.com',
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'PING example.com') && h.stdoutIncludes(ctx.result, '4 packets transmitted'),
+    },
+    {
+      id: 'net-2',
+      prompt: 'Виконай GET-запит до http://api.internal/status за допомогою curl.',
+      hint: 'curl <url>',
+      solution: 'curl http://api.internal/status',
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, '"status": "ok"'),
+    },
+    {
+      id: 'net-3',
+      prompt: 'Виконай POST-запит до http://api.internal/deploy за допомогою curl.',
+      hint: 'curl -X POST <url>',
+      solution: 'curl -X POST http://api.internal/deploy',
+      xp: 20,
+      check: (ctx) => h.stdoutIncludes(ctx.result, '"method": "POST"'),
+    },
+    {
+      id: 'net-4',
+      prompt: 'Перевір, які TCP-порти зараз слухають на сервері.',
+      hint: 'ss -tln або просто ss',
+      solution: 'ss',
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, '0.0.0.0:80'),
+    },
+    {
+      id: 'net-5',
+      prompt: 'Знайди IP-адресу хосту example.com через DNS-запит.',
+      hint: 'dig <хост> або nslookup <хост>',
+      solution: 'dig example.com',
+      xp: 20,
+      check: (ctx) => h.stdoutIncludes(ctx.result, '93.184.216.34'),
+    },
+    {
+      id: 'net-6',
+      prompt: 'Підключись по SSH до сервера api.internal.',
+      hint: 'ssh <хост>',
+      solution: 'ssh api.internal',
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'api.internal'),
+    },
+    {
+      id: 'net-7',
+      prompt: 'Скопіюй файл documents/notes.txt на віддалений сервер api.internal у /tmp/ через scp.',
+      hint: 'scp <файл> user@host:/шлях',
+      solution: 'scp documents/notes.txt student@api.internal:/tmp/',
+      xp: 20,
+      check: (ctx) => h.succeeded(ctx.result),
+    },
+  ],
+};

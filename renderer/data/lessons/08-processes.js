@@ -1,0 +1,67 @@
+'use strict';
+const h = require('./helpers');
+
+module.exports = {
+  id: 'processes',
+  title: 'Процеси та ресурси',
+  icon: '⚡',
+  description: 'ps, kill, free, df, du — моніторинг і керування процесами.',
+  drills: [
+    {
+      id: 'proc-1',
+      prompt: 'Виведи список процесів користувача у розширеному форматі (з CPU/MEM).',
+      hint: 'ps aux показує усі процеси з деталями.',
+      solution: 'ps aux',
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'node server.js') && h.stdoutIncludes(ctx.result, '%CPU'),
+    },
+    {
+      id: 'proc-2',
+      prompt: 'Знайди рядок процесу node server.js серед запущених процесів (скомбінуй ps і grep).',
+      hint: 'ps aux | grep node',
+      solution: 'ps aux | grep node',
+      xp: 20,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'node server.js'),
+    },
+    {
+      id: 'proc-3',
+      prompt: 'Завершай процес node server.js (PID 1044) командою kill.',
+      hint: 'kill <PID>',
+      solution: 'kill 1044',
+      xp: 20,
+      check: (ctx) => !ctx.state.processes.some((p) => p.pid === 1044),
+    },
+    {
+      id: 'proc-4',
+      prompt: 'Перевір, скільки вільної та використаної оперативної пам\'яті у системі, у зручному для читання форматі.',
+      hint: 'free -h',
+      solution: 'free -h',
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'Mem:'),
+    },
+    {
+      id: 'proc-5',
+      prompt: 'Перевір використання дискового простору у зручному для читання форматі.',
+      hint: 'df -h',
+      solution: 'df -h',
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'Filesystem'),
+    },
+    {
+      id: 'proc-6',
+      prompt: 'Дізнайся, скільки місця займає директорія projects (у зручному форматі).',
+      hint: 'du -sh <директорія>',
+      solution: 'du -sh projects',
+      xp: 20,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'projects'),
+    },
+    {
+      id: 'proc-7',
+      prompt: 'Дізнайся час роботи системи (uptime) та середнє навантаження.',
+      hint: 'uptime',
+      solution: 'uptime',
+      xp: 10,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'load average'),
+    },
+  ],
+};
