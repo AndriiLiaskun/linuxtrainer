@@ -50,9 +50,28 @@
       </div>
 
       <section id="welcome-screen" class="welcome-screen">
-        <div class="welcome-glyph">❯_</div>
-        <h1>LinuxTrainer</h1>
-        <p>Тренажер термінала для DevOps-практики. Обери урок зліва, щоб почати.</p>
+        <div class="welcome-hero">
+          <div class="welcome-glyph">❯_</div>
+          <div>
+            <h1>LinuxTrainer</h1>
+            <p>Тренажер термінала для DevOps-практики. Обери урок зліва, щоб почати.</p>
+          </div>
+        </div>
+
+        <div class="tips-row">
+          <span class="tip-pill">💡 Підказка / 🔓 Відповідь — знижують XP за завдання</span>
+          <span class="tip-pill">🎯 Практика — рівень підбирається під тебе</span>
+        </div>
+
+        <div class="cheatsheet">
+          <h2>⌨️ Комбінації клавіш</h2>
+          <div class="shortcuts-grid" id="shortcuts-grid"></div>
+        </div>
+
+        <div class="cheatsheet">
+          <h2>📋 Швидкий довідник команд <span class="cheatsheet-hint">(клікни на команду, щоб побачити опис)</span></h2>
+          <div class="cheatsheet-grid" id="cheatsheet-grid"></div>
+        </div>
       </section>
 
       <section id="lesson-screen" class="lesson-screen hidden">
@@ -139,6 +158,18 @@
           <button class="modal-close" id="badges-close">✕</button>
         </div>
         <div class="badges-grid" id="badges-grid"></div>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="command-doc-modal">
+      <div class="modal command-doc-modal">
+        <div class="modal-header">
+          <h2 id="command-doc-title"></h2>
+          <button class="modal-close" id="command-doc-close">✕</button>
+        </div>
+        <p class="command-doc-desc" id="command-doc-desc"></p>
+        <div class="command-doc-opts" id="command-doc-opts"></div>
+        <div class="command-doc-example" id="command-doc-example"></div>
       </div>
     </div>
 

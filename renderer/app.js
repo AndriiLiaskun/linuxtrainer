@@ -7,6 +7,9 @@ const { DIFFICULTY } = require('./data/difficulty.js');
 const { feedbackFor, quizFeedbackFor } = require('./feedback.js');
 const practiceEngine = require('./practiceEngine.js');
 const vimEditor = require('./vimEditor.js');
+const { CHEATSHEET } = require('./data/cheatsheet.js');
+const { COMMAND_DOCS } = require('./data/commandDocs.js');
+const { SHORTCUT_GROUPS } = require('./data/shortcuts.js');
 
 const progress = new ProgressStore();
 
@@ -73,6 +76,12 @@ const el = {
   badgesGrid: $('badges-grid'),
   badgesClose: $('badges-close'),
   toastStack: $('toast-stack'),
+  commandDocModal: $('command-doc-modal'),
+  commandDocTitle: $('command-doc-title'),
+  commandDocClose: $('command-doc-close'),
+  commandDocDesc: $('command-doc-desc'),
+  commandDocOpts: $('command-doc-opts'),
+  commandDocExample: $('command-doc-example'),
   appVersion: $('app-version'),
   updateCheckBtn: $('update-check-btn'),
   updateBanner: $('update-banner'),
@@ -147,6 +156,7 @@ function openLesson(lesson) {
   el.practiceStats.classList.add('hidden');
   el.lessonDots.classList.remove('hidden');
   el.restartBtn.classList.remove('hidden');
+  el.lessonProgressPill.classList.remove('hidden');
   el.modeBtnPractice.disabled = !(lesson.practice && lesson.practice.length);
 
   // Reconstruct filesystem/session state by silently replaying the
@@ -255,6 +265,7 @@ function switchMode(mode) {
   el.lessonDots.classList.toggle('hidden', mode === 'practice');
   el.practiceStats.classList.toggle('hidden', mode !== 'practice');
   el.restartBtn.classList.toggle('hidden', mode === 'practice');
+  el.lessonProgressPill.classList.toggle('hidden', mode === 'practice');
 
   if (mode === 'practice') {
     practiceStats = progress.getPracticeStats(currentLesson.id);
@@ -877,10 +888,98 @@ function setupUpdater() {
   });
 }
 
+function renderCheatsheet() {
+  const grid = $('cheatsheet-grid');
+  if (!grid) return;
+  for (const entry of CHEATSHEET) {
+    const card = document.createElement('div');
+    card.className = 'cheatsheet-card';
+    const title = document.createElement('div');
+    title.className = 'cheatsheet-card-title';
+    title.textContent = `${entry.icon} ${entry.title}`;
+    const cmds = document.createElement('div');
+    cmds.className = 'cheatsheet-card-cmds';
+    entry.cmds.forEach((cmd, i) => {
+      const token = document.createElement('span');
+      token.className = 'cmd-token';
+      token.textContent = cmd.label;
+      token.addEventListener('click', () => showCommandDoc(cmd.label, cmd.key));
+      cmds.appendChild(token);
+      if (i < entry.cmds.length - 1) cmds.appendChild(document.createTextNode(', '));
+    });
+    card.appendChild(title);
+    card.appendChild(cmds);
+    grid.appendChild(card);
+  }
+}
+
+function showCommandDoc(label, key) {
+  const doc = COMMAND_DOCS[key];
+  if (!doc) return;
+  el.commandDocTitle.textContent = label;
+  el.commandDocDesc.textContent = doc.desc;
+
+  el.commandDocOpts.innerHTML = '';
+  if (doc.opts) {
+    for (const [flag, desc] of doc.opts) {
+      const row = document.createElement('div');
+      row.className = 'command-doc-opt';
+      const flagEl = document.createElement('span');
+      flagEl.className = 'command-doc-opt-flag';
+      flagEl.textContent = flag;
+      const descEl = document.createElement('span');
+      descEl.className = 'command-doc-opt-desc';
+      descEl.textContent = desc;
+      row.appendChild(flagEl);
+      row.appendChild(descEl);
+      el.commandDocOpts.appendChild(row);
+    }
+  }
+
+  el.commandDocExample.textContent = doc.example ? '$ ' + doc.example : '';
+  el.commandDocExample.classList.toggle('hidden', !doc.example);
+
+  el.commandDocModal.classList.remove('hidden');
+}
+
+el.commandDocClose.addEventListener('click', () => el.commandDocModal.classList.add('hidden'));
+el.commandDocModal.addEventListener('click', (e) => {
+  if (e.target === el.commandDocModal) el.commandDocModal.classList.add('hidden');
+});
+
+function renderShortcuts() {
+  const grid = $('shortcuts-grid');
+  if (!grid) return;
+  for (const group of SHORTCUT_GROUPS) {
+    const card = document.createElement('div');
+    card.className = 'shortcut-card';
+    const title = document.createElement('div');
+    title.className = 'shortcut-card-title';
+    title.textContent = `${group.icon} ${group.title}`;
+    card.appendChild(title);
+    for (const [keys, desc] of group.items) {
+      const row = document.createElement('div');
+      row.className = 'shortcut-row';
+      const keysEl = document.createElement('span');
+      keysEl.className = 'shortcut-keys';
+      keysEl.textContent = keys;
+      const descEl = document.createElement('span');
+      descEl.className = 'shortcut-desc';
+      descEl.textContent = desc;
+      row.appendChild(keysEl);
+      row.appendChild(descEl);
+      card.appendChild(row);
+    }
+    grid.appendChild(card);
+  }
+}
+
 async function boot() {
   await progress.load();
   renderHeader();
   renderSidebar();
+  renderCheatsheet();
+  renderShortcuts();
   setupUpdater();
 }
 
