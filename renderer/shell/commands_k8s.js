@@ -96,14 +96,46 @@ function cmd_kubectl(args, ctx) {
   }
 
   if (sub === 'exec') {
-    const target = rest[0];
+    const { rest: rest2 } = parseFlags(rest, ['i', 't'], []);
+    const target = rest2[0];
     const pod = k8s.pods.find((p) => p.name === target);
     if (!pod) return fail(`Error from server (NotFound): pods "${target}" not found\n`);
     return ok('(simulated exec output)\n');
   }
 
   if (sub === 'delete') {
-    const [resource, name] = rest;
+    const { flags, rest: rest2 } = parseFlags(rest, [], ['f']);
+    if (flags.f) {
+      let content;
+      try {
+        content = readFileOrErr(ctx.fs, flags.f, 'kubectl');
+      } catch (e) {
+        return fail(e.message + '\n');
+      }
+      const parsed = parseSimpleYaml(content);
+      if (!parsed.kind || !parsed.name) return fail('error: could not parse manifest (missing kind/metadata.name)\n');
+      if (parsed.kind === 'Deployment') {
+        const idx = k8s.deployments.findIndex((d) => d.name === parsed.name);
+        if (idx === -1) return fail(`Error from server (NotFound): deployments.apps "${parsed.name}" not found\n`);
+        k8s.deployments.splice(idx, 1);
+        k8s.pods = k8s.pods.filter((p) => p.owner !== parsed.name);
+        return ok(`deployment.apps "${parsed.name}" deleted\n`);
+      }
+      if (parsed.kind === 'Service') {
+        const idx = k8s.services.findIndex((s) => s.name === parsed.name);
+        if (idx === -1) return fail(`Error from server (NotFound): services "${parsed.name}" not found\n`);
+        k8s.services.splice(idx, 1);
+        return ok(`service "${parsed.name}" deleted\n`);
+      }
+      if (parsed.kind === 'Pod') {
+        const idx = k8s.pods.findIndex((p) => p.name === parsed.name);
+        if (idx === -1) return fail(`Error from server (NotFound): pods "${parsed.name}" not found\n`);
+        k8s.pods.splice(idx, 1);
+        return ok(`pod "${parsed.name}" deleted\n`);
+      }
+      return fail(`error: unsupported kind "${parsed.kind}"\n`);
+    }
+    const [resource, name] = rest2;
     if (/^(pod|po)$/.test(resource)) {
       const idx = k8s.pods.findIndex((p) => p.name === name);
       if (idx === -1) return fail(`Error from server (NotFound): pods "${name}" not found\n`);
@@ -231,7 +263,63 @@ function cmd_kubectl(args, ctx) {
       if (!dep) return fail(`error: deployments.apps "${name}" not found\n`);
       return ok(`deployment "${dep.name}" successfully rolled out\n`);
     }
+    if (rest[0] === 'undo') {
+      const name = rest[1] && rest[1].includes('/') ? rest[1].split('/')[1] : rest[2] || rest[1];
+      const dep = k8s.deployments.find((d) => d.name === name);
+      if (!dep) return fail(`error: deployments.apps "${name}" not found\n`);
+      return ok(`deployment.apps/${dep.name} rolled back\n`);
+    }
+    if (rest[0] === 'history') {
+      const name = rest[1] && rest[1].includes('/') ? rest[1].split('/')[1] : rest[2] || rest[1];
+      const dep = k8s.deployments.find((d) => d.name === name);
+      if (!dep) return fail(`error: deployments.apps "${name}" not found\n`);
+      return ok(`deployment.apps/${dep.name}\nREVISION  CHANGE-CAUSE\n1         <none>\n2         <none>\n`);
+    }
     return fail('error: unsupported rollout subcommand\n');
+  }
+
+  if (sub === 'label') {
+    const { flags, rest: rest2 } = parseFlags(rest, ['overwrite'], []);
+    const [resource, name, ...pairs] = rest2;
+    const validPairs = pairs.filter((p) => /^[\w./-]+=[\w./-]*$/.test(p));
+    if (!validPairs.length) return fail("error: at least one label update is required\n");
+    let obj;
+    if (/^(pod|po)$/.test(resource)) obj = k8s.pods.find((p) => p.name === name);
+    else if (/^(deployment|deploy)$/.test(resource)) obj = k8s.deployments.find((d) => d.name === name);
+    else if (/^(service|svc)$/.test(resource)) obj = k8s.services.find((s) => s.name === name);
+    if (!obj) return fail(`Error from server (NotFound): ${resource} "${name}" not found\n`);
+    obj.labels = obj.labels || {};
+    for (const p of validPairs) {
+      const [k, v] = p.split('=');
+      if (obj.labels[k] && !flags.overwrite) {
+        return fail(`error: '${k}' already has a value, and --overwrite is false\n`);
+      }
+      obj.labels[k] = v;
+    }
+    return ok(`${resource}/${name} labeled\n`);
+  }
+
+  if (sub === 'port-forward') {
+    const [target, ports] = rest;
+    if (!target || !ports) return fail('error: TYPE/NAME and list of ports are required for port-forward\n');
+    const podName = target.includes('/') ? target.split('/')[1] : target;
+    const pod = k8s.pods.find((p) => p.name === podName) || k8s.deployments.find((d) => d.name === podName);
+    if (!pod) return fail(`Error from server (NotFound): pods "${podName}" not found\n`);
+    const [localPort, remotePort] = ports.includes(':') ? ports.split(':') : [ports, ports];
+    return ok(`Forwarding from 127.0.0.1:${localPort} -> ${remotePort}\n`);
+  }
+
+  if (sub === 'top') {
+    const resource = rest[0];
+    if (/^(pod|pods|po)$/.test(resource)) {
+      const header = 'NAME                               CPU(cores)   MEMORY(bytes)';
+      const lines = k8s.pods.map((p) => `${p.name.padEnd(34)} ${(10 + p.restarts * 2)}m          ${(64 + p.restarts * 8)}Mi`);
+      return ok([header, ...lines].join('\n') + '\n');
+    }
+    if (/^(node|nodes|no)$/.test(resource)) {
+      return ok('NAME              CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%\ndevops-trainer    210m         10%    1024Mi           25%\n');
+    }
+    return fail('error: you must specify the type of resource to top\n');
   }
 
   if (sub === 'config') {

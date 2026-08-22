@@ -117,6 +117,136 @@ function build() {
     check: (ctx) => h.stdoutIncludes(ctx.result, 'devops-trainer-cluster'),
   });
 
+  const LABEL_TARGETS = [
+    { pod: 'redis-0', key: 'tier', value: 'cache' },
+    { pod: 'web-deployment-7c9f8b6d-a1b2c', key: 'env', value: 'prod' },
+    { pod: 'web-deployment-7c9f8b6d-x9y8z', key: 'team', value: 'platform' },
+  ];
+  LABEL_TARGETS.forEach(({ pod, key, value }, i) => {
+    drills.push({
+      id: `p-k8s-label-pod-${i}`,
+      difficulty: 2,
+      prompt: `Додай поду ${pod} мітку ${key}=${value}.`,
+      hint: `kubectl label pod ${pod} ${key}=${value}`,
+      solution: `kubectl label pod ${pod} ${key}=${value}`,
+      xp: 20,
+      check: (ctx) => {
+        const p = ctx.state.k8s.pods.find((p) => p.name === pod);
+        return !!p && p.labels && p.labels[key] === value;
+      },
+    });
+  });
+  LABEL_TARGETS.forEach(({ pod, key, value }, i) => {
+    const newValue = value + '-v2';
+    drills.push({
+      id: `p-k8s-label-overwrite-${i}`,
+      difficulty: 3,
+      prompt: `Дай поду ${pod} мітку ${key}=${value}, а потім зміни її на ${key}=${newValue} за допомогою --overwrite.`,
+      hint: `kubectl label pod ${pod} ${key}=${value} && kubectl label pod ${pod} ${key}=${newValue} --overwrite`,
+      solution: `kubectl label pod ${pod} ${key}=${value} && kubectl label pod ${pod} ${key}=${newValue} --overwrite`,
+      xp: 30,
+      check: (ctx) => {
+        const p = ctx.state.k8s.pods.find((p) => p.name === pod);
+        return !!p && p.labels && p.labels[key] === newValue;
+      },
+    });
+  });
+  drills.push({
+    id: 'p-k8s-label-no-overwrite-fails',
+    difficulty: 2,
+    prompt: 'Дай поду redis-0 мітку tier=cache, а потім спробуй змінити її на tier=hot БЕЗ --overwrite і зверни увагу на помилку.',
+    hint: 'kubectl label pod redis-0 tier=cache && kubectl label pod redis-0 tier=hot',
+    solution: 'kubectl label pod redis-0 tier=cache && kubectl label pod redis-0 tier=hot',
+    xp: 20,
+    check: (ctx) => (ctx.result.stderr || '').includes('--overwrite is false'),
+  });
+
+  const PORT_FORWARDS = [
+    { pod: 'redis-0', local: 6379, remote: 6379 },
+    { pod: 'web-deployment-7c9f8b6d-a1b2c', local: 8080, remote: 80 },
+    { pod: 'web-deployment-7c9f8b6d-x9y8z', local: 9090, remote: 80 },
+  ];
+  PORT_FORWARDS.forEach(({ pod, local, remote }, i) => {
+    drills.push({
+      id: `p-k8s-port-forward-${i}`,
+      difficulty: 2,
+      prompt: `Прокинь локальний порт ${local} до порту ${remote} поду ${pod}.`,
+      hint: `kubectl port-forward ${pod} ${local}:${remote}`,
+      solution: `kubectl port-forward ${pod} ${local}:${remote}`,
+      xp: 20,
+      check: (ctx) => h.succeeded(ctx.result) && h.stdoutIncludes(ctx.result, 'Forwarding'),
+    });
+  });
+
+  drills.push({
+    id: 'p-k8s-rollout-undo-web',
+    difficulty: 2,
+    prompt: 'Відкоти web-deployment до попередньої версії.',
+    hint: 'kubectl rollout undo deployment/web-deployment',
+    solution: 'kubectl rollout undo deployment/web-deployment',
+    xp: 25,
+    check: (ctx) => h.succeeded(ctx.result) && h.stdoutIncludes(ctx.result, 'rolled back'),
+  });
+  drills.push({
+    id: 'p-k8s-rollout-undo-api',
+    difficulty: 3,
+    prompt: 'Застосуй маніфест k8s/api-deployment.yaml, а потім одразу відкоти api-deployment до попередньої версії.',
+    hint: 'kubectl apply -f k8s/api-deployment.yaml && kubectl rollout undo deployment/api-deployment',
+    solution: 'kubectl apply -f k8s/api-deployment.yaml && kubectl rollout undo deployment/api-deployment',
+    xp: 30,
+    check: (ctx) => h.succeeded(ctx.result) && h.stdoutIncludes(ctx.result, 'rolled back'),
+  });
+  drills.push({
+    id: 'p-k8s-rollout-history-web',
+    difficulty: 2,
+    prompt: 'Перевір історію ревізій web-deployment.',
+    hint: 'kubectl rollout history deployment/web-deployment',
+    solution: 'kubectl rollout history deployment/web-deployment',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'REVISION'),
+  });
+  drills.push({
+    id: 'p-k8s-rollout-history-missing-fails',
+    difficulty: 2,
+    prompt: 'Спробуй перевірити історію ревізій неіснуючого деплойменту ghost-app і зверни увагу на помилку.',
+    hint: 'kubectl rollout history deployment/ghost-app',
+    solution: 'kubectl rollout history deployment/ghost-app',
+    xp: 15,
+    check: (ctx) => (ctx.result.stderr || '').includes('not found'),
+  });
+
+  drills.push({
+    id: 'p-k8s-top-pod',
+    difficulty: 1,
+    prompt: 'Переглянь споживання CPU та памʼяті всіма подами.',
+    hint: 'kubectl top pod',
+    solution: 'kubectl top pod',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'CPU(cores)'),
+  });
+  drills.push({
+    id: 'p-k8s-top-node',
+    difficulty: 1,
+    prompt: 'Переглянь споживання ресурсів нодами кластера.',
+    hint: 'kubectl top node',
+    solution: 'kubectl top node',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'devops-trainer'),
+  });
+
+  const EXEC_PODS = ['redis-0', 'web-deployment-7c9f8b6d-a1b2c', 'web-deployment-7c9f8b6d-x9y8z'];
+  EXEC_PODS.forEach((pod, i) => {
+    drills.push({
+      id: `p-k8s-exec-it-${i}`,
+      difficulty: 2,
+      prompt: `Відкрий інтерактивний shell усередині поду ${pod}.`,
+      hint: `kubectl exec -it ${pod} -- sh`,
+      solution: `kubectl exec -it ${pod} -- sh`,
+      xp: 20,
+      check: (ctx) => h.succeeded(ctx.result),
+    });
+  });
+
   return drills;
 }
 

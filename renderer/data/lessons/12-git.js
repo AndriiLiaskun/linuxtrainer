@@ -104,5 +104,71 @@ module.exports = {
         return !!repo && repo.remotes.origin === 'https://github.com/student/myapp.git';
       },
     },
+    {
+      id: 'git-10',
+      difficulty: 2,
+      prompt: 'Створи файл config.yml, додай його в staging, а потім тимчасово сховай ці зміни (git stash).',
+      hint: 'touch config.yml && git add config.yml && git stash',
+      solution: 'touch config.yml && git add config.yml && git stash',
+      xp: 25,
+      check: (ctx) => {
+        const repo = ctx.state.gitRepos.get(ctx.fs.normalize('/home/student/myapp'));
+        return !!repo && repo.stashes.length === 1 && repo.staged.size === 0;
+      },
+    },
+    {
+      id: 'git-11',
+      difficulty: 2,
+      prompt: 'Поверни щойно сховані зміни назад командою git stash pop.',
+      hint: 'git stash pop',
+      solution: 'git stash pop',
+      xp: 20,
+      check: (ctx) => {
+        const repo = ctx.state.gitRepos.get(ctx.fs.normalize('/home/student/myapp'));
+        return !!repo && repo.stashes.length === 0 && repo.staged.has('config.yml');
+      },
+    },
+    {
+      id: 'git-12',
+      difficulty: 1,
+      prompt: 'Зніми config.yml зі staging командою git reset (щоб він знову став непідготовленим).',
+      hint: 'git reset',
+      solution: 'git reset',
+      xp: 15,
+      check: (ctx) => {
+        const repo = ctx.state.gitRepos.get(ctx.fs.normalize('/home/student/myapp'));
+        return !!repo && repo.staged.size === 0;
+      },
+    },
+    {
+      id: 'git-13',
+      difficulty: 2,
+      prompt: 'Познач поточний коміт (Initial commit) легковаговою міткою v1.0.',
+      hint: 'git tag v1.0',
+      solution: 'git tag v1.0',
+      xp: 20,
+      check: (ctx) => {
+        const repo = ctx.state.gitRepos.get(ctx.fs.normalize('/home/student/myapp'));
+        return !!repo && !!repo.tags['v1.0'];
+      },
+    },
+    {
+      id: 'git-14',
+      difficulty: 2,
+      prompt: 'Подивись деталі останнього коміту командою git show.',
+      hint: 'git show',
+      solution: 'git show',
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'Initial commit'),
+    },
+    {
+      id: 'git-15',
+      difficulty: 2,
+      prompt: 'Створи файл temp.log, закомить його, а потім видали командою git rm.',
+      hint: 'touch temp.log && git add temp.log && git commit -m "Add temp.log" && git rm temp.log',
+      solution: 'touch temp.log && git add temp.log && git commit -m "Add temp.log" && git rm temp.log',
+      xp: 25,
+      check: (ctx) => !ctx.fs.exists('/home/student/myapp/temp.log'),
+    },
   ],
 };

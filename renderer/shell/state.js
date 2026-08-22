@@ -44,6 +44,8 @@ function freshDocker() {
       { repo: 'node', tag: '20-alpine', id: 'b2c3d4e5f6a1', size: '118MB' },
     ],
     containers: [],
+    networks: [{ name: 'bridge', driver: 'bridge' }],
+    volumes: [],
     nextId: 1,
   };
 }

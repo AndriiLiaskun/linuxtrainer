@@ -119,5 +119,83 @@ module.exports = {
       xp: 15,
       check: (ctx) => h.stdoutIncludes(ctx.result, 'devops-trainer-cluster'),
     },
+    {
+      id: 'k8s-13',
+      difficulty: 2,
+      prompt: 'Додай поду web-deployment-7c9f8b6d-a1b2c мітку tier=frontend.',
+      hint: 'kubectl label pod <под> tier=frontend',
+      solution: 'kubectl label pod web-deployment-7c9f8b6d-a1b2c tier=frontend',
+      xp: 20,
+      check: (ctx) => {
+        const pod = ctx.state.k8s.pods.find((p) => p.name === 'web-deployment-7c9f8b6d-a1b2c');
+        return !!pod && pod.labels && pod.labels.tier === 'frontend';
+      },
+    },
+    {
+      id: 'k8s-14',
+      difficulty: 3,
+      prompt: 'Зміни мітку tier цього поду на "edge" за допомогою --overwrite.',
+      hint: 'kubectl label pod <под> tier=edge --overwrite',
+      solution: 'kubectl label pod web-deployment-7c9f8b6d-a1b2c tier=edge --overwrite',
+      xp: 25,
+      check: (ctx) => {
+        const pod = ctx.state.k8s.pods.find((p) => p.name === 'web-deployment-7c9f8b6d-a1b2c');
+        return !!pod && pod.labels && pod.labels.tier === 'edge';
+      },
+    },
+    {
+      id: 'k8s-15',
+      difficulty: 2,
+      prompt: 'Прокинь локальний порт 8080 до порту 80 поду web-deployment-7c9f8b6d-a1b2c.',
+      hint: 'kubectl port-forward <под> 8080:80',
+      solution: 'kubectl port-forward web-deployment-7c9f8b6d-a1b2c 8080:80',
+      xp: 20,
+      check: (ctx) => h.succeeded(ctx.result) && h.stdoutIncludes(ctx.result, 'Forwarding'),
+    },
+    {
+      id: 'k8s-16',
+      difficulty: 2,
+      prompt: 'Відкоти деплоймент web-deployment до попередньої версії.',
+      hint: 'kubectl rollout undo deployment/<назва>',
+      solution: 'kubectl rollout undo deployment/web-deployment',
+      xp: 25,
+      check: (ctx) => h.succeeded(ctx.result) && h.stdoutIncludes(ctx.result, 'rolled back'),
+    },
+    {
+      id: 'k8s-17',
+      difficulty: 2,
+      prompt: 'Перевір історію ревізій деплойменту web-deployment.',
+      hint: 'kubectl rollout history deployment/<назва>',
+      solution: 'kubectl rollout history deployment/web-deployment',
+      xp: 20,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'REVISION'),
+    },
+    {
+      id: 'k8s-18',
+      difficulty: 1,
+      prompt: 'Переглянь споживання CPU/памʼяті всіма подами.',
+      hint: 'kubectl top pod',
+      solution: 'kubectl top pod',
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'CPU(cores)'),
+    },
+    {
+      id: 'k8s-19',
+      difficulty: 1,
+      prompt: 'Переглянь споживання ресурсів нодами кластера.',
+      hint: 'kubectl top node',
+      solution: 'kubectl top node',
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'devops-trainer'),
+    },
+    {
+      id: 'k8s-20',
+      difficulty: 2,
+      prompt: 'Відкрий інтерактивний shell усередині поду web-deployment-7c9f8b6d-a1b2c.',
+      hint: 'kubectl exec -it <под> -- sh',
+      solution: 'kubectl exec -it web-deployment-7c9f8b6d-a1b2c -- sh',
+      xp: 20,
+      check: (ctx) => h.succeeded(ctx.result),
+    },
   ],
 };

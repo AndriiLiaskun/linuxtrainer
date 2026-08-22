@@ -342,6 +342,8 @@ function cmd_git(args, ctx) {
       tracked: new Set(),
       commits: [],
       remotes: {},
+      stashes: [],
+      tags: {},
     });
     ctx.fs.mkdir(ctx.fs.cwd + '/.git', { parents: true });
     return ok(`Initialized empty Git repository in ${ctx.fs.cwd}/.git/\n`);
@@ -448,8 +450,79 @@ function cmd_git(args, ctx) {
       tracked: new Set(),
       commits: [],
       remotes: { origin: url },
+      stashes: [],
+      tags: {},
     });
     return ok(`Cloning into '${name}'...\ndone.\n`);
+  }
+  if (sub === 'stash') {
+    const action = rest[0];
+    if (!action || action === 'push' || action === 'save') {
+      if (!repo.staged.size) return ok('No local changes to save\n');
+      repo.stashes.push({ branch: repo.currentBranch, files: Array.from(repo.staged) });
+      repo.staged.clear();
+      return ok(`Saved working directory and index state WIP on ${repo.currentBranch}: stash@{${repo.stashes.length - 1}}\n`);
+    }
+    if (action === 'list') {
+      if (!repo.stashes.length) return ok('');
+      const lines = repo.stashes.map((s, i) => `stash@{${repo.stashes.length - 1 - i}}: WIP on ${s.branch}`).reverse();
+      return ok(lines.join('\n') + '\n');
+    }
+    if (action === 'pop' || action === 'apply') {
+      if (!repo.stashes.length) return fail('No stash entries found.\n');
+      const s = repo.stashes[repo.stashes.length - 1];
+      if (action === 'pop') repo.stashes.pop();
+      for (const f of s.files) repo.staged.add(f);
+      return ok(`On branch ${repo.currentBranch}\nChanges to be committed:\n${s.files.map((f) => '  new file:   ' + f).join('\n')}\n`);
+    }
+    return fail(`git stash: unknown subcommand '${action}'\n`);
+  }
+  if (sub === 'tag') {
+    const { flags, rest: rest2 } = parseFlags(rest, [], ['a', 'm']);
+    if (!rest2.length && !flags.a) {
+      return ok(Object.keys(repo.tags).sort().join('\n') + (Object.keys(repo.tags).length ? '\n' : ''));
+    }
+    const name = flags.a || rest2[0];
+    if (repo.tags[name]) return fail(`fatal: tag '${name}' already exists\n`);
+    const lastHash = repo.commits.length ? repo.commits[repo.commits.length - 1].hash : null;
+    if (!lastHash) return fail('fatal: Failed to resolve \'HEAD\' as a valid ref.\n');
+    repo.tags[name] = { hash: lastHash, message: flags.m || null };
+    return ok('');
+  }
+  if (sub === 'reset') {
+    const { flags } = parseFlags(rest, ['soft', 'mixed', 'hard']);
+    const wasStaged = Array.from(repo.staged);
+    repo.staged.clear();
+    if (flags.hard) {
+      const last = repo.commits[repo.commits.length - 1];
+      return ok(last ? `HEAD is now at ${last.hash} ${last.message}\n` : 'HEAD is now at 0000000\n');
+    }
+    if (!wasStaged.length) return ok('');
+    return ok('Unstaged changes after reset:\n' + wasStaged.map((f) => 'M\t' + f).join('\n') + '\n');
+  }
+  if (sub === 'fetch') {
+    if (!Object.keys(repo.remotes).length) return fail('fatal: No remote repository specified.\n');
+    return ok('');
+  }
+  if (sub === 'show') {
+    const target = rest.find((a) => !a.startsWith('-'));
+    let commit = repo.commits[repo.commits.length - 1];
+    if (target) commit = repo.commits.find((c) => c.hash === target) || (repo.tags[target] ? repo.commits.find((c) => c.hash === repo.tags[target].hash) : null);
+    if (!commit) return fail(`fatal: bad revision '${target || 'HEAD'}'\n`);
+    return ok(`commit ${commit.hash}\nAuthor: student <student@example.com>\n\n    ${commit.message}\n`);
+  }
+  if (sub === 'rm') {
+    if (!rest.length) return fail('fatal: No pathspec was given.\n');
+    for (const f of rest) {
+      try {
+        ctx.fs.remove(f, { force: true });
+      } catch (e) {
+        // ignore — still untrack it below
+      }
+      repo.staged.add(f);
+      repo.tracked.delete(f);
+    }
+    return ok(rest.map((f) => `rm '${f}'`).join('\n') + '\n');
   }
   return fail(`git: '${sub}' is not a git command.\n`);
 }
@@ -492,12 +565,106 @@ function cmd_docker(args, ctx) {
     c.status = 'Exited';
     return ok(target + '\n');
   }
-  if (sub === 'rm') {
+  if (sub === 'start') {
     const target = rest[0];
+    const c = docker.containers.find((c) => c.id.startsWith(target) || c.name === target);
+    if (!c) return fail(`Error: No such container: ${target}\n`);
+    c.status = 'Up';
+    return ok(target + '\n');
+  }
+  if (sub === 'restart') {
+    const target = rest[0];
+    const c = docker.containers.find((c) => c.id.startsWith(target) || c.name === target);
+    if (!c) return fail(`Error: No such container: ${target}\n`);
+    c.status = 'Up';
+    return ok(target + '\n');
+  }
+  if (sub === 'rm') {
+    const { flags, rest: rest2 } = parseFlags(rest, ['f']);
+    const target = rest2[0];
     const idx = docker.containers.findIndex((c) => c.id.startsWith(target) || c.name === target);
     if (idx === -1) return fail(`Error: No such container: ${target}\n`);
+    if (docker.containers[idx].status === 'Up' && !flags.f) {
+      return fail(`Error response from daemon: cannot remove a running container. Stop it first or use -f\n`);
+    }
     docker.containers.splice(idx, 1);
     return ok(target + '\n');
+  }
+  if (sub === 'rmi') {
+    const { flags, rest: rest2 } = parseFlags(rest, ['f']);
+    const target = rest2[0];
+    const idx = docker.images.findIndex((im) => `${im.repo}:${im.tag}` === target || im.repo === target || im.id.startsWith(target));
+    if (idx === -1) return fail(`Error: No such image: ${target}\n`);
+    const img = docker.images[idx];
+    const inUse = docker.containers.find((c) => c.image === `${img.repo}:${img.tag}` || c.image === img.repo);
+    if (inUse && !flags.f) {
+      return fail(`Error response from daemon: conflict: unable to remove repository reference "${target}" (must force) - container ${inUse.id.slice(0, 12)} is using its referenced image\n`);
+    }
+    docker.images.splice(idx, 1);
+    return ok(`Untagged: ${target}\n`);
+  }
+  if (sub === 'inspect') {
+    const target = rest[0];
+    const c = docker.containers.find((c) => c.id.startsWith(target) || c.name === target);
+    if (!c) return fail(`Error: No such object: ${target}\n`);
+    return ok(JSON.stringify([{ Id: c.id, Name: '/' + c.name, Image: c.image, State: { Status: c.status } }], null, 2) + '\n');
+  }
+  if (sub === 'tag') {
+    const [source, target] = rest;
+    if (!source || !target) return fail('docker: "tag" requires 2 arguments\n');
+    const src = docker.images.find((im) => `${im.repo}:${im.tag}` === source || im.repo === source);
+    if (!src) return fail(`Error: No such image: ${source}\n`);
+    const [repo, tag] = target.split(':');
+    const finalTag = tag || 'latest';
+    const existing = docker.images.find((im) => im.repo === repo && im.tag === finalTag);
+    if (existing) {
+      existing.id = src.id;
+      existing.size = src.size;
+    } else {
+      docker.images.push({ repo, tag: finalTag, id: src.id, size: src.size });
+    }
+    return ok('');
+  }
+  if (sub === 'push') {
+    const target = rest[0];
+    const img = docker.images.find((im) => `${im.repo}:${im.tag}` === target || im.repo === target);
+    if (!img) return fail(`An image does not exist locally with the tag: ${target}\n`);
+    return ok(`The push refers to repository [${img.repo}]\nlatest: digest: sha256:${img.id} size: 528\n`);
+  }
+  if (sub === 'network') {
+    const action = rest[0];
+    if (action === 'create') {
+      const name = rest[1];
+      if (!name) return fail('docker network create: missing NETWORK name\n');
+      if (docker.networks.some((n) => n.name === name)) {
+        return fail(`Error response from daemon: network with name ${name} already exists\n`);
+      }
+      docker.networks.push({ name, driver: 'bridge' });
+      return ok(name + '\n');
+    }
+    if (action === 'ls') {
+      const header = 'NETWORK ID     NAME      DRIVER';
+      const lines = docker.networks.map((n) => `${Math.random().toString(16).slice(2, 14).padEnd(14)} ${n.name.padEnd(9)} ${n.driver}`);
+      return ok([header, ...lines].join('\n') + '\n');
+    }
+    return fail(`docker network: unknown subcommand '${action}'\n`);
+  }
+  if (sub === 'volume') {
+    const action = rest[0];
+    if (action === 'create') {
+      const name = rest[1];
+      if (!name) return fail('docker volume create: missing VOLUME name\n');
+      if (!docker.volumes.some((v) => v.name === name)) {
+        docker.volumes.push({ name });
+      }
+      return ok(name + '\n');
+    }
+    if (action === 'ls') {
+      const header = 'DRIVER    VOLUME NAME';
+      const lines = docker.volumes.map((v) => `local     ${v.name}`);
+      return ok([header, ...lines].join('\n') + '\n');
+    }
+    return fail(`docker volume: unknown subcommand '${action}'\n`);
   }
   if (sub === 'exec') {
     return ok('(simulated exec output)\n');
