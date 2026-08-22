@@ -3,6 +3,9 @@
 // localStorage when opened as a plain file (useful for quick UI testing).
 'use strict';
 
+const { freshLessonStats, recordAttempt } = require('./practiceEngine');
+const PRACTICE_REPEAT_XP = 2; // small trickle reward for re-drilling something already mastered
+
 const LEVEL_STEP = 100; // XP needed per level grows linearly by this amount
 
 function xpForLevel(level) {
@@ -63,10 +66,14 @@ class ProgressStore {
         streak: 0,
         lastActiveDate: null,
         completedDrills: {},
+        completedPracticeDrills: {},
+        practiceStats: {},
         badges: [],
         lastLessonId: null,
       };
     }
+    if (!this.data.completedPracticeDrills) this.data.completedPracticeDrills = {};
+    if (!this.data.practiceStats) this.data.practiceStats = {};
     this._touchStreak();
     return this.data;
   }
@@ -165,6 +172,50 @@ class ProgressStore {
       const allDone = allLessons.every((l) => this.completedCountFor(l.id) === l.drills.length);
       if (allDone) award('all-lessons');
     }
+
+    return { xpGained, leveledUp: afterLevel > beforeLevel, newLevel: afterLevel, newBadges };
+  }
+
+  getPracticeStats(lessonId) {
+    if (!this.data.practiceStats[lessonId]) this.data.practiceStats[lessonId] = freshLessonStats();
+    return this.data.practiceStats[lessonId];
+  }
+
+  // Practice mode: full XP the first time a given pool drill is ever solved,
+  // a small trickle on repeats (keeps replaying meaningful without letting
+  // XP be farmed to infinity by re-answering the same easy drill).
+  completePracticeAttempt(lessonId, drill, correct, allLessons) {
+    const wasFirstEverActivity = this.data.lastActiveDate === null;
+    this.recordActivity();
+
+    const stats = this.getPracticeStats(lessonId);
+    recordAttempt(stats, drill, correct);
+
+    if (!correct) return { xpGained: 0, leveledUp: false, newLevel: levelFromXp(this.data.xp), newBadges: [] };
+
+    if (!this.data.completedPracticeDrills[lessonId]) this.data.completedPracticeDrills[lessonId] = [];
+    const firstTime = !this.data.completedPracticeDrills[lessonId].includes(drill.id);
+    const xpGained = firstTime ? drill.xp : PRACTICE_REPEAT_XP;
+    if (firstTime) this.data.completedPracticeDrills[lessonId].push(drill.id);
+
+    const beforeLevel = levelFromXp(this.data.xp);
+    this.data.xp += xpGained;
+    const afterLevel = levelFromXp(this.data.xp);
+
+    const newBadges = [];
+    const award = (id) => {
+      if (!this.data.badges.includes(id)) {
+        this.data.badges.push(id);
+        newBadges.push(BADGES.find((b) => b.id === id));
+      }
+    };
+    const totalPracticeCompleted = Object.values(this.data.completedPracticeDrills).reduce((sum, arr) => sum + arr.length, 0);
+    const totalAll = this.totalCompleted() + totalPracticeCompleted;
+    if (totalAll >= 1) award('first-steps');
+    if (totalAll >= 50) award('fifty-drills');
+    if (totalAll >= 100) award('hundred-drills');
+    if (this.data.streak >= 3) award('streak-3');
+    if (this.data.streak >= 7) award('streak-7');
 
     return { xpGained, leveledUp: afterLevel > beforeLevel, newLevel: afterLevel, newBadges };
   }

@@ -6,6 +6,7 @@ module.exports = {
   title: 'Пакетні менеджери',
   icon: '📦',
   description: 'apt, yum — встановлення та керування пакетами.',
+  practice: require('./practice/packages').build(),
   drills: [
     {
       id: 'pkg-1',

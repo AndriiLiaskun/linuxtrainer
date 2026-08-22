@@ -6,6 +6,7 @@ module.exports = {
   title: 'systemd та сервіси',
   icon: '🛠️',
   description: 'systemctl, journalctl — керування сервісами Linux.',
+  practice: require('./practice/systemd').build(),
   drills: [
     {
       id: 'sysd-1',

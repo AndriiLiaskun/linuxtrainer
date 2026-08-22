@@ -4,6 +4,8 @@ const { Shell } = require('./shell/shell.js');
 const lessons = require('./data/lessons/index.js');
 const { ProgressStore, levelFromXp, xpForLevel, BADGES } = require('./progress.js');
 const { DIFFICULTY } = require('./data/difficulty.js');
+const { feedbackFor, quizFeedbackFor } = require('./feedback.js');
+const practiceEngine = require('./practiceEngine.js');
 
 const progress = new ProgressStore();
 
@@ -12,6 +14,11 @@ let currentShell = null;
 let currentDrillIndex = 0;
 let revealState = {}; // drillId -> 'hint' | 'solution'
 let sessionXp = 0;
+let attemptCounts = {}; // drillId -> number of failed tries since it was shown
+
+let lessonMode = 'story'; // 'story' | 'practice'
+let practiceStats = null; // current lesson's practiceEngine stats object
+let currentPracticeDrill = null;
 
 // ---------------- DOM refs ----------------
 
@@ -30,13 +37,21 @@ const el = {
   backBtn: $('back-btn'),
   completeBackBtn: $('complete-back-btn'),
   lessonProgressPill: $('lesson-progress-pill'),
+  restartBtn: $('restart-btn'),
   lessonIcon: $('lesson-icon'),
   lessonTitleText: $('lesson-title-text'),
   lessonDots: $('lesson-dots'),
+  modeBtnStory: $('mode-btn-story'),
+  modeBtnPractice: $('mode-btn-practice'),
+  practiceStats: $('practice-stats'),
+  practiceTarget: $('practice-target'),
+  practiceAccuracy: $('practice-accuracy'),
+  practiceMastered: $('practice-mastered'),
   drillIndex: $('drill-index'),
   difficultyBadge: $('difficulty-badge'),
   drillPrompt: $('drill-prompt'),
   drillHint: $('drill-hint'),
+  feedbackNote: $('feedback-note'),
   hintBtn: $('hint-btn'),
   solutionBtn: $('solution-btn'),
   terminalTitle: $('terminal-title'),
@@ -120,6 +135,13 @@ function openLesson(lesson) {
   currentShell = new Shell();
   revealState = {};
   sessionXp = 0;
+  lessonMode = 'story';
+  el.modeBtnStory.classList.add('active');
+  el.modeBtnPractice.classList.remove('active');
+  el.practiceStats.classList.add('hidden');
+  el.lessonDots.classList.remove('hidden');
+  el.restartBtn.classList.remove('hidden');
+  el.modeBtnPractice.disabled = !(lesson.practice && lesson.practice.length);
 
   // Reconstruct filesystem/session state by silently replaying the
   // canonical solution of every already-completed drill.
@@ -137,11 +159,6 @@ function openLesson(lesson) {
 
   renderSidebar();
 
-  if (resumeIndex >= lesson.drills.length) {
-    showLessonComplete(lesson, true);
-    return;
-  }
-
   el.welcomeScreen.classList.add('hidden');
   el.lessonCompleteScreen.classList.add('hidden');
   el.lessonScreen.classList.remove('hidden');
@@ -151,12 +168,42 @@ function openLesson(lesson) {
   el.terminalOutput.innerHTML = '';
   el.successToast.classList.add('hidden');
 
+  if (resumeIndex >= lesson.drills.length) {
+    if (lesson.practice && lesson.practice.length) {
+      switchMode('practice');
+    } else {
+      showLessonComplete(lesson, true);
+    }
+    return;
+  }
+
   renderDrill();
   el.terminalInput.focus();
 }
 
 function currentDrill() {
-  return currentLesson.drills[currentDrillIndex];
+  return lessonMode === 'practice' ? currentPracticeDrill : currentLesson.drills[currentDrillIndex];
+}
+
+function renderDifficultyBadge(drill) {
+  const diff = DIFFICULTY[drill.difficulty] || DIFFICULTY[1];
+  el.difficultyBadge.textContent = diff.stars + ' ' + diff.label;
+  el.difficultyBadge.style.color = diff.color;
+  el.difficultyBadge.style.background = diff.color + '1a';
+  el.difficultyBadge.style.border = '1px solid ' + diff.color + '55';
+}
+
+function resetDrillCardChrome(drill) {
+  el.drillPrompt.textContent = drill.prompt;
+  el.drillHint.classList.add('hidden');
+  el.drillHint.classList.remove('solution');
+  el.drillHint.textContent = '';
+  el.successToast.classList.add('hidden');
+  el.feedbackNote.classList.add('hidden');
+  attemptCounts[drill.id] = 0;
+  renderDifficultyBadge(drill);
+  el.terminalInput.value = '';
+  el.terminalInput.focus();
 }
 
 function renderDrill() {
@@ -167,16 +214,7 @@ function renderDrill() {
 
   el.lessonProgressPill.textContent = `${done} / ${total}`;
   el.drillIndex.textContent = `Завдання ${currentDrillIndex + 1} з ${total}`;
-  const diff = DIFFICULTY[drill.difficulty] || DIFFICULTY[1];
-  el.difficultyBadge.textContent = diff.stars + ' ' + diff.label;
-  el.difficultyBadge.style.color = diff.color;
-  el.difficultyBadge.style.background = diff.color + '1a';
-  el.difficultyBadge.style.border = '1px solid ' + diff.color + '55';
-  el.drillPrompt.textContent = drill.prompt;
-  el.drillHint.classList.add('hidden');
-  el.drillHint.classList.remove('solution');
-  el.drillHint.textContent = '';
-  el.successToast.classList.add('hidden');
+  resetDrillCardChrome(drill);
 
   el.lessonDots.innerHTML = '';
   lesson.drills.forEach((d, i) => {
@@ -188,8 +226,60 @@ function renderDrill() {
   });
 
   updatePromptText();
-  el.terminalInput.value = '';
-  el.terminalInput.focus();
+}
+
+// ---------------- Practice mode (adaptive, endless drill pool) ----------------
+
+function switchMode(mode) {
+  if (mode === lessonMode) return;
+  lessonMode = mode;
+  el.modeBtnStory.classList.toggle('active', mode === 'story');
+  el.modeBtnPractice.classList.toggle('active', mode === 'practice');
+  el.lessonDots.classList.toggle('hidden', mode === 'practice');
+  el.practiceStats.classList.toggle('hidden', mode !== 'practice');
+  el.restartBtn.classList.toggle('hidden', mode === 'practice');
+
+  if (mode === 'practice') {
+    practiceStats = progress.getPracticeStats(currentLesson.id);
+    nextPracticeDrill();
+  } else {
+    currentShell = new Shell();
+    renderDrill();
+  }
+}
+
+el.modeBtnStory.addEventListener('click', () => switchMode('story'));
+el.modeBtnPractice.addEventListener('click', () => switchMode('practice'));
+
+function nextPracticeDrill() {
+  const pool = currentLesson.practice || [];
+  currentPracticeDrill = practiceEngine.pickNext(pool, practiceStats);
+  currentShell = new Shell();
+  el.terminalOutput.innerHTML = '';
+
+  if (!currentPracticeDrill) {
+    el.drillIndex.textContent = 'Практика';
+    el.drillPrompt.textContent = 'Для цього уроку ще немає банку практики.';
+    el.difficultyBadge.textContent = '';
+    updatePromptText();
+    renderPracticeStats();
+    return;
+  }
+
+  el.drillIndex.textContent = 'Практика · нескінченний режим';
+  resetDrillCardChrome(currentPracticeDrill);
+  updatePromptText();
+  renderPracticeStats();
+}
+
+function renderPracticeStats() {
+  const target = DIFFICULTY[practiceStats.targetDifficulty] || DIFFICULTY[1];
+  el.practiceTarget.textContent = 'Рівень: ' + target.stars + ' ' + target.short;
+  const acc = practiceEngine.sessionAccuracy(practiceStats);
+  const seen = Object.values(practiceStats.drillStats).reduce((s, d) => s + d.seen, 0);
+  el.practiceAccuracy.textContent = seen ? `Точність: ${Math.round(acc * 100)}%` : 'Точність: —';
+  const pool = currentLesson.practice || [];
+  el.practiceMastered.textContent = `Освоєно: ${practiceEngine.masteredCount(pool, practiceStats)} / ${pool.length}`;
 }
 
 function updatePromptText() {
@@ -245,8 +335,9 @@ el.terminalInput.addEventListener('keydown', (e) => {
 function submitInput() {
   const raw = el.terminalInput.value;
   if (!raw.trim()) return;
-  el.terminalInput.value = '';
   const drill = currentDrill();
+  if (!drill) return; // e.g. practice mode with an empty pool
+  el.terminalInput.value = '';
 
   if (drill.quiz) {
     appendCmdLine(raw);
@@ -254,7 +345,9 @@ function submitInput() {
     if (passed) {
       onDrillPassed(drill);
     } else {
-      appendLine('# не зовсім так — спробуй ще раз', 'term-line-err');
+      attemptCounts[drill.id] = (attemptCounts[drill.id] || 0) + 1;
+      showFeedback(quizFeedbackFor(attemptCounts[drill.id]));
+      if (lessonMode === 'practice') recordPracticeFailure(drill);
     }
     return;
   }
@@ -272,7 +365,25 @@ function submitInput() {
   updatePromptText();
 
   const passed = safeCheck(drill, { shell: currentShell, fs: currentShell.fs, state: currentShell.state, result, input: raw });
-  if (passed) onDrillPassed(drill);
+  if (passed) {
+    onDrillPassed(drill);
+  } else {
+    attemptCounts[drill.id] = (attemptCounts[drill.id] || 0) + 1;
+    showFeedback(feedbackFor(result, attemptCounts[drill.id]));
+    if (lessonMode === 'practice') recordPracticeFailure(drill);
+  }
+}
+
+function recordPracticeFailure(drill) {
+  progress.completePracticeAttempt(currentLesson.id, drill, false, lessons);
+  progress.save();
+  renderPracticeStats();
+}
+
+function showFeedback(fb) {
+  el.feedbackNote.textContent = '🤔 ' + fb.text;
+  el.feedbackNote.classList.remove('hidden', 'error');
+  if (fb.tone === 'error') el.feedbackNote.classList.add('error');
 }
 
 function safeCheck(drill, ctx) {
@@ -287,6 +398,9 @@ function safeCheck(drill, ctx) {
 // ---------------- Drill completion ----------------
 
 function onDrillPassed(drill) {
+  if (lessonMode === 'practice') return onPracticeDrillPassed(drill);
+
+  el.feedbackNote.classList.add('hidden');
   const lessonId = currentLesson.id;
   const alreadyDone = progress.isDrillCompleted(lessonId, drill.id);
 
@@ -315,10 +429,45 @@ function onDrillPassed(drill) {
   }
 }
 
+function onPracticeDrillPassed(drill) {
+  el.feedbackNote.classList.add('hidden');
+  let effectiveXp = drill.xp;
+  if (revealState[drill.id] === 'solution') effectiveXp = Math.round(drill.xp * 0.3);
+  else if (revealState[drill.id] === 'hint') effectiveXp = Math.round(drill.xp * 0.7);
+  // completePracticeAttempt decides first-time-vs-repeat XP internally; a
+  // hint/solution reveal only discounts the first-time award.
+  const scaledDrill = { ...drill, xp: effectiveXp };
+
+  const outcome = progress.completePracticeAttempt(currentLesson.id, scaledDrill, true, lessons);
+  progress.save();
+  sessionXp += outcome.xpGained;
+
+  renderHeader();
+  renderPracticeStats();
+
+  el.successSub.textContent = `+${outcome.xpGained} XP`;
+  el.successToast.classList.remove('hidden');
+
+  for (const badge of outcome.newBadges) {
+    showToast(`${badge.icon} Нова відзнака: ${badge.title}`, badge.desc);
+  }
+  if (outcome.leveledUp) {
+    showToast('⭐ Новий рівень!', `Ти досяг рівня ${outcome.newLevel}`);
+  }
+}
+
 el.nextBtn.addEventListener('click', () => {
+  if (lessonMode === 'practice') {
+    nextPracticeDrill();
+    return;
+  }
   currentDrillIndex++;
   if (currentDrillIndex >= currentLesson.drills.length) {
-    showLessonComplete(currentLesson, false);
+    if (currentLesson.practice && currentLesson.practice.length) {
+      switchMode('practice');
+    } else {
+      showLessonComplete(currentLesson, false);
+    }
   } else {
     renderDrill();
   }
@@ -356,6 +505,19 @@ el.solutionBtn.addEventListener('click', () => {
 // ---------------- Navigation ----------------
 
 el.backBtn.addEventListener('click', () => backToLessons());
+
+el.restartBtn.addEventListener('click', () => {
+  if (!currentLesson) return;
+  const confirmed = window.confirm(
+    `Скинути прогрес уроку «${currentLesson.title}» і почати спочатку? XP, які ти вже отримав, залишаться — але позначки виконання цього уроку зникнуть, і зможеш пройти його знову (включно з XP за кожен дрил).`
+  );
+  if (!confirmed) return;
+  const lesson = currentLesson;
+  progress.data.completedDrills[lesson.id] = [];
+  progress.save();
+  renderHeader();
+  openLesson(lesson);
+});
 el.completeBackBtn.addEventListener('click', () => backToLessons());
 
 function backToLessons() {

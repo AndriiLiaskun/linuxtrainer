@@ -12,6 +12,8 @@ function defaultProgress() {
     streak: 0,
     lastActiveDate: null,
     completedDrills: {}, // lessonId -> [drillId, ...]
+    completedPracticeDrills: {}, // lessonId -> [drillId, ...] (first-completion XP tracking)
+    practiceStats: {}, // lessonId -> practiceEngine stats (adaptive difficulty, spaced repetition)
     badges: [],
     lastLessonId: null,
   };

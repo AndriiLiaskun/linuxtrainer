@@ -6,6 +6,7 @@ module.exports = {
   title: 'Git основи',
   icon: '🔧',
   description: 'init, add, commit, branch, log — контроль версій.',
+  practice: require('./practice/git').build(),
   drills: [
     {
       id: 'git-1',

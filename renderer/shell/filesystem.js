@@ -366,6 +366,19 @@ class FileSystem {
 
     this.writeFile('/home/student/documents/notes.txt', 'TODO: learn grep and sed\nBuy coffee\nDeploy app on Friday\n');
     this.writeFile('/home/student/documents/report.csv', 'name,score\nalice,91\nbob,74\ncarol,88\n');
+    this.writeFile(
+      '/home/student/documents/inventory.csv',
+      'id,item,qty,price\n' +
+        '1,keyboard,12,25\n' +
+        '2,monitor,4,180\n' +
+        '3,mouse,30,15\n' +
+        '4,webcam,8,40\n' +
+        '5,headset,17,35\n'
+    );
+    this.writeFile(
+      '/home/student/documents/servers.txt',
+      'web-01\nweb-02\ndb-01\ncache-01\nlb-01\n'
+    );
     this.writeFile('/home/student/projects/webapp/src/app.py', 'print("hello devops")\n');
     this.writeFile('/home/student/projects/webapp/README.md', '# webapp\nSample project for drills.\n');
     this.writeFile(

@@ -6,6 +6,7 @@ module.exports = {
   title: 'Планування завдань (cron)',
   icon: '⏰',
   description: 'crontab — розклад для регулярних задач.',
+  practice: require('./practice/cron').build(),
   drills: [
     {
       id: 'cron-1',

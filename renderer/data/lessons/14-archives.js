@@ -6,6 +6,7 @@ module.exports = {
   title: 'Архівування',
   icon: '🗜️',
   description: 'tar, gzip, zip — пакування та стиснення файлів.',
+  practice: require('./practice/archives').build(),
   drills: [
     {
       id: 'arch-1',

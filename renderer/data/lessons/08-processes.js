@@ -6,6 +6,7 @@ module.exports = {
   title: 'Процеси та ресурси',
   icon: '⚡',
   description: 'ps, kill, free, df, du — моніторинг і керування процесами.',
+  practice: require('./practice/processes').build(),
   drills: [
     {
       id: 'proc-1',

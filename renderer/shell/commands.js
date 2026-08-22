@@ -319,13 +319,20 @@ function cmd_head(args, ctx) {
 
 function cmd_tail(args, ctx) {
   const { flags, rest } = parseFlags(args, ['f'], ['n']);
-  const n = flags.n ? parseInt(flags.n, 10) : 10;
   const source = rest.length ? readTargets(ctx.fs, rest, 'tail') : { text: ctx.stdin || '', err: null };
   if (source.err) return fail(source.err + '\n');
   const lines = source.text.split('\n');
   const trailing = source.text.endsWith('\n');
   const body = trailing ? lines.slice(0, -1) : lines;
-  const out = body.slice(-n).join('\n') + (body.length ? '\n' : '');
+  let out;
+  if (flags.n && String(flags.n).startsWith('+')) {
+    // tail -n +K: print starting from line K (1-indexed) to the end.
+    const start = Math.max(1, parseInt(String(flags.n).slice(1), 10)) - 1;
+    out = body.slice(start).join('\n') + (body.length ? '\n' : '');
+  } else {
+    const n = flags.n ? parseInt(flags.n, 10) : 10;
+    out = body.slice(-n).join('\n') + (body.length ? '\n' : '');
+  }
   return ok(out + (flags.f ? '' : ''));
 }
 
@@ -705,7 +712,7 @@ function cmd_tr(args, ctx) {
 
 function expandTrSet(spec) {
   if (!spec) return [];
-  const m = spec.match(/^([a-zA-Z])-([a-zA-Z])$/);
+  const m = spec.match(/^([a-zA-Z0-9])-([a-zA-Z0-9])$/);
   if (m) {
     const start = m[1].charCodeAt(0);
     const end = m[2].charCodeAt(0);

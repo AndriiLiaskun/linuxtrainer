@@ -81,6 +81,9 @@ function freshNetwork() {
       'example.com': '93.184.216.34',
       'api.internal': '10.0.0.15',
       'localhost': '127.0.0.1',
+      'db.internal': '10.0.0.21',
+      'cache.internal': '10.0.0.33',
+      'staging.example.com': '93.184.216.50',
     },
   };
 }

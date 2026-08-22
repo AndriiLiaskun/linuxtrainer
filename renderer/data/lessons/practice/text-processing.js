@@ -1,0 +1,123 @@
+'use strict';
+const h = require('../helpers');
+
+const INV = 'documents/inventory.csv';
+// id,item,qty,price
+const INV_COLS = [
+  { f: 1, name: 'id', values: ['id', '1', '2', '3', '4', '5'] },
+  { f: 2, name: 'item', values: ['item', 'keyboard', 'monitor', 'mouse', 'webcam', 'headset'] },
+  { f: 3, name: 'qty', values: ['qty', '12', '4', '30', '8', '17'] },
+  { f: 4, name: 'price', values: ['price', '25', '180', '15', '40', '35'] },
+];
+
+function build() {
+  const drills = [];
+
+  INV_COLS.forEach((c, i) => {
+    drills.push({
+      id: `p-text-cut-${i}`,
+      difficulty: 2,
+      prompt: `Виріж стовпець "${c.name}" (поле ${c.f}) з файлу ${INV}, роздільник — кома.`,
+      hint: `cut -d',' -f${c.f} ${INV}`,
+      solution: `cut -d',' -f${c.f} ${INV}`,
+      xp: 20,
+      check: (ctx) => h.stdoutLines(ctx.result).join(',') === c.values.join(','),
+    });
+    drills.push({
+      id: `p-text-awk-${i}`,
+      difficulty: 3,
+      prompt: `Через awk виведи стовпець "${c.name}" (поле $${c.f}) з файлу ${INV}, роздільник — кома.`,
+      hint: `awk -F',' '{print $${c.f}}' ${INV}`,
+      solution: `awk -F',' '{print $${c.f}}' ${INV}`,
+      xp: 25,
+      check: (ctx) => h.stdoutLines(ctx.result).join(',') === c.values.join(','),
+    });
+  });
+
+  drills.push({
+    id: 'p-text-sort-servers',
+    difficulty: 1,
+    prompt: 'Відсортуй за алфавітом рядки файлу documents/servers.txt.',
+    hint: 'sort documents/servers.txt',
+    solution: 'sort documents/servers.txt',
+    xp: 15,
+    check: (ctx) => h.stdoutLines(ctx.result)[0] === 'cache-01',
+  });
+  drills.push({
+    id: 'p-text-sort-rev-servers',
+    difficulty: 2,
+    prompt: 'Відсортуй рядки файлу documents/servers.txt у зворотному алфавітному порядку.',
+    hint: 'sort -r documents/servers.txt',
+    solution: 'sort -r documents/servers.txt',
+    xp: 20,
+    check: (ctx) => h.stdoutLines(ctx.result)[0] === 'web-02',
+  });
+  drills.push({
+    id: 'p-text-sort-num-qty',
+    difficulty: 3,
+    prompt: `Виріж стовпець qty з ${INV} (без заголовка) і відсортуй числа за зростанням.`,
+    hint: `tail -n +2 ${INV} | cut -d',' -f3 | sort -n`,
+    solution: `tail -n +2 ${INV} | cut -d',' -f3 | sort -n`,
+    xp: 30,
+    check: (ctx) => h.stdoutLines(ctx.result).join(',') === '4,8,12,17,30',
+  });
+
+  const SED_WORDS = [
+    { from: 'hello', to: 'hi', input: 'hello world' },
+    { from: 'foo', to: 'bar', input: 'foo baz foo' },
+    { from: 'error', to: 'warning', input: 'error in module' },
+  ];
+  SED_WORDS.forEach((w, i) => {
+    drills.push({
+      id: `p-text-sed-${i}`,
+      difficulty: 2,
+      prompt: `Заміни перше входження слова "${w.from}" на "${w.to}" у виводі: echo "${w.input}" (через пайп у sed).`,
+      hint: `echo "${w.input}" | sed 's/${w.from}/${w.to}/'`,
+      solution: `echo "${w.input}" | sed 's/${w.from}/${w.to}/'`,
+      xp: 20,
+      check: (ctx) => h.stdoutTrim(ctx.result) === w.input.replace(w.from, w.to),
+    });
+    drills.push({
+      id: `p-text-sed-g-${i}`,
+      difficulty: 3,
+      prompt: `Заміни УСІ входження слова "${w.from}" на "${w.to}" у виводі: echo "${w.input}" (глобальна заміна, флаг g).`,
+      hint: `echo "${w.input}" | sed 's/${w.from}/${w.to}/g'`,
+      solution: `echo "${w.input}" | sed 's/${w.from}/${w.to}/g'`,
+      xp: 25,
+      check: (ctx) => h.stdoutTrim(ctx.result) === w.input.split(w.from).join(w.to),
+    });
+  });
+
+  drills.push({
+    id: 'p-text-tr-upper',
+    difficulty: 2,
+    prompt: 'Переведи вміст файлу documents/servers.txt у верхній регістр (через пайп у tr).',
+    hint: "cat documents/servers.txt | tr 'a-z' 'A-Z'",
+    solution: "cat documents/servers.txt | tr 'a-z' 'A-Z'",
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'WEB-01'),
+  });
+  drills.push({
+    id: 'p-text-tr-delete-digits',
+    difficulty: 3,
+    prompt: 'Видали усі цифри з виводу: echo "server123log456" (через tr -d).',
+    hint: "echo 'server123log456' | tr -d '0-9'",
+    solution: "echo 'server123log456' | tr -d '0-9'",
+    xp: 25,
+    check: (ctx) => h.stdoutTrim(ctx.result) === 'serverlog',
+  });
+
+  drills.push({
+    id: 'p-text-uniq-count',
+    difficulty: 3,
+    prompt: 'Виріж перші букви кожного рядка documents/servers.txt (поле 1 за роздільником "-"), відсортуй і порахуй унікальні через uniq -c.',
+    hint: "cut -d'-' -f1 documents/servers.txt | sort | uniq -c",
+    solution: "cut -d'-' -f1 documents/servers.txt | sort | uniq -c",
+    xp: 30,
+    check: (ctx) => h.stdoutIncludes(ctx.result, '2 web'),
+  });
+
+  return drills;
+}
+
+module.exports = { build };

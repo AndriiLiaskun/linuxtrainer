@@ -1,0 +1,86 @@
+'use strict';
+const h = require('../helpers');
+
+const HOSTS = ['example.com', 'api.internal', 'db.internal', 'cache.internal', 'staging.example.com'];
+
+function build() {
+  const drills = [];
+
+  HOSTS.forEach((host, i) => {
+    drills.push({
+      id: `p-net-ping-${i}`,
+      difficulty: 1,
+      prompt: `Перевір доступність хосту ${host} через ping (4 пакети).`,
+      hint: `ping -c 4 ${host}`,
+      solution: `ping -c 4 ${host}`,
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, `PING ${host}`),
+    });
+    drills.push({
+      id: `p-net-dig-${i}`,
+      difficulty: 2,
+      prompt: `Дізнайся IP-адресу хосту ${host} через DNS-запит.`,
+      hint: `dig ${host}`,
+      solution: `dig ${host}`,
+      xp: 20,
+      check: (ctx) => h.succeeded(ctx.result) && h.stdoutIncludes(ctx.result, host),
+    });
+  });
+
+  const CURL_PATHS = ['/status', '/health', '/deploy', '/metrics'];
+  CURL_PATHS.forEach((p, i) => {
+    drills.push({
+      id: `p-net-curl-get-${i}`,
+      difficulty: 2,
+      prompt: `Виконай GET-запит до http://api.internal${p}.`,
+      hint: `curl http://api.internal${p}`,
+      solution: `curl http://api.internal${p}`,
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, '"status": "ok"'),
+    });
+  });
+
+  drills.push({
+    id: 'p-net-curl-post',
+    difficulty: 2,
+    prompt: 'Виконай POST-запит до http://api.internal/deploy.',
+    hint: 'curl -X POST http://api.internal/deploy',
+    solution: 'curl -X POST http://api.internal/deploy',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, '"method": "POST"'),
+  });
+  drills.push({
+    id: 'p-net-ss',
+    difficulty: 2,
+    prompt: 'Перевір, які TCP-порти зараз слухають на сервері.',
+    hint: 'ss',
+    solution: 'ss',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, '0.0.0.0:80'),
+  });
+  drills.push({
+    id: 'p-net-hostname',
+    difficulty: 1,
+    prompt: "Дізнайся ім'я хосту (hostname) цього сервера.",
+    hint: 'hostname',
+    solution: 'hostname',
+    xp: 10,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'devops-trainer'),
+  });
+
+  HOSTS.slice(0, 3).forEach((host, i) => {
+    drills.push({
+      id: `p-net-ssh-${i}`,
+      difficulty: 1,
+      prompt: `Підключись по SSH до сервера ${host}.`,
+      hint: `ssh ${host}`,
+      solution: `ssh ${host}`,
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, host),
+    });
+  });
+
+  return drills;
+}
+
+module.exports = { build };

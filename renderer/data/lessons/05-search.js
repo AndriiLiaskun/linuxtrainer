@@ -6,6 +6,7 @@ module.exports = {
   title: 'Пошук і фільтрація',
   icon: '🔍',
   description: 'grep, find — пошук тексту та файлів.',
+  practice: require('./practice/search').build(),
   drills: [
     {
       id: 'search-1',

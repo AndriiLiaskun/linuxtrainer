@@ -196,4 +196,9 @@ check('kubectl apply creates deployment', sh.state.k8s.deployments.some((d) => d
 r = run(sh, 'kubectl delete pod redis-0');
 check('kubectl delete pod removes it', sh.state.k8s.pods.some((p) => p.name === 'redis-0'), false);
 
+// --- tail -n +K (skip header) ---
+sh = new Shell();
+r = run(sh, "tail -n +2 documents/inventory.csv | cut -d',' -f3 | sort -n");
+check('tail -n +2 skips header line', r.stdout, '4\n8\n12\n17\n30\n');
+
 module.exports = { passed, failed, failures };

@@ -6,6 +6,7 @@ module.exports = {
   title: 'Мережа',
   icon: '🌐',
   description: 'ping, curl, ss, dig, ssh — базові мережеві інструменти.',
+  practice: require('./practice/networking').build(),
   drills: [
     {
       id: 'net-1',

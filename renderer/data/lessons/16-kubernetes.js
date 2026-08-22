@@ -6,6 +6,7 @@ module.exports = {
   title: 'Kubernetes (kubectl)',
   icon: '☸️',
   description: 'get, describe, apply, scale, rollout — керування кластером.',
+  practice: require('./practice/kubernetes').build(),
   drills: [
     {
       id: 'k8s-1',

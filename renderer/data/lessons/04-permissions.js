@@ -6,6 +6,7 @@ module.exports = {
   title: 'Права доступу',
   icon: '🔐',
   description: 'chmod, chown — керування правами та власниками файлів.',
+  practice: require('./practice/permissions').build(),
   drills: [
     {
       id: 'perm-1',

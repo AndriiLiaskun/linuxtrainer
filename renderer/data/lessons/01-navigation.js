@@ -6,6 +6,7 @@ module.exports = {
   title: 'Навігація',
   icon: '🧭',
   description: 'pwd, cd, ls, tree — переміщення файловою системою.',
+  practice: require('./practice/navigation').build(),
   drills: [
     {
       id: 'nav-1',

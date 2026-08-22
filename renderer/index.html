@@ -59,10 +59,25 @@
         <header class="lesson-header">
           <div class="lesson-header-top">
             <button class="back-btn" id="back-btn">← Уроки</button>
-            <div class="lesson-progress-pill" id="lesson-progress-pill">0 / 0</div>
+            <div class="lesson-header-right">
+              <button class="restart-btn" id="restart-btn" title="Скинути прогрес цього уроку і почати спочатку">↺ Почати спочатку</button>
+              <div class="lesson-progress-pill" id="lesson-progress-pill">0 / 0</div>
+            </div>
           </div>
           <h1 id="lesson-title"><span id="lesson-icon"></span> <span id="lesson-title-text"></span></h1>
+
+          <div class="mode-toggle" id="mode-toggle">
+            <button class="mode-btn active" id="mode-btn-story" data-mode="story">📖 Урок</button>
+            <button class="mode-btn" id="mode-btn-practice" data-mode="practice">🎯 Практика</button>
+          </div>
+
           <div class="lesson-dots" id="lesson-dots"></div>
+
+          <div class="practice-stats hidden" id="practice-stats">
+            <span class="practice-stat" id="practice-target">Рівень: ●○○</span>
+            <span class="practice-stat" id="practice-accuracy">Точність: —</span>
+            <span class="practice-stat" id="practice-mastered">Освоєно: 0</span>
+          </div>
         </header>
 
         <div class="drill-card">
@@ -89,6 +104,8 @@
             </div>
           </div>
         </div>
+
+        <p class="feedback-note hidden" id="feedback-note"></p>
 
         <div class="success-toast hidden" id="success-toast">
           <div class="success-icon">✔</div>

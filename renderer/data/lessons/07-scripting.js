@@ -6,6 +6,7 @@ module.exports = {
   title: 'Змінні та bash-скрипти',
   icon: '📜',
   description: 'Змінні, export, підстановка команд, цикли та умови.',
+  practice: require('./practice/scripting').build(),
   drills: [
     {
       id: 'script-1',

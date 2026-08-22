@@ -6,6 +6,7 @@ module.exports = {
   title: 'Docker основи',
   icon: '🐳',
   description: 'images, run, ps, logs — контейнеризація застосунків.',
+  practice: require('./practice/docker').build(),
   drills: [
     {
       id: 'docker-1',

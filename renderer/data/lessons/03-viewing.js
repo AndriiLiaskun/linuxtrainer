@@ -6,6 +6,7 @@ module.exports = {
   title: 'Перегляд файлів',
   icon: '📄',
   description: 'cat, head, tail, wc — читання вмісту файлів.',
+  practice: require('./practice/viewing').build(),
   drills: [
     {
       id: 'view-1',

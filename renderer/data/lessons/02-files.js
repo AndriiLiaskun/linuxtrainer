@@ -6,6 +6,7 @@ module.exports = {
   title: 'Файли та директорії',
   icon: '📁',
   description: 'touch, mkdir, cp, mv, rm, ln — керування файлами.',
+  practice: require('./practice/files').build(),
   drills: [
     {
       id: 'files-1',

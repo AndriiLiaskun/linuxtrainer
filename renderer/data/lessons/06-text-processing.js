@@ -6,6 +6,7 @@ module.exports = {
   title: 'Обробка тексту',
   icon: '⚙️',
   description: 'sed, awk, sort, uniq, cut, tr — конвеєри обробки тексту.',
+  practice: require('./practice/text-processing').build(),
   drills: [
     {
       id: 'text-1',
