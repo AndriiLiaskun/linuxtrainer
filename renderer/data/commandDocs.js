@@ -8,25 +8,32 @@ const COMMAND_DOCS = {
   cd: { desc: 'Переходить у вказану директорію.', opts: [['-', 'повернутись у попередню директорію'], ['~', 'домашня директорія']], example: 'cd projects' },
   ls: { desc: 'Виводить вміст директорії.', opts: [['-a', 'показати приховані файли'], ['-l', 'детальний список з правами'], ['-h', 'розміри у зручному форматі']], example: 'ls -la' },
   tree: { desc: 'Показує деревовидну структуру директорії.', opts: [['-a', 'включно з прихованими файлами']], example: 'tree projects' },
+  dirname: { desc: 'Виводить шлях до директорії, що містить файл (без імені файлу).', example: 'dirname documents/notes.txt' },
+  basename: { desc: 'Виводить лише ім\'я файлу (без шляху).', opts: [['суфікс', 'прибрати вказаний суфікс, напр. .txt']], example: 'basename documents/notes.txt' },
+  realpath: { desc: 'Перетворює відносний/заплутаний шлях на канонічний абсолютний.', example: "realpath ../projects/./webapp" },
 
   touch: { desc: 'Створює порожній файл (або оновлює час зміни).', example: 'touch notes.txt' },
   mkdir: { desc: 'Створює нову директорію.', opts: [['-p', 'створити всі проміжні директорії']], example: 'mkdir -p a/b/c' },
   cp: { desc: 'Копіює файли або директорії.', opts: [['-r', 'рекурсивно (для директорій)']], example: 'cp -r src dest' },
   mv: { desc: 'Переміщує або перейменовує файл/директорію.', example: 'mv old.txt new.txt' },
   rm: { desc: 'Видаляє файли або директорії.', opts: [['-r', 'рекурсивно'], ['-f', 'без підтвердження/помилок']], example: 'rm -rf tmp/' },
+  rmdir: { desc: 'Видаляє ПОРОЖНЮ директорію (для непорожніх — rm -r).', example: 'rmdir empty-dir' },
   ln: { desc: 'Створює посилання на файл.', opts: [['-s', 'символьне (soft) посилання']], example: 'ln -s target link' },
+  file: { desc: 'Визначає тип файлу (текст, директорія, посилання…).', example: 'file script.sh' },
 
   cat: { desc: 'Виводить весь вміст файлу.', opts: [['-n', 'з нумерацією рядків']], example: 'cat notes.txt' },
   head: { desc: 'Виводить перші N рядків файлу.', opts: [['-n K', 'кількість рядків (типово 10)']], example: 'head -n 5 app.log' },
   tail: { desc: 'Виводить останні N рядків файлу.', opts: [['-n K', 'кількість рядків'], ['-n +K', 'починаючи з рядка K']], example: 'tail -n 20 app.log' },
   wc: { desc: 'Рахує рядки/слова/символи.', opts: [['-l', 'лише рядки'], ['-w', 'лише слова']], example: 'wc -l file.txt' },
-  less: { desc: 'Перегляд вмісту файлу посторінково (тут — як cat).', example: 'less app.log' },
+  less: { desc: 'Перегляд вмісту файлу (тут — виводить одразу, як cat; alias: more).', example: 'less app.log' },
+  diff: { desc: 'Порівнює вміст двох файлів рядок за рядком.', example: 'diff file1.txt file2.txt' },
 
   chmod: { desc: 'Змінює права доступу до файлу.', opts: [['755/644/…', 'числовий режим'], ['u+x, g-w…', 'символьний режим']], example: 'chmod 644 file.txt' },
   chown: { desc: 'Змінює власника (і групу) файлу.', opts: [['owner:group', 'встановити обидва одразу']], example: 'chown alice:devs file' },
   stat: { desc: 'Показує детальні метадані файлу (розмір, права, час зміни).', example: 'stat file.txt' },
+  umask: { desc: 'Показує маску прав за замовчуванням для нових файлів.', example: 'umask' },
 
-  grep: { desc: 'Шукає рядки, що відповідають шаблону.', opts: [['-i', 'ігнорувати регістр'], ['-v', 'інвертувати (не містить)'], ['-n', 'з номерами рядків'], ['-r', 'рекурсивно по директорії']], example: 'grep -i error app.log' },
+  grep: { desc: 'Шукає рядки, що відповідають шаблону (alias: egrep = grep -E).', opts: [['-i', 'ігнорувати регістр'], ['-v', 'інвертувати (не містить)'], ['-n', 'з номерами рядків'], ['-r', 'рекурсивно по директорії']], example: 'grep -i error app.log' },
   find: { desc: 'Шукає файли за іменем/типом у дереві директорій.', opts: [['-name', 'шаблон імені'], ['-type f/d', 'файл чи директорія']], example: "find . -name '*.log'" },
 
   sed: { desc: 'Потоковий редактор — заміна тексту.', opts: [["s/from/to/", 'замінити перше входження'], ["s/from/to/g", 'замінити всі входження']], example: "sed 's/foo/bar/' file" },
@@ -35,11 +42,15 @@ const COMMAND_DOCS = {
   cut: { desc: 'Виділяє стовпці/поля з рядків.', opts: [['-d', 'роздільник'], ['-f', 'номер(и) поля через кому']], example: "cut -d',' -f1 data.csv" },
   tr: { desc: 'Заміна/видалення символів у потоці.', opts: [['-d', 'видалити символи'], ['-s', 'стиснути повтори']], example: "tr 'a-z' 'A-Z'" },
   xargs: { desc: 'Передає вивід попередньої команди як аргументи наступній.', example: "find . -name '*.log' | xargs grep ERROR" },
+  uniq: { desc: 'Прибирає СУСІДНІ повторювані рядки (спершу відсортуй через sort).', opts: [['-c', 'показати кількість повторів'], ['-d', 'лише повторювані рядки']], example: 'sort file.txt | uniq -c' },
 
+  echo: { desc: 'Виводить текст або значення змінної на екран.', opts: [['-n', 'без переносу рядка в кінці']], example: 'echo "Hello $USER"' },
   export: { desc: 'Оголошує змінну оточення, доступну дочірнім процесам.', example: 'export APP_ENV=production' },
   for: { desc: 'Цикл: виконує команди для кожного елемента списку.', example: 'for i in 1 2 3; do echo $i; done' },
   if: { desc: 'Умовна конструкція.', example: 'if [ -f file ]; then echo yes; fi' },
   '$(...)': { desc: 'Підстановка команди — вставляє вивід команди в рядок.', example: 'echo "Path: $(pwd)"' },
+  sleep: { desc: 'Призупиняє виконання скрипту на вказаний час (у секундах).', example: 'sleep 5' },
+  history: { desc: 'Показує список раніше введених команд цієї сесії.', example: 'history' },
 
   ps: { desc: 'Список запущених процесів.', opts: [['aux', 'усі процеси, детальний формат']], example: 'ps aux | grep node' },
   top: { desc: 'Знімок процесів, відсортованих за навантаженням CPU.', example: 'top' },
@@ -47,19 +58,30 @@ const COMMAND_DOCS = {
   jobs: { desc: 'Список фонових завдань поточної сесії.', example: 'jobs' },
   free: { desc: "Використання оперативної пам'яті.", opts: [['-h', 'у зручному для читання форматі']], example: 'free -h' },
   df: { desc: 'Використання дискового простору файлових систем.', opts: [['-h', 'у зручному для читання форматі']], example: 'df -h' },
+  du: { desc: 'Розмір, який займає файл/директорія на диску.', opts: [['-h', 'у зручному для читання форматі'], ['-s', 'лише підсумок, без деталей по вкладених']], example: 'du -sh projects/' },
+  uptime: { desc: 'Час роботи системи без перезавантаження й середнє навантаження.', example: 'uptime' },
 
   systemctl: { desc: 'Керування сервісами systemd.', opts: [['start/stop/restart', 'керування станом'], ['enable/disable', 'автозапуск'], ['status', 'поточний стан']], example: 'systemctl status nginx' },
   journalctl: { desc: 'Перегляд системних журналів (логів) systemd.', opts: [['-u', 'логи конкретного сервісу']], example: 'journalctl -u nginx' },
 
   ping: { desc: 'Перевіряє доступність хосту через ICMP.', opts: [['-c N', 'кількість пакетів']], example: 'ping -c 4 example.com' },
   curl: { desc: 'Виконує HTTP(S) запити з командного рядка.', opts: [['-X METHOD', 'HTTP-метод (GET/POST/…)'], ['-o file', 'зберегти відповідь у файл']], example: 'curl -X POST http://api/deploy' },
+  wget: { desc: 'Завантажує файл за URL і зберігає його на диск.', example: 'wget http://example.com/file.txt' },
   ssh: { desc: "Захищене підключення до віддаленого сервера.", example: 'ssh user@host' },
   scp: { desc: 'Копіює файли між локальним і віддаленим сервером через SSH.', example: 'scp file.txt user@host:/tmp/' },
   dig: { desc: 'DNS-запит — дізнатись IP-адресу хосту.', example: 'dig example.com' },
+  nslookup: { desc: 'Ще один спосіб зробити DNS-запит (старіший за dig).', example: 'nslookup example.com' },
+  ss: { desc: 'Показує мережеві з\'єднання та порти, що слухають (сучасна заміна netstat).', opts: [['-t', 'TCP-сокети'], ['-u', 'UDP-сокети'], ['-l', 'лише ті, що слухають'], ['-n', 'числові адреси/порти']], example: 'ss -tln' },
+  netstat: { desc: 'Показує мережеві з\'єднання (застарілий інструмент, дивись ss).', example: 'netstat -tlnp' },
 
-  apt: { desc: 'Пакетний менеджер Debian/Ubuntu.', opts: [['install -y', 'встановити пакет'], ['remove', 'видалити пакет'], ['update', 'оновити список пакетів']], example: 'apt install -y nginx' },
+  apt: { desc: 'Пакетний менеджер Debian/Ubuntu (alias: apt-get — старіший синтаксис).', opts: [['install -y', 'встановити пакет'], ['remove', 'видалити пакет'], ['update', 'оновити список пакетів']], example: 'apt install -y nginx' },
   yum: { desc: 'Пакетний менеджер RHEL/CentOS (старіший).', example: 'yum install -y httpd' },
   dnf: { desc: 'Пакетний менеджер Fedora/RHEL 8+ (наступник yum).', example: 'dnf install -y vim' },
+
+  whoami: { desc: "Виводить ім'я поточного користувача.", example: 'whoami' },
+  id: { desc: 'Показує UID/GID та групи поточного користувача.', example: 'id' },
+  hostname: { desc: "Виводить ім'я хосту (комп'ютера/сервера).", example: 'hostname' },
+  date: { desc: 'Показує поточну дату й час системи.', example: 'date' },
 
   'git:init': { desc: 'Ініціалізує новий git-репозиторій у поточній директорії.', example: 'git init' },
   'git:add': { desc: 'Додає файл(и) в область підготовлених змін (staging).', example: 'git add file.txt' },
@@ -72,15 +94,17 @@ const COMMAND_DOCS = {
   'docker:logs': { desc: 'Виводить логи контейнера.', example: 'docker logs web' },
   'docker:build': { desc: 'Збирає образ з Dockerfile.', opts: [['-t', 'тег образу']], example: 'docker build -t myapp:1.0 .' },
   'docker:exec': { desc: 'Виконує команду всередині запущеного контейнера.', example: 'docker exec web ls' },
+  'docker-compose': { desc: 'Керує кількома контейнерами одразу за конфігурацією.', opts: [['up', 'запустити всі сервіси'], ['down', 'зупинити й прибрати']], example: 'docker-compose up' },
 
   'k8s:get': { desc: 'Виводить список ресурсів кластера (поди, деплойменти, сервіси…).', example: 'kubectl get pods' },
   'k8s:apply': { desc: 'Застосовує YAML-маніфест до кластера.', opts: [['-f', 'шлях до файлу маніфесту']], example: 'kubectl apply -f deployment.yaml' },
   'k8s:scale': { desc: 'Змінює кількість реплік деплойменту.', opts: [['--replicas=N', 'бажана кількість реплік']], example: 'kubectl scale deployment web --replicas=5' },
   'k8s:describe': { desc: 'Детальна інформація про конкретний ресурс.', example: 'kubectl describe pod web-abc123' },
 
-  tar: { desc: 'Пакує/розпаковує архіви .tar.', opts: [['-c', 'створити архів'], ['-x', 'розпакувати'], ['-f', "ім'я файлу архіву"]], example: 'tar -cf backup.tar dir/' },
-  gzip: { desc: 'Стискає файл у формат .gz.', opts: [['-k', 'залишити оригінал'], ['-d', 'розпакувати']], example: 'gzip -k file.txt' },
+  tar: { desc: 'Пакує/розпаковує архіви .tar.', opts: [['-c', 'створити архів'], ['-x', 'розпакувати'], ['-t', 'показати вміст без розпаковки'], ['-f', "ім'я файлу архіву"]], example: 'tar -cf backup.tar dir/' },
+  gzip: { desc: 'Стискає файл у формат .gz (alias: gunzip = gzip -d).', opts: [['-k', 'залишити оригінал'], ['-d', 'розпакувати']], example: 'gzip -k file.txt' },
   zip: { desc: 'Створює .zip-архів.', opts: [['-r', 'рекурсивно (для директорій)']], example: 'zip -r archive.zip dir/' },
+  unzip: { desc: 'Розпаковує .zip-архів.', example: 'unzip archive.zip' },
 
   crontab: { desc: 'Керує розкладом регулярних завдань.', opts: [['-l', 'показати поточний розклад']], example: 'crontab -l' },
 };

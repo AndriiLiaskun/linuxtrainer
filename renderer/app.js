@@ -7,6 +7,7 @@ const { DIFFICULTY } = require('./data/difficulty.js');
 const { feedbackFor, quizFeedbackFor } = require('./feedback.js');
 const practiceEngine = require('./practiceEngine.js');
 const vimEditor = require('./vimEditor.js');
+const lineEditor = require('./lineEditor.js');
 const { CHEATSHEET } = require('./data/cheatsheet.js');
 const { COMMAND_DOCS } = require('./data/commandDocs.js');
 const { SHORTCUT_GROUPS } = require('./data/shortcuts.js');
@@ -229,7 +230,7 @@ function resetDrillCardChrome(drill) {
   renderDifficultyBadge(drill);
   el.terminalInput.value = '';
   el.terminalInput.focus();
-  resetHistoryNav();
+  resetReadlineState();
 }
 
 function renderDrill() {
@@ -358,10 +359,61 @@ function appendBlock(text, cls) {
 
 let historyIndex = -1;
 let historyDraft = '';
+let killRingValue = '';
+let searchState = null; // { query, matchValue, preValue } while Ctrl+R search is active
 
 function resetHistoryNav() {
   historyIndex = -1;
   historyDraft = '';
+}
+
+function resetReadlineState() {
+  resetHistoryNav();
+  searchState = null;
+}
+
+// ---------------- Ctrl+R reverse history search ----------------
+
+function startReverseSearch() {
+  if (!currentShell) return;
+  searchState = { query: '', matchValue: '', preValue: el.terminalInput.value };
+  updateReverseSearchDisplay();
+}
+
+function updateReverseSearchDisplay() {
+  const history = currentShell.state.history;
+  let match = '';
+  if (searchState.query) {
+    for (let i = history.length - 1; i >= 0; i--) {
+      if (history[i].includes(searchState.query)) {
+        match = history[i];
+        break;
+      }
+    }
+  }
+  searchState.matchValue = match;
+  el.promptText.textContent = `(reverse-i-search)\`${searchState.query}':`;
+  el.terminalInput.value = match;
+}
+
+function cycleReverseSearch() {
+  const history = currentShell.state.history;
+  const curIdx = history.lastIndexOf(searchState.matchValue);
+  for (let i = curIdx - 1; i >= 0; i--) {
+    if (history[i].includes(searchState.query)) {
+      searchState.matchValue = history[i];
+      el.terminalInput.value = searchState.matchValue;
+      break;
+    }
+  }
+}
+
+function endReverseSearch(accept) {
+  el.terminalInput.value = accept ? searchState.matchValue : searchState.preValue;
+  searchState = null;
+  updatePromptText();
+  const len = el.terminalInput.value.length;
+  el.terminalInput.setSelectionRange(len, len);
 }
 
 el.terminalInput.addEventListener('keydown', (e) => {
@@ -370,6 +422,66 @@ el.terminalInput.addEventListener('keydown', (e) => {
     handleVimKeydown(e.key, e.ctrlKey);
     return;
   }
+
+  if (searchState) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      endReverseSearch(false);
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      endReverseSearch(true);
+      return;
+    }
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      searchState.query = searchState.query.slice(0, -1);
+      updateReverseSearchDisplay();
+      return;
+    }
+    if (e.key === 'r' && e.ctrlKey) {
+      e.preventDefault();
+      cycleReverseSearch();
+      return;
+    }
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.key.length === 1) {
+      e.preventDefault();
+      searchState.query += e.key;
+      updateReverseSearchDisplay();
+    }
+    return;
+  }
+
+  if (e.ctrlKey && !e.altKey && !e.metaKey) {
+    const k = e.key.toLowerCase();
+    if (k === 'r') {
+      e.preventDefault();
+      startReverseSearch();
+      return;
+    }
+    if (k === 'a' || k === 'e' || k === 'u' || k === 'k' || k === 'w' || k === 'y') {
+      e.preventDefault();
+      const lineState = { value: el.terminalInput.value, caret: el.terminalInput.selectionStart, killRing: killRingValue };
+      const result = lineEditor.applyReadlineKey(lineState, k);
+      killRingValue = result.killRing;
+      el.terminalInput.value = result.value;
+      el.terminalInput.setSelectionRange(result.caret, result.caret);
+      return;
+    }
+    if (k === 'c') {
+      const hasSelection = el.terminalInput.selectionStart !== el.terminalInput.selectionEnd;
+      if (!hasSelection) {
+        e.preventDefault();
+        appendLine('^C', 'term-line-err');
+        el.terminalInput.value = '';
+        resetHistoryNav();
+      }
+      return;
+    }
+  }
+
   if (e.key === 'Enter') {
     resetHistoryNav();
     submitInput();
