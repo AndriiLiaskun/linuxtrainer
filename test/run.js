@@ -6,6 +6,7 @@ const cheatsheet = require('./cheatsheet.test.js');
 const cheatsheetCoverage = require('./cheatsheetCoverage.test.js');
 const commandDrillCoverage = require('./commandDrillCoverage.test.js');
 const lessons = require('./lessons.test.js');
+const drillCommands = require('./drillCommands.test.js');
 
 console.log(`Engine tests: ${engine.passed} passed, ${engine.failed} failed`);
 if (engine.failed) console.log(engine.failures.join('\n\n'));
@@ -34,6 +35,9 @@ console.log(
 );
 if (lessons.failed) console.log(lessons.failures.join('\n\n'));
 
+console.log(`\nDrill-commands hint tests: ${drillCommands.passed} passed, ${drillCommands.failed} failed`);
+if (drillCommands.failed) console.log(drillCommands.failures.join('\n\n'));
+
 const ok =
   engine.failed === 0 &&
   practiceEngine.failed === 0 &&
@@ -42,6 +46,7 @@ const ok =
   cheatsheet.failed === 0 &&
   cheatsheetCoverage.failed === 0 &&
   commandDrillCoverage.failed === 0 &&
-  lessons.failed === 0;
+  lessons.failed === 0 &&
+  drillCommands.failed === 0;
 console.log(ok ? '\nAll good. ✔' : '\nFAILURES DETECTED.');
 process.exit(ok ? 0 : 1);

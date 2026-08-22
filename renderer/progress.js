@@ -124,6 +124,10 @@ class ProgressStore {
     return !!(this.data.completedDrills[lessonId] && this.data.completedDrills[lessonId].includes(drillId));
   }
 
+  isPracticeDrillCompleted(lessonId, drillId) {
+    return !!(this.data.completedPracticeDrills[lessonId] && this.data.completedPracticeDrills[lessonId].includes(drillId));
+  }
+
   completedCountFor(lessonId) {
     return (this.data.completedDrills[lessonId] || []).length;
   }

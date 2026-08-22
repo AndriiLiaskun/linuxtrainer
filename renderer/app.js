@@ -11,6 +11,7 @@ const lineEditor = require('./lineEditor.js');
 const { CHEATSHEET } = require('./data/cheatsheet.js');
 const { COMMAND_DOCS } = require('./data/commandDocs.js');
 const { SHORTCUT_GROUPS } = require('./data/shortcuts.js');
+const { extractCommands } = require('./drillCommands.js');
 
 const progress = new ProgressStore();
 
@@ -25,6 +26,10 @@ let lessonMode = 'story'; // 'story' | 'practice'
 let practiceStats = null; // current lesson's practiceEngine stats object
 let currentPracticeDrill = null;
 let vimState = null; // active vimEditor state, or null when the terminal is showing
+
+let practiceFilterDifficulty = null; // null = all levels, else 1/2/3
+let practiceHistory = []; // drills shown this practice session, in order — lets Prev/Next browse back over completed ones
+let practiceHistoryPos = -1;
 
 // ---------------- DOM refs ----------------
 
@@ -53,9 +58,15 @@ const el = {
   practiceTarget: $('practice-target'),
   practiceAccuracy: $('practice-accuracy'),
   practiceMastered: $('practice-mastered'),
+  practiceControls: $('practice-controls'),
+  practiceFilter: $('practice-filter'),
+  practicePrevBtn: $('practice-prev-btn'),
+  practiceNextBtn: $('practice-next-btn'),
+  practiceDoneBadge: $('practice-done-badge'),
   drillIndex: $('drill-index'),
   difficultyBadge: $('difficulty-badge'),
   drillPrompt: $('drill-prompt'),
+  drillCommandsHint: $('drill-commands-hint'),
   drillHint: $('drill-hint'),
   feedbackNote: $('feedback-note'),
   hintBtn: $('hint-btn'),
@@ -155,6 +166,7 @@ function openLesson(lesson) {
   el.modeBtnStory.classList.add('active');
   el.modeBtnPractice.classList.remove('active');
   el.practiceStats.classList.add('hidden');
+  el.practiceControls.classList.add('hidden');
   el.lessonDots.classList.remove('hidden');
   el.restartBtn.classList.remove('hidden');
   el.lessonProgressPill.classList.remove('hidden');
@@ -214,6 +226,20 @@ function renderDifficultyBadge(drill) {
   el.difficultyBadge.style.border = '1px solid ' + diff.color + '55';
 }
 
+function renderCommandsHint(drill) {
+  if (!drill || drill.quiz || drill.vim || !drill.solution) {
+    el.drillCommandsHint.classList.add('hidden');
+    return;
+  }
+  const cmds = extractCommands(drill.solution, Object.keys(REGISTRY));
+  if (!cmds.length) {
+    el.drillCommandsHint.classList.add('hidden');
+    return;
+  }
+  el.drillCommandsHint.textContent = '🔑 Знадобляться команди: ' + cmds.join(', ');
+  el.drillCommandsHint.classList.remove('hidden');
+}
+
 function resetDrillCardChrome(drill) {
   if (vimState) {
     vimState = null;
@@ -228,6 +254,7 @@ function resetDrillCardChrome(drill) {
   el.feedbackNote.classList.add('hidden');
   attemptCounts[drill.id] = 0;
   renderDifficultyBadge(drill);
+  renderCommandsHint(drill);
   el.terminalInput.value = '';
   el.terminalInput.focus();
   resetReadlineState();
@@ -265,12 +292,17 @@ function switchMode(mode) {
   el.modeBtnPractice.classList.toggle('active', mode === 'practice');
   el.lessonDots.classList.toggle('hidden', mode === 'practice');
   el.practiceStats.classList.toggle('hidden', mode !== 'practice');
+  el.practiceControls.classList.toggle('hidden', mode !== 'practice');
   el.restartBtn.classList.toggle('hidden', mode === 'practice');
   el.lessonProgressPill.classList.toggle('hidden', mode === 'practice');
 
   if (mode === 'practice') {
     practiceStats = progress.getPracticeStats(currentLesson.id);
-    nextPracticeDrill();
+    practiceHistory = [];
+    practiceHistoryPos = -1;
+    practiceFilterDifficulty = null;
+    el.practiceFilter.querySelectorAll('.filter-btn').forEach((b) => b.classList.toggle('active', b.dataset.filter === ''));
+    practiceGoNext();
   } else {
     currentShell = new Shell();
     renderDrill();
@@ -280,15 +312,59 @@ function switchMode(mode) {
 el.modeBtnStory.addEventListener('click', () => switchMode('story'));
 el.modeBtnPractice.addEventListener('click', () => switchMode('practice'));
 
-function nextPracticeDrill() {
+el.practiceFilter.querySelectorAll('.filter-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    practiceFilterDifficulty = btn.dataset.filter ? Number(btn.dataset.filter) : null;
+    el.practiceFilter.querySelectorAll('.filter-btn').forEach((b) => b.classList.toggle('active', b === btn));
+    practiceGoNext();
+  });
+});
+
+el.practicePrevBtn.addEventListener('click', () => practiceGoPrev());
+el.practiceNextBtn.addEventListener('click', () => practiceGoNext());
+
+function currentPracticePool() {
   const pool = currentLesson.practice || [];
-  currentPracticeDrill = practiceEngine.pickNext(pool, practiceStats);
+  if (!practiceFilterDifficulty) return pool;
+  return pool.filter((d) => d.difficulty === practiceFilterDifficulty);
+}
+
+function practiceGoNext() {
+  if (practiceHistoryPos < practiceHistory.length - 1) {
+    practiceHistoryPos++;
+    loadPracticeHistoryEntry();
+    return;
+  }
+  const pool = currentPracticePool();
+  const picked = practiceEngine.pickNext(pool, practiceStats);
+  if (picked) {
+    practiceHistory.push(picked);
+    practiceHistoryPos = practiceHistory.length - 1;
+  }
+  loadPracticeHistoryEntry();
+}
+
+function practiceGoPrev() {
+  if (practiceHistoryPos <= 0) return;
+  practiceHistoryPos--;
+  loadPracticeHistoryEntry();
+}
+
+function loadPracticeHistoryEntry() {
+  currentPracticeDrill = practiceHistory[practiceHistoryPos] || null;
   currentShell = new Shell();
   el.terminalOutput.innerHTML = '';
 
+  el.practicePrevBtn.disabled = practiceHistoryPos <= 0;
+  el.practiceNextBtn.disabled = false;
+
   if (!currentPracticeDrill) {
     el.drillIndex.textContent = 'Практика';
-    el.drillPrompt.textContent = 'Для цього уроку ще немає банку практики.';
+    el.drillPrompt.textContent = practiceFilterDifficulty
+      ? 'Немає задач цього рівня складності в цьому уроці.'
+      : 'Для цього уроку ще немає банку практики.';
+    el.drillCommandsHint.classList.add('hidden');
+    el.practiceDoneBadge.classList.add('hidden');
     el.difficultyBadge.textContent = '';
     updatePromptText();
     renderPracticeStats();
@@ -296,9 +372,19 @@ function nextPracticeDrill() {
   }
 
   el.drillIndex.textContent = 'Практика · нескінченний режим';
+  el.practiceDoneBadge.classList.toggle(
+    'hidden',
+    !progress.isPracticeDrillCompleted(currentLesson.id, currentPracticeDrill.id)
+  );
   resetDrillCardChrome(currentPracticeDrill);
   updatePromptText();
   renderPracticeStats();
+}
+
+// Kept as the entry point used elsewhere (post-success "Далі" button) —
+// always means "advance," same as pressing the nav Next button.
+function nextPracticeDrill() {
+  practiceGoNext();
 }
 
 function renderPracticeStats() {

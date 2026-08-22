@@ -503,6 +503,76 @@ html, body {
   font-family: var(--mono);
 }
 
+.practice-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+.practice-filter {
+  display: inline-flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 3px;
+}
+.filter-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+.filter-btn.active {
+  background: var(--blue);
+  color: #04160b;
+}
+.practice-nav {
+  display: flex;
+  gap: 8px;
+}
+.practice-nav-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 5px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--sans);
+}
+.practice-nav-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.practice-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.practice-done-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(35, 199, 120, 0.1);
+  border: 1px solid rgba(35, 199, 120, 0.3);
+  border-radius: 999px;
+  padding: 4px 9px;
+  white-space: nowrap;
+}
+
+.drill-commands-hint {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+
 .lesson-dots {
   display: flex;
   gap: 5px;

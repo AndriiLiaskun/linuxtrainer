@@ -97,16 +97,31 @@
             <span class="practice-stat" id="practice-accuracy">Точність: —</span>
             <span class="practice-stat" id="practice-mastered">Освоєно: 0</span>
           </div>
+
+          <div class="practice-controls hidden" id="practice-controls">
+            <div class="practice-filter" id="practice-filter">
+              <button class="filter-btn active" data-filter="">Усі рівні</button>
+              <button class="filter-btn" data-filter="1">●○○ Легкий</button>
+              <button class="filter-btn" data-filter="2">●●○ Середній</button>
+              <button class="filter-btn" data-filter="3">●●● Складний</button>
+            </div>
+            <div class="practice-nav">
+              <button class="practice-nav-btn" id="practice-prev-btn" title="Попереднє завдання">◀ Попереднє</button>
+              <button class="practice-nav-btn" id="practice-next-btn" title="Наступне завдання">Наступне ▶</button>
+            </div>
+          </div>
         </header>
 
         <div class="drill-card">
           <div class="drill-prompt-row">
             <span class="drill-index" id="drill-index">Завдання 1</span>
             <span class="difficulty-badge" id="difficulty-badge"></span>
+            <span class="practice-done-badge hidden" id="practice-done-badge">✓ вже виконано</span>
             <button class="hint-btn" id="hint-btn">💡 Підказка</button>
             <button class="solution-btn" id="solution-btn">🔓 Відповідь</button>
           </div>
           <p class="drill-prompt" id="drill-prompt">—</p>
+          <p class="drill-commands-hint hidden" id="drill-commands-hint"></p>
           <p class="drill-hint hidden" id="drill-hint"></p>
         </div>
 
