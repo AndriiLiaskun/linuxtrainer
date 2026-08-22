@@ -37,6 +37,7 @@ class FileSystem {
   constructor() {
     this.root = new VNode('dir', '/', { mode: 0o755 });
     this.cwd = '/';
+    this.prevCwd = null;
     this.currentUser = 'student';
     this.env = {
       HOME: '/home/student',
@@ -322,8 +323,10 @@ class FileSystem {
     const node = this.getNode(norm);
     if (!node) throw new ShellError(`cd: ${path}: No such file or directory`);
     if (node.type !== 'dir') throw new ShellError(`cd: ${path}: Not a directory`);
+    this.prevCwd = this.cwd;
     this.cwd = norm;
     this.env.PWD = norm;
+    this.env.OLDPWD = this.prevCwd;
   }
 
   list(path) {

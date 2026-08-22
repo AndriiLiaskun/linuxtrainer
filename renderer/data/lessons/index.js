@@ -17,4 +17,5 @@ module.exports = [
   require('./14-archives'),
   require('./15-cron'),
   require('./16-kubernetes'),
+  require('./17-vim'),
 ];

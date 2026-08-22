@@ -72,7 +72,33 @@ function cmd_pwd(args, ctx) {
   return ok(ctx.fs.cwd + '\n');
 }
 
+function cmd_dirname(args, ctx) {
+  if (!args.length) return fail('dirname: missing operand\n');
+  return ok(args.map((a) => ctx.fs.dirname(a)).join('\n') + '\n');
+}
+
+function cmd_basename(args, ctx) {
+  if (!args.length) return fail('basename: missing operand\n');
+  let name = ctx.fs.basename(args[0]);
+  if (args[1] && name.endsWith(args[1])) name = name.slice(0, -args[1].length);
+  return ok(name + '\n');
+}
+
+function cmd_realpath(args, ctx) {
+  if (!args.length) return fail('realpath: missing operand\n');
+  return ok(args.map((a) => ctx.fs.normalize(a)).join('\n') + '\n');
+}
+
 function cmd_cd(args, ctx) {
+  if (args[0] === '-') {
+    if (!ctx.fs.prevCwd) return fail('cd: OLDPWD not set\n');
+    try {
+      ctx.fs.chdir(ctx.fs.prevCwd);
+      return ok(ctx.fs.cwd + '\n');
+    } catch (e) {
+      return fail((e.message || 'cd: error') + '\n');
+    }
+  }
   const target = args[0] || ctx.fs.env.HOME;
   try {
     ctx.fs.chdir(target);
@@ -297,6 +323,17 @@ function numberLines(text) {
 
 function cmd_less(args, ctx) {
   return cmd_cat(args, ctx);
+}
+
+function cmd_vim(args, ctx) {
+  if (!args.length) return fail('vim: missing filename\n');
+  const path = args[0];
+  const norm = ctx.fs.normalize(path);
+  const node = ctx.fs.getNode(norm);
+  if (node && node.type === 'dir') return fail(`vim: ${path}: Is a directory\n`);
+  const content = node ? node.content : '';
+  ctx.state.pendingEditor = { path: norm, content };
+  return ok('');
 }
 
 function cmd_echo(args, ctx) {
@@ -537,9 +574,31 @@ function cmd_grep(args, ctx) {
     return { stdout: out ? out + '\n' : '', stderr: '', code: matches.length ? 0 : 1 };
   }
 
+  let expandedTargets = targets;
+  if (flags.r) {
+    expandedTargets = [];
+    for (const t of targets) {
+      const node = ctx.fs.getNode(t);
+      if (node && node.type === 'dir') {
+        const walk = (n, path) => {
+          if (n.type === 'file') {
+            expandedTargets.push(path);
+          } else if (n.type === 'dir') {
+            for (const name of Array.from(n.children.keys()).sort()) {
+              walk(n.children.get(name), path === '/' ? '/' + name : path + '/' + name);
+            }
+          }
+        };
+        walk(node, ctx.fs.normalize(t));
+      } else {
+        expandedTargets.push(t);
+      }
+    }
+  }
+
   let allOut = [];
   let anyMatch = false;
-  for (const t of targets) {
+  for (const t of expandedTargets) {
     let text;
     try {
       text = readFileOrErr(ctx.fs, t, 'grep');
@@ -548,7 +607,7 @@ function cmd_grep(args, ctx) {
     }
     const matches = searchIn(text);
     if (matches.length) anyMatch = true;
-    const prefix = targets.length > 1 ? `${t}:` : '';
+    const prefix = expandedTargets.length > 1 ? `${t}:` : '';
     if (flags.c) {
       allOut.push(`${prefix}${matches.length}`);
     } else if (flags.l) {
@@ -693,21 +752,38 @@ function cmd_cut(args, ctx) {
 }
 
 function cmd_tr(args, ctx) {
-  const { flags, rest } = parseFlags(args, ['d']);
+  const { flags, rest } = parseFlags(args, ['d', 's']);
   if (!rest.length) return fail('tr: missing operand\n');
   const text = ctx.stdin || '';
+
+  let result = text;
+
   if (flags.d) {
     const set = new Set(expandTrSet(rest[0]));
-    return ok(Array.from(text).filter((c) => !set.has(c)).join(''));
+    result = Array.from(result).filter((c) => !set.has(c)).join('');
+  } else if (rest.length >= 2 || !flags.s) {
+    const from = expandTrSet(rest[0]);
+    const to = expandTrSet(rest[1] || '');
+    const map = new Map();
+    from.forEach((c, i) => map.set(c, to[i] !== undefined ? to[i] : to[to.length - 1]));
+    result = Array.from(result)
+      .map((c) => (map.has(c) ? map.get(c) : c))
+      .join('');
   }
-  const from = expandTrSet(rest[0]);
-  const to = expandTrSet(rest[1] || '');
-  const map = new Map();
-  from.forEach((c, i) => map.set(c, to[i] !== undefined ? to[i] : to[to.length - 1]));
-  const out = Array.from(text)
-    .map((c) => (map.has(c) ? map.get(c) : c))
-    .join('');
-  return ok(out);
+
+  if (flags.s) {
+    const squeezeSet = new Set(expandTrSet(rest[0]));
+    let out = '';
+    let prev = null;
+    for (const c of result) {
+      if (squeezeSet.has(c) && c === prev) continue;
+      out += c;
+      prev = c;
+    }
+    result = out;
+  }
+
+  return ok(result);
 }
 
 function expandTrSet(spec) {
@@ -761,6 +837,9 @@ module.exports = {
   fail,
   parseFlags,
   cmd_pwd,
+  cmd_dirname,
+  cmd_basename,
+  cmd_realpath,
   cmd_cd,
   cmd_ls,
   cmd_tree,
@@ -773,6 +852,7 @@ module.exports = {
   cmd_ln,
   cmd_cat,
   cmd_less,
+  cmd_vim,
   cmd_echo,
   cmd_head,
   cmd_tail,

@@ -12,6 +12,9 @@ const k8s = require('./commands_k8s');
 
 const REGISTRY = {
   pwd: base.cmd_pwd,
+  dirname: base.cmd_dirname,
+  basename: base.cmd_basename,
+  realpath: base.cmd_realpath,
   cd: base.cmd_cd,
   ls: base.cmd_ls,
   tree: base.cmd_tree,
@@ -25,6 +28,8 @@ const REGISTRY = {
   cat: base.cmd_cat,
   less: base.cmd_less,
   more: base.cmd_less,
+  vim: base.cmd_vim,
+  vi: base.cmd_vim,
   echo: base.cmd_echo,
   head: base.cmd_head,
   tail: base.cmd_tail,
@@ -183,7 +188,16 @@ class Shell {
     let finalCode = 0;
 
     for (let i = 0; i < stages.length; i++) {
-      const { args: rawArgs, stdoutFile, stdoutAppend, stdinFile } = parser.extractRedirects(stages[i]);
+      const {
+        args: rawArgs,
+        stdoutFile,
+        stdoutAppend,
+        stderrFile,
+        stderrAppend,
+        combinedFile,
+        combinedAppend,
+        stdinFile,
+      } = parser.extractRedirects(stages[i]);
       const words = this._expandWords(rawArgs);
       if (words.length === 0) continue;
       const [cmdName, ...args] = words;
@@ -204,13 +218,24 @@ class Shell {
 
       const isLast = i === stages.length - 1;
       if (isLast) {
-        if (stdoutFile) {
-          this.fs.writeFile(stdoutFile, result.stdout, { append: stdoutAppend });
+        if (combinedFile) {
+          this.fs.writeFile(combinedFile, result.stdout + result.stderr, { append: combinedAppend });
           finalStdout = '';
+          finalStderr = '';
         } else {
-          finalStdout = result.stdout;
+          if (stdoutFile) {
+            this.fs.writeFile(stdoutFile, result.stdout, { append: stdoutAppend });
+            finalStdout = '';
+          } else {
+            finalStdout = result.stdout;
+          }
+          if (stderrFile) {
+            this.fs.writeFile(stderrFile, result.stderr, { append: stderrAppend });
+            finalStderr = '';
+          } else {
+            finalStderr = result.stderr;
+          }
         }
-        finalStderr = result.stderr;
       } else {
         stdin = result.stdout;
         if (result.stderr) finalStderr += result.stderr;

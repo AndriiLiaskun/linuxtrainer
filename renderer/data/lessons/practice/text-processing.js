@@ -117,6 +117,67 @@ function build() {
     check: (ctx) => h.stdoutIncludes(ctx.result, '2 web'),
   });
 
+  // cut with multiple fields at once (comma-separated).
+  drills.push({
+    id: 'p-text-cut-multi',
+    difficulty: 3,
+    prompt: `Виріж одразу поля item та price (2 і 4) з ${INV}, роздільник — кома.`,
+    hint: `cut -d',' -f2,4 ${INV}`,
+    solution: `cut -d',' -f2,4 ${INV}`,
+    xp: 30,
+    check: (ctx) => h.stdoutLines(ctx.result)[1] === 'keyboard,25',
+  });
+
+  // awk printing two fields joined by a literal separator.
+  drills.push({
+    id: 'p-text-awk-multi',
+    difficulty: 3,
+    prompt: `Через awk виведи "item: <назва> — <ціна>" для кожного товару в ${INV} (без заголовка достатньо просто вивести всі рядки).`,
+    hint: `awk -F',' '{print $2, $4}' ${INV}`,
+    solution: `awk -F',' '{print $2, $4}' ${INV}`,
+    xp: 30,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'keyboard 25'),
+  });
+
+  // sort -u — dedupe while sorting in one step.
+  drills.push({
+    id: 'p-text-sort-u',
+    difficulty: 2,
+    prompt: 'Виведи унікальні перші літери серверів (до дефіса) з documents/servers.txt, відсортовані, без повторів (sort -u).',
+    hint: "cut -d'-' -f1 documents/servers.txt | sort -u",
+    solution: "cut -d'-' -f1 documents/servers.txt | sort -u",
+    xp: 25,
+    check: (ctx) => h.stdoutLines(ctx.result).length === 4,
+  });
+
+  // sed with numeric patterns.
+  const SED_NUM = [
+    { input: 'server had 3 errors', from: '3', to: '5' },
+    { input: 'port 8080 is open', from: '8080', to: '9090' },
+  ];
+  SED_NUM.forEach((s, i) => {
+    drills.push({
+      id: `p-text-sed-num-${i}`,
+      difficulty: 2,
+      prompt: `Заміни "${s.from}" на "${s.to}" у виводі: echo "${s.input}".`,
+      hint: `echo "${s.input}" | sed 's/${s.from}/${s.to}/'`,
+      solution: `echo "${s.input}" | sed 's/${s.from}/${s.to}/'`,
+      xp: 20,
+      check: (ctx) => h.stdoutTrim(ctx.result) === s.input.replace(s.from, s.to),
+    });
+  });
+
+  // tr -s (squeeze repeated characters — useful for messy whitespace/logs).
+  drills.push({
+    id: 'p-text-tr-squeeze',
+    difficulty: 3,
+    prompt: 'Стисни повторювані пробіли в один пробіл у виводі: echo "a   b    c" (tr -s).',
+    hint: "echo 'a   b    c' | tr -s ' '",
+    solution: "echo 'a   b    c' | tr -s ' '",
+    xp: 25,
+    check: (ctx) => h.stdoutTrim(ctx.result) === 'a b c',
+  });
+
   return drills;
 }
 

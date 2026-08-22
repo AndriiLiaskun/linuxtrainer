@@ -1,10 +1,20 @@
 const path = require('path');
 const { Shell } = require(path.join(__dirname, '..', 'renderer', 'shell', 'shell.js'));
+const { runVimScript } = require(path.join(__dirname, '..', 'renderer', 'vimEditor.js'));
 const lessons = require(path.join(__dirname, '..', 'renderer', 'data', 'lessons', 'index.js'));
 
 let totalDrills = 0;
 let totalPractice = 0;
 const failures = [];
+
+function runDrillSolution(shell, drill) {
+  if (drill.vim) {
+    const { state } = runVimScript(shell, drill.vim.path, drill.vim.script);
+    return { stdout: '', stderr: '', code: 0 };
+  }
+  if (drill.quiz) return null;
+  return shell.run(drill.solution);
+}
 
 // Story-mode drills: sequential, share one Shell per lesson (later drills may
 // depend on state left behind by earlier ones in the same lesson).
@@ -12,8 +22,7 @@ for (const lesson of lessons) {
   const shell = new Shell();
   for (const drill of lesson.drills) {
     totalDrills++;
-    let result = null;
-    if (!drill.quiz) result = shell.run(drill.solution);
+    const result = runDrillSolution(shell, drill);
     const ctx = { shell, fs: shell.fs, state: shell.state, result, input: drill.solution };
     let passed;
     try {
@@ -47,8 +56,7 @@ for (const lesson of lessons) {
       failures.push(`[practice ${lesson.id}/${drill.id}] invalid difficulty: ${drill.difficulty}`);
     }
     const shell = new Shell();
-    let result = null;
-    if (!drill.quiz) result = shell.run(drill.solution);
+    const result = runDrillSolution(shell, drill);
     const ctx = { shell, fs: shell.fs, state: shell.state, result, input: drill.solution };
     let passed;
     try {

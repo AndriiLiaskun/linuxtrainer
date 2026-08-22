@@ -1,11 +1,12 @@
 'use strict';
 
-const { Shell } = require('./shell/shell.js');
+const { Shell, REGISTRY } = require('./shell/shell.js');
 const lessons = require('./data/lessons/index.js');
 const { ProgressStore, levelFromXp, xpForLevel, BADGES } = require('./progress.js');
 const { DIFFICULTY } = require('./data/difficulty.js');
 const { feedbackFor, quizFeedbackFor } = require('./feedback.js');
 const practiceEngine = require('./practiceEngine.js');
+const vimEditor = require('./vimEditor.js');
 
 const progress = new ProgressStore();
 
@@ -19,6 +20,7 @@ let attemptCounts = {}; // drillId -> number of failed tries since it was shown
 let lessonMode = 'story'; // 'story' | 'practice'
 let practiceStats = null; // current lesson's practiceEngine stats object
 let currentPracticeDrill = null;
+let vimState = null; // active vimEditor state, or null when the terminal is showing
 
 // ---------------- DOM refs ----------------
 
@@ -56,6 +58,10 @@ const el = {
   solutionBtn: $('solution-btn'),
   terminalTitle: $('terminal-title'),
   terminalBody: $('terminal-body'),
+  vimBody: $('vim-body'),
+  vimFilename: $('vim-filename'),
+  vimContent: $('vim-content'),
+  vimStatusline: $('vim-statusline'),
   terminalOutput: $('terminal-output'),
   promptText: $('prompt-text'),
   terminalInput: $('terminal-input'),
@@ -149,7 +155,11 @@ function openLesson(lesson) {
   for (let i = 0; i < lesson.drills.length; i++) {
     const drill = lesson.drills[i];
     if (progress.isDrillCompleted(lesson.id, drill.id)) {
-      if (!drill.quiz) currentShell.run(drill.solution, { record: false });
+      if (drill.vim) {
+        vimEditor.runVimScript(currentShell, drill.vim.path, drill.vim.script);
+      } else if (!drill.quiz) {
+        currentShell.run(drill.solution, { record: false });
+      }
       resumeIndex = i + 1;
     } else {
       break;
@@ -194,6 +204,11 @@ function renderDifficultyBadge(drill) {
 }
 
 function resetDrillCardChrome(drill) {
+  if (vimState) {
+    vimState = null;
+    el.vimBody.classList.add('hidden');
+    el.terminalBody.classList.remove('vim-capturing');
+  }
   el.drillPrompt.textContent = drill.prompt;
   el.drillHint.classList.add('hidden');
   el.drillHint.classList.remove('solution');
@@ -204,6 +219,7 @@ function resetDrillCardChrome(drill) {
   renderDifficultyBadge(drill);
   el.terminalInput.value = '';
   el.terminalInput.focus();
+  resetHistoryNav();
 }
 
 function renderDrill() {
@@ -214,6 +230,7 @@ function renderDrill() {
 
   el.lessonProgressPill.textContent = `${done} / ${total}`;
   el.drillIndex.textContent = `Завдання ${currentDrillIndex + 1} з ${total}`;
+  el.terminalOutput.innerHTML = '';
   resetDrillCardChrome(drill);
 
   el.lessonDots.innerHTML = '';
@@ -328,8 +345,142 @@ function appendBlock(text, cls) {
 
 // ---------------- Input submission ----------------
 
+let historyIndex = -1;
+let historyDraft = '';
+
+function resetHistoryNav() {
+  historyIndex = -1;
+  historyDraft = '';
+}
+
 el.terminalInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') submitInput();
+  if (vimState) {
+    e.preventDefault();
+    handleVimKeydown(e.key, e.ctrlKey);
+    return;
+  }
+  if (e.key === 'Enter') {
+    resetHistoryNav();
+    submitInput();
+    return;
+  }
+  if (e.key === 'ArrowUp') {
+    const drill = currentDrill();
+    if (!drill || drill.quiz || !currentShell) return;
+    const history = currentShell.state.history;
+    if (!history.length) return;
+    e.preventDefault();
+    if (historyIndex === -1) {
+      historyDraft = el.terminalInput.value;
+      historyIndex = history.length - 1;
+    } else if (historyIndex > 0) {
+      historyIndex--;
+    }
+    el.terminalInput.value = history[historyIndex];
+    const len = el.terminalInput.value.length;
+    el.terminalInput.setSelectionRange(len, len);
+    return;
+  }
+  if (e.key === 'ArrowDown') {
+    if (historyIndex === -1) return;
+    e.preventDefault();
+    const history = currentShell.state.history;
+    historyIndex++;
+    if (historyIndex >= history.length) {
+      historyIndex = -1;
+      el.terminalInput.value = historyDraft;
+    } else {
+      el.terminalInput.value = history[historyIndex];
+    }
+    const len = el.terminalInput.value.length;
+    el.terminalInput.setSelectionRange(len, len);
+    return;
+  }
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    applyTabCompletion();
+    return;
+  }
+  if (e.key === 'l' && e.ctrlKey) {
+    e.preventDefault();
+    el.terminalOutput.innerHTML = '';
+    return;
+  }
+});
+
+// ---------------- Tab completion ----------------
+
+function applyTabCompletion() {
+  const drill = currentDrill();
+  if (!drill || drill.quiz || !currentShell) return;
+  const text = el.terminalInput.value;
+  const upToCaret = text.slice(0, el.terminalInput.selectionStart);
+  const parts = upToCaret.split(' ');
+  const lastWord = parts[parts.length - 1];
+  const isCommandPosition = parts.length === 1;
+
+  let candidates = [];
+  let replacement = null;
+
+  if (isCommandPosition) {
+    candidates = Object.keys(REGISTRY).filter((name) => name.startsWith(lastWord)).sort();
+  } else {
+    const slashIdx = lastWord.lastIndexOf('/');
+    const dirPart = slashIdx === -1 ? '' : lastWord.slice(0, slashIdx + 1);
+    const prefix = slashIdx === -1 ? lastWord : lastWord.slice(slashIdx + 1);
+    const lookupDir = dirPart === '' ? currentShell.fs.cwd : dirPart;
+    let node;
+    try {
+      node = currentShell.fs.getNode(lookupDir);
+    } catch (e) {
+      node = null;
+    }
+    if (node && node.type === 'dir') {
+      const names = Array.from(node.children.keys())
+        .filter((n) => n.startsWith(prefix) && (prefix.startsWith('.') || !n.startsWith('.')))
+        .sort();
+      candidates = names.map((n) => {
+        const child = node.children.get(n);
+        return dirPart + n + (child.type === 'dir' ? '/' : '');
+      });
+    }
+  }
+
+  if (!candidates.length) return;
+
+  if (candidates.length === 1) {
+    replacement = candidates[0];
+  } else {
+    replacement = commonPrefix(candidates);
+    if (replacement === lastWord) return; // nothing new to add — leave as-is (no bell/UI for double-tab list)
+  }
+
+  const before = upToCaret.slice(0, upToCaret.length - lastWord.length);
+  const after = text.slice(el.terminalInput.selectionStart);
+  const newValue = before + replacement + after;
+  el.terminalInput.value = newValue;
+  const caretPos = (before + replacement).length;
+  el.terminalInput.setSelectionRange(caretPos, caretPos);
+}
+
+function commonPrefix(strings) {
+  if (!strings.length) return '';
+  let prefix = strings[0];
+  for (const s of strings.slice(1)) {
+    while (!s.startsWith(prefix)) prefix = prefix.slice(0, -1);
+  }
+  return prefix;
+}
+
+// Click anywhere in the terminal to focus the input with the caret at the
+// end — like a real terminal. Skipped while the user is selecting text so
+// copying command output still works.
+el.terminalBody.addEventListener('mouseup', () => {
+  const sel = window.getSelection();
+  if (sel && sel.toString().length > 0) return;
+  el.terminalInput.focus();
+  const len = el.terminalInput.value.length;
+  el.terminalInput.setSelectionRange(len, len);
 });
 
 function submitInput() {
@@ -355,6 +506,13 @@ function submitInput() {
   appendCmdLine(raw);
   const result = currentShell.run(raw);
 
+  if (currentShell.state.pendingEditor) {
+    const req = currentShell.state.pendingEditor;
+    currentShell.state.pendingEditor = null;
+    startVimEditor(req);
+    return;
+  }
+
   if (result.stdout.includes('\x1bCLEAR\x1b')) {
     el.terminalOutput.innerHTML = '';
     appendBlock(result.stdout.split('\x1bCLEAR\x1b').join(''), 'term-line-out');
@@ -378,6 +536,94 @@ function recordPracticeFailure(drill) {
   progress.completePracticeAttempt(currentLesson.id, drill, false, lessons);
   progress.save();
   renderPracticeStats();
+}
+
+// ---------------- Vim editor mode ----------------
+
+function startVimEditor(req) {
+  vimState = vimEditor.createVimState(req.content, req.path);
+  el.terminalBody.classList.add('vim-capturing');
+  el.vimBody.classList.remove('hidden');
+  el.vimFilename.textContent = req.path;
+  el.terminalInput.focus();
+  renderVim();
+}
+
+function handleVimKeydown(key, ctrlKey) {
+  const result = vimEditor.handleKey(vimState, key, ctrlKey);
+  if (result.save) {
+    currentShell.fs.writeFile(vimState.path, vimState.lines.join('\n') + '\n');
+    vimState.dirty = false;
+  }
+  if (result.exit) {
+    closeVimEditor();
+    return;
+  }
+  renderVim();
+}
+
+function renderVim() {
+  el.vimContent.innerHTML = '';
+  vimState.lines.forEach((line, row) => {
+    const lineEl = document.createElement('div');
+    lineEl.className = 'vim-line' + (row === vimState.cursorRow ? ' current' : '');
+
+    if (vimState.showLineNumbers) {
+      const num = document.createElement('span');
+      num.className = 'vim-lineno';
+      num.textContent = String(row + 1);
+      lineEl.appendChild(num);
+    }
+
+    const textEl = document.createElement('span');
+    textEl.className = 'vim-text';
+    if (row === vimState.cursorRow) {
+      const col = Math.min(vimState.cursorCol, line.length);
+      const before = line.slice(0, col);
+      const atCursor = line.slice(col, col + 1) || ' ';
+      const after = line.slice(col + 1);
+      textEl.appendChild(document.createTextNode(before));
+      const cursorSpan = document.createElement('span');
+      cursorSpan.className = 'vim-cursor';
+      cursorSpan.textContent = atCursor;
+      textEl.appendChild(cursorSpan);
+      textEl.appendChild(document.createTextNode(after));
+    } else {
+      textEl.textContent = line.length ? line : ' ';
+    }
+    lineEl.appendChild(textEl);
+    el.vimContent.appendChild(lineEl);
+  });
+
+  const cursorLineEl = el.vimContent.children[vimState.cursorRow];
+  if (cursorLineEl) cursorLineEl.scrollIntoView({ block: 'nearest' });
+
+  let status;
+  if (vimState.mode === 'insert') status = '-- INSERT --';
+  else if (vimState.mode === 'command') status = ':' + vimState.commandBuffer;
+  else status = vimState.message || (vimState.dirty ? '[+] ' + vimState.path : vimState.path);
+  el.vimStatusline.textContent = status;
+}
+
+function closeVimEditor() {
+  const path = vimState.path;
+  vimState = null;
+  el.vimBody.classList.add('hidden');
+  el.terminalBody.classList.remove('vim-capturing');
+  el.terminalInput.focus();
+  updatePromptText();
+
+  const drill = currentDrill();
+  if (!drill) return;
+  const result = { stdout: '', stderr: '', code: 0 };
+  const passed = safeCheck(drill, { shell: currentShell, fs: currentShell.fs, state: currentShell.state, result, input: 'vim ' + path });
+  if (passed) {
+    onDrillPassed(drill);
+  } else {
+    attemptCounts[drill.id] = (attemptCounts[drill.id] || 0) + 1;
+    showFeedback(feedbackFor(result, attemptCounts[drill.id]));
+    if (lessonMode === 'practice') recordPracticeFailure(drill);
+  }
 }
 
 function showFeedback(fb) {

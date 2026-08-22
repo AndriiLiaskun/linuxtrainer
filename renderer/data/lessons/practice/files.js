@@ -102,6 +102,77 @@ function build() {
     });
   });
 
+  // multi-file touch and multi-file cp into a directory (real-world batch ops).
+  NAMES.slice(0, 4).forEach((name, i) => {
+    const files = [`${name}-a.txt`, `${name}-b.txt`, `${name}-c.txt`];
+    drills.push({
+      id: `p-files-touch-multi-${i}`,
+      difficulty: 2,
+      prompt: `Створи одразу три файли: ${files.join(', ')} однією командою touch.`,
+      hint: `touch ${files.join(' ')}`,
+      solution: `touch ${files.join(' ')}`,
+      xp: 20,
+      check: (ctx) => files.every((f) => h.isFile(ctx.fs, `/home/student/${f}`)),
+    });
+  });
+
+  NAMES.slice(0, 4).forEach((name, i) => {
+    const dir = `${name}-dest`;
+    drills.push({
+      id: `p-files-cp-into-dir-${i}`,
+      difficulty: 3,
+      prompt: `Створи файл ${name}.txt і директорію ${dir}, потім скопіюй файл У цю директорію (без перейменування).`,
+      hint: `touch ${name}.txt && mkdir ${dir} && cp ${name}.txt ${dir}/`,
+      solution: `touch ${name}.txt && mkdir ${dir} && cp ${name}.txt ${dir}/`,
+      xp: 25,
+      check: (ctx) => h.isFile(ctx.fs, `/home/student/${dir}/${name}.txt`),
+    });
+  });
+
+  // mv multiple files into a directory at once.
+  NAMES.slice(4, 8).forEach((name, i) => {
+    const dir = `${name}-archive`;
+    const files = [`${name}1.log`, `${name}2.log`];
+    drills.push({
+      id: `p-files-mv-multi-${i}`,
+      difficulty: 3,
+      prompt: `Створи директорію ${dir} і файли ${files.join(', ')}, потім перемісти обидва файли в цю директорію однією командою mv.`,
+      hint: `mkdir ${dir} && touch ${files.join(' ')} && mv ${files.join(' ')} ${dir}/`,
+      solution: `mkdir ${dir} && touch ${files.join(' ')} && mv ${files.join(' ')} ${dir}/`,
+      xp: 30,
+      check: (ctx) => files.every((f) => h.isFile(ctx.fs, `/home/student/${dir}/${f}`)) && files.every((f) => h.notExists(ctx.fs, `/home/student/${f}`)),
+    });
+  });
+
+  // glob-based bulk delete.
+  NAMES.slice(0, 3).forEach((name, i) => {
+    drills.push({
+      id: `p-files-rm-glob-${i}`,
+      difficulty: 3,
+      prompt: `Створи файли ${name}1.tmp, ${name}2.tmp, ${name}3.tmp, потім видали всі файли з розширенням .tmp однією командою (використай глоб).`,
+      hint: `touch ${name}1.tmp ${name}2.tmp ${name}3.tmp && rm *.tmp`,
+      solution: `touch ${name}1.tmp ${name}2.tmp ${name}3.tmp && rm *.tmp`,
+      xp: 30,
+      check: (ctx) =>
+        h.notExists(ctx.fs, `/home/student/${name}1.tmp`) &&
+        h.notExists(ctx.fs, `/home/student/${name}2.tmp`) &&
+        h.notExists(ctx.fs, `/home/student/${name}3.tmp`),
+    });
+  });
+
+  // file / stat sanity checks on freshly created files.
+  NAMES.slice(0, 3).forEach((name, i) => {
+    drills.push({
+      id: `p-files-filetype-${i}`,
+      difficulty: 1,
+      prompt: `Створи файл ${name}.dat і перевір його тип командою file.`,
+      hint: `touch ${name}.dat && file ${name}.dat`,
+      solution: `touch ${name}.dat && file ${name}.dat`,
+      xp: 15,
+      check: (ctx) => h.succeeded(ctx.result),
+    });
+  });
+
   return drills;
 }
 

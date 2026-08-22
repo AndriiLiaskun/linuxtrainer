@@ -69,6 +69,108 @@ function build() {
     check: (ctx) => h.stdoutIncludes(ctx.result, 'src') && h.stdoutIncludes(ctx.result, 'logs'),
   });
 
+  // ls -l on every seeded directory — cheap, real variety.
+  PATHS.forEach((p, i) => {
+    drills.push({
+      id: `p-nav-lsl-${i}`,
+      difficulty: 1,
+      prompt: `Виведи детальний список (права доступу, власник, розмір) вмісту директорії ${p.label}.`,
+      hint: `ls -l ${p.path}`,
+      solution: `ls -l ${p.path}`,
+      xp: 15,
+      check: (ctx) => h.succeeded(ctx.result),
+    });
+  });
+
+  // Multi-hop relative navigation: reach a nested target via two cd's, verify final cwd.
+  const HOPS = [
+    { first: 'projects', second: 'webapp', target: '/home/student/projects/webapp' },
+    { first: 'projects/webapp', second: 'src', target: '/home/student/projects/webapp/src' },
+    { first: 'projects/webapp', second: 'logs', target: '/home/student/projects/webapp/logs' },
+    { first: 'projects/webapp/src', second: '..', target: '/home/student/projects/webapp' },
+    { first: 'projects/webapp/src', second: '../..', target: '/home/student/projects' },
+    { first: 'documents', second: '..', target: '/home/student' },
+  ];
+  HOPS.forEach((h2, i) => {
+    drills.push({
+      id: `p-nav-hop-${i}`,
+      difficulty: 2,
+      prompt: `Перейди спочатку в ${h2.first}, а звідти відносним шляхом у ${h2.second}, і виведи pwd.`,
+      hint: `cd ${h2.first} && cd ${h2.second} && pwd`,
+      solution: `cd ${h2.first} && cd ${h2.second} && pwd`,
+      xp: 20,
+      check: (ctx) => h.stdoutTrim(ctx.result) === h2.target,
+    });
+  });
+
+  // dirname / basename — real utilities, not just cd.
+  const DIRNAME_TARGETS = [
+    { path: 'documents/notes.txt', dir: '/home/student/documents' },
+    { path: 'projects/webapp/src/app.py', dir: '/home/student/projects/webapp/src' },
+    { path: 'projects/webapp/deploy.sh', dir: '/home/student/projects/webapp' },
+    { path: 'k8s/api-deployment.yaml', dir: '/home/student/k8s' },
+  ];
+  DIRNAME_TARGETS.forEach((t, i) => {
+    drills.push({
+      id: `p-nav-dirname-${i}`,
+      difficulty: 2,
+      prompt: `Виведи директорію, що містить файл ${t.path}, командою dirname.`,
+      hint: `dirname ${t.path}`,
+      solution: `dirname ${t.path}`,
+      xp: 15,
+      check: (ctx) => h.stdoutTrim(ctx.result) === t.dir,
+    });
+    drills.push({
+      id: `p-nav-basename-${i}`,
+      difficulty: 1,
+      prompt: `Виведи лише назву файлу (без шляху) для ${t.path} командою basename.`,
+      hint: `basename ${t.path}`,
+      solution: `basename ${t.path}`,
+      xp: 15,
+      check: (ctx) => h.stdoutTrim(ctx.result) === t.path.split('/').pop(),
+    });
+    drills.push({
+      id: `p-nav-cdsub-${i}`,
+      difficulty: 3,
+      prompt: `Використай підстановку команди, щоб перейти в директорію файлу ${t.path} (без ручного набору шляху) і виведи pwd.`,
+      hint: `cd $(dirname ${t.path}) && pwd`,
+      solution: `cd $(dirname ${t.path}) && pwd`,
+      xp: 30,
+      check: (ctx) => h.stdoutTrim(ctx.result) === t.dir,
+    });
+  });
+
+  // tree on more directories.
+  ['documents', 'k8s', '/etc'].forEach((dir, i) => {
+    drills.push({
+      id: `p-nav-tree2-${i}`,
+      difficulty: 2,
+      prompt: `Виведи деревовидну структуру директорії ${dir}.`,
+      hint: `tree ${dir}`,
+      solution: `tree ${dir}`,
+      xp: 20,
+      check: (ctx) => h.succeeded(ctx.result),
+    });
+  });
+
+  // realpath — resolves a relative/messy path to its canonical absolute form.
+  const REALPATH_CASES = [
+    { input: 'projects/../documents', expect: '/home/student/documents' },
+    { input: 'projects/webapp/src/..', expect: '/home/student/projects/webapp' },
+    { input: '../student/k8s', expect: '/home/student/k8s' },
+  ];
+  REALPATH_CASES.forEach((c, i) => {
+    drills.push({
+      id: `p-nav-realpath-${i}`,
+      difficulty: 3,
+      prompt: `Визнач канонічний абсолютний шлях для "${c.input}" за допомогою realpath.`,
+      hint: `realpath '${c.input}'`,
+      solution: `realpath '${c.input}'`,
+      xp: 25,
+      check: (ctx) => h.stdoutTrim(ctx.result) === c.expect,
+    });
+  });
+
   return drills;
 }
 

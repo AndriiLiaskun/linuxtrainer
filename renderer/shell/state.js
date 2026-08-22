@@ -103,6 +103,7 @@ class SessionState {
     this.network = freshNetwork();
     this.cronJobs = [];
     this.lastExitCode = 0;
+    this.pendingEditor = null;
     this.history = [];
     this.aliases = {};
     this.jobCounter = 0;

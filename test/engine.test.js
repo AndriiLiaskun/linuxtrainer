@@ -201,4 +201,35 @@ sh = new Shell();
 r = run(sh, "tail -n +2 documents/inventory.csv | cut -d',' -f3 | sort -n");
 check('tail -n +2 skips header line', r.stdout, '4\n8\n12\n17\n30\n');
 
+// --- dirname/basename/realpath ---
+sh = new Shell();
+check('dirname', run(sh, 'dirname documents/notes.txt').stdout, '/home/student/documents\n');
+check('basename', run(sh, 'basename documents/notes.txt').stdout, 'notes.txt\n');
+check('basename strips suffix', run(sh, 'basename documents/notes.txt .txt').stdout, 'notes\n');
+check('cd $(dirname ...) combo', run(sh, 'cd $(dirname documents/notes.txt) && pwd').stdout, '/home/student/documents\n');
+
+// --- grep -r (recursive directory search) ---
+sh = new Shell();
+r = run(sh, 'grep -r app projects');
+check('grep -r finds matches across a directory tree', r.stdout.includes('app.py') || r.code === 0, true);
+
+// --- tr -s (squeeze repeated characters) ---
+sh = new Shell();
+check('tr -s squeezes repeated spaces', run(sh, "echo 'a   b    c' | tr -s ' '").stdout.trim(), 'a b c');
+
+// --- cd - (previous directory) ---
+sh = new Shell();
+run(sh, 'cd projects');
+r = run(sh, 'cd -');
+check('cd - returns to previous directory', sh.fs.cwd, '/home/student');
+check('cd - prints the new cwd', r.stdout, '/home/student\n');
+
+// --- stderr / combined redirects ---
+sh = new Shell();
+run(sh, 'cat nope.txt 2> err.log');
+check('2> writes stderr to file, not terminal', sh.fs.getNode('/home/student/err.log').content.includes('No such file'), true);
+sh = new Shell();
+run(sh, 'cat documents/notes.txt nope.txt &> both.log');
+check('&> combines stdout+stderr into one file', sh.fs.getNode('/home/student/both.log').content.includes('TODO') && sh.fs.getNode('/home/student/both.log').content.includes('No such file'), true);
+
 module.exports = { passed, failed, failures };

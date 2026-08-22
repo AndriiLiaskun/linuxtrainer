@@ -231,12 +231,33 @@ function extractRedirects(tokens) {
   const out = [];
   let stdoutFile = null;
   let stdoutAppend = false;
+  let stderrFile = null;
+  let stderrAppend = false;
+  let combinedFile = null;
+  let combinedAppend = false;
   let stdinFile = null;
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i];
     if (t.op && (t.v === '>' || t.v === '>>')) {
-      stdoutFile = tokens[i + 1] ? tokens[i + 1].v : undefined;
-      stdoutAppend = t.v === '>>';
+      // "2>file"/"2>>file" (stderr) and "&>file"/"&>>file" (both streams) tokenize
+      // as a plain word ("2" or "&") immediately followed by this operator —
+      // there is no way to tell that apart from a genuine standalone argument
+      // "2"/"&", so we treat that adjacency as always meaning a redirect
+      // (fine for a training shell; real bash resolves this via lexing, not us).
+      const prev = out[out.length - 1];
+      const append = t.v === '>>';
+      if (prev && !prev.op && !prev.noExpand && prev.v === '2') {
+        out.pop();
+        stderrFile = tokens[i + 1] ? tokens[i + 1].v : undefined;
+        stderrAppend = append;
+      } else if (prev && prev.v === '&') {
+        out.pop();
+        combinedFile = tokens[i + 1] ? tokens[i + 1].v : undefined;
+        combinedAppend = append;
+      } else {
+        stdoutFile = tokens[i + 1] ? tokens[i + 1].v : undefined;
+        stdoutAppend = append;
+      }
       i++;
       continue;
     }
@@ -247,7 +268,7 @@ function extractRedirects(tokens) {
     }
     out.push(t);
   }
-  return { args: out, stdoutFile, stdoutAppend, stdinFile };
+  return { args: out, stdoutFile, stdoutAppend, stderrFile, stderrAppend, combinedFile, combinedAppend, stdinFile };
 }
 
 module.exports = {
