@@ -35,12 +35,11 @@ function cmd_top(args, ctx) {
 }
 
 function cmd_kill(args, ctx) {
-  const { flags, rest } = parseFlags(args, [], ['9', 'SIGKILL']);
-  let pids = rest;
   let signal = 'TERM';
+  let pids = args;
   if (args[0] && args[0].startsWith('-')) {
     signal = args[0].slice(1);
-    pids = rest;
+    pids = args.slice(1);
   }
   if (!pids.length) return fail('kill: usage: kill [-signal] pid\n');
   for (const p of pids) {
@@ -251,11 +250,11 @@ function cmd_systemctl(args, ctx) {
         `     Active: ${activeStr}\n`
     );
   }
-  if (['start', 'stop', 'restart', 'enable', 'disable'].includes(action)) {
+  if (['start', 'stop', 'restart', 'reload', 'reload-or-restart', 'enable', 'disable'].includes(action)) {
     const name = resolveName(svcName);
     const svc = services[name];
     if (!svc) return fail(`Unit ${svcName}.service could not be found.\n`);
-    if (action === 'start' || action === 'restart') svc.active = true;
+    if (action === 'start' || action === 'restart' || action === 'reload' || action === 'reload-or-restart') svc.active = true;
     if (action === 'stop') svc.active = false;
     if (action === 'enable') svc.enabled = true;
     if (action === 'disable') svc.enabled = false;
@@ -413,6 +412,48 @@ function cmd_rpm(args, ctx) {
   return fail('rpm: unknown option combination\n');
 }
 
+function cmd_dpkg(args, ctx) {
+  const { flags, rest } = parseFlags(args, ['i', 'l', 'r', 'L', 's', 'P']);
+  if (flags.l) {
+    const pkgs = Array.from(ctx.state.packages).sort();
+    const header =
+      'Desired=Unknown/Install/Remove/Purge/Hold\n' +
+      '| Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend\n' +
+      '|/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)\n' +
+      '||/ Name           Version      Architecture Description\n' +
+      '+++-==============-============-============-=================\n';
+    const rows = pkgs.map((p) => `ii  ${p.padEnd(15)}1.0-1        amd64        ${p} package`);
+    return ok(header + rows.join('\n') + (rows.length ? '\n' : ''));
+  }
+  if (flags.i) {
+    const file = rest[0];
+    if (!file) return fail('dpkg: error: install needs a filename argument\n');
+    const name = file.replace(/\.deb$/, '').split(/[_-]/)[0];
+    ctx.state.packages.add(name);
+    return ok(`Selecting previously unselected package ${name}.\nUnpacking ${name} ...\nSetting up ${name} ...\n`);
+  }
+  if (flags.r || flags.P) {
+    const pkg = rest[0];
+    if (!pkg) return fail('dpkg: error: need a package name\n');
+    if (!ctx.state.packages.has(pkg)) return fail(`dpkg: warning: ignoring request to remove ${pkg} which isn't installed\n`);
+    ctx.state.packages.delete(pkg);
+    return ok(`${flags.P ? 'Purging configuration files for' : 'Removing'} ${pkg} ...\n`);
+  }
+  if (flags.L) {
+    const pkg = rest[0];
+    if (!pkg) return fail('dpkg: error: need a package name\n');
+    if (!ctx.state.packages.has(pkg)) return fail(`dpkg-query: package '${pkg}' is not installed\n`);
+    return ok(`/usr/bin/${pkg}\n/etc/${pkg}.conf\n/usr/share/doc/${pkg}/README\n`);
+  }
+  if (flags.s) {
+    const pkg = rest[0];
+    if (!pkg) return fail('dpkg: error: need a package name\n');
+    if (!ctx.state.packages.has(pkg)) return fail(`dpkg-query: package '${pkg}' is not installed and no information is available\n`);
+    return ok(`Package: ${pkg}\nStatus: install ok installed\nVersion: 1.0-1\n`);
+  }
+  return fail('dpkg: unknown option combination\n');
+}
+
 // ---------------------------------------------------------------------
 // Networking (simulated)
 // ---------------------------------------------------------------------
@@ -454,10 +495,10 @@ function cmd_curl(args, ctx) {
 }
 
 function cmd_wget(args, ctx) {
-  const { rest } = parseFlags(args, []);
+  const { flags, rest } = parseFlags(args, [], ['O']);
   const url = rest[0];
   if (!url) return fail('wget: missing URL\n');
-  const name = url.split('/').filter(Boolean).pop() || 'index.html';
+  const name = flags.O || url.split('/').filter(Boolean).pop() || 'index.html';
   ctx.fs.writeFile(name, `<!-- downloaded from ${url} -->\n`);
   return ok(`Saving to: '${name}'\n\n${name}  100%  downloaded\n`);
 }
@@ -959,7 +1000,10 @@ function cmd_sudo(args, ctx) {
 }
 
 function cmd_su(args, ctx) {
-  const target = args[0] === '-' ? 'root' : args[0] || 'root';
+  // "su - name" (login shell) and "su name" both switch to `name`; a bare
+  // "su" or "su -" (no name after the dash) switches to root.
+  const rest = args.filter((a) => a !== '-');
+  const target = rest[0] || 'root';
   if (!ctx.state.users.has(target)) return fail(`su: user ${target} does not exist\n`);
   ctx.fs.currentUser = target;
   return ok('');
@@ -1282,6 +1326,7 @@ module.exports = {
   cmd_iostat,
   cmd_tcpdump,
   cmd_rpm,
+  cmd_dpkg,
   cmd_uptime,
   cmd_whoami,
   cmd_id,

@@ -29,7 +29,7 @@ function deserializeNode(entry, name) {
 }
 
 function cmd_tar(args, ctx) {
-  const { flags, rest } = parseFlags(args, ['c', 'x', 'v', 'z', 't'], ['f']);
+  const { flags, rest } = parseFlags(args, ['c', 'x', 'v', 'z', 't'], ['f', 'C']);
   const archivePath = flags.f || rest[0];
   if (!archivePath) return fail('tar: no archive name given\n');
 
@@ -54,11 +54,16 @@ function cmd_tar(args, ctx) {
     } catch (e) {
       return fail(`tar: ${archivePath}: not a valid archive\n`);
     }
+    let destDir = ctx.fs.getNode(ctx.fs.cwd);
+    if (flags.C) {
+      const dest = ctx.fs.getNode(flags.C);
+      if (!dest || dest.type !== 'dir') return fail(`tar: ${flags.C}: Cannot change to directory: No such file or directory\n`);
+      destDir = dest;
+    }
     const names = [];
     for (const [name, entry] of Object.entries(data.manifest)) {
       const restored = deserializeNode(entry, name);
       names.push(name);
-      const destDir = ctx.fs.getNode(ctx.fs.cwd);
       destDir.children.set(name, restored);
     }
     return ok(flags.v ? names.join('\n') + '\n' : '');

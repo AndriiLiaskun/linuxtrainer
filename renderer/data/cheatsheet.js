@@ -33,7 +33,7 @@ const CHEATSHEET = [
     ],
   },
   { icon: '🧭', title: 'Навігація', cmds: [c('pwd'), c('cd'), c('ls'), c('tree'), c('dirname'), c('basename'), c('realpath')] },
-  { icon: '📁', title: 'Файли', cmds: [c('touch'), c('mkdir'), c('cp'), c('mv'), c('rm'), c('rmdir'), c('ln'), c('file')] },
+  { icon: '📁', title: 'Файли', cmds: [c('touch'), c('mkdir'), c('cp'), c('mv'), c('rm'), c('rmdir'), c('unlink'), c('ln'), c('file')] },
   { icon: '📄', title: 'Перегляд', cmds: [c('cat'), c('head'), c('tail'), c('wc'), c('less'), c('diff')] },
   { icon: '🔐', title: 'Права та користувачі', cmds: [c('chmod'), c('chown'), c('chgrp'), c('stat'), c('umask'), c('sudo'), c('su'), c('visudo'), c('passwd'), c('useradd'), c('adduser'), c('userdel'), c('usermod'), c('groupadd'), c('groupdel'), c('who'), c('last')] },
   { icon: '🔍', title: 'Пошук', cmds: [c('grep'), c('find'), c('locate'), c('updatedb')] },
@@ -42,7 +42,7 @@ const CHEATSHEET = [
   { icon: '⚡', title: 'Процеси', cmds: [c('ps'), c('top'), c('htop'), c('kill'), c('killall'), c('pkill'), c('pmap'), c('jobs'), c('fg'), c('free'), c('df'), c('fdisk'), c('mount'), c('du'), c('uptime'), c('watch'), c('lsof'), c('w'), c('finger'), c('vmstat'), c('mpstat'), c('iostat')] },
   { icon: '🛠️', title: 'systemd', cmds: [c('systemctl'), c('journalctl')] },
   { icon: '🌐', title: 'Мережа', cmds: [c('ping'), c('curl'), c('wget'), c('ssh'), c('scp'), c('dig'), c('nslookup'), c('ss'), c('netstat'), c('ip'), c('rsync'), c('traceroute'), c('tcpdump')] },
-  { icon: '📦', title: 'Пакети', cmds: [c('apt'), c('yum'), c('dnf'), c('rpm')] },
+  { icon: '📦', title: 'Пакети', cmds: [c('apt'), c('yum'), c('dnf'), c('rpm'), c('dpkg')] },
   { icon: '🖥️', title: 'Система', cmds: [c('whoami'), c('id'), c('hostname'), c('date'), c('uname')] },
   { icon: '🔩', title: 'Апаратне забезпечення', cmds: [c('dmesg'), c('lspci'), c('lsusb'), c('lshal'), c('dmidecode'), c('hdparm'), c('badblocks')] },
   {

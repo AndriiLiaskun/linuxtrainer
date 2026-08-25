@@ -494,4 +494,81 @@ check('rpm -q on an uninstalled package exits 1', r.code, 1);
 run(sh, 'rpm -e httpd');
 check('rpm -e removes it from the SAME database yum reads', sh.state.packages.has('httpd'), false);
 
+// --- kill -9 PID (was treating "-9" itself as a second, bogus PID) ---
+sh = new Shell();
+r = run(sh, 'kill -9 890');
+check('kill -9 PID actually kills the given PID, not "-9" itself', r.code, 0);
+check('the process is really gone', sh.state.processes.some((p) => p.pid === 890), false);
+r = run(sh, 'kill 1044');
+check('plain kill (no signal) still works', r.code, 0);
+
+// --- su - username (was ignoring the username whenever "-" was present) ---
+sh = new Shell();
+run(sh, 'useradd deploy');
+run(sh, 'su - deploy');
+check('su - username switches to THAT user, not root', sh.fs.currentUser, 'deploy');
+run(sh, 'su - root');
+check('su - root (or bare su -) still switches to root', sh.fs.currentUser, 'root');
+
+// --- chown owner.group (legacy dot separator, alongside owner:group) ---
+sh = new Shell();
+run(sh, 'chown alice.devs documents/notes.txt');
+r = sh.fs.getNode('/home/student/documents/notes.txt');
+check('chown owner.group sets the owner via the dot separator', r.owner, 'alice');
+check('chown owner.group sets the group via the dot separator', r.group, 'devs');
+
+// --- sed -i (in-place edit; previously not supported at all) ---
+sh = new Shell();
+sh.fs.writeFile('/home/student/greet.txt', 'hello world\n');
+r = run(sh, "sed -i 's/hello/goodbye/' greet.txt");
+check('sed -i produces no stdout (it writes the file instead)', r.stdout, '');
+check('sed -i actually rewrites the file on disk', sh.fs.getNode('/home/student/greet.txt').content, 'goodbye world\n');
+sh.fs.writeFile('/home/student/a.txt', 'foo\n');
+sh.fs.writeFile('/home/student/b.txt', 'foo\n');
+run(sh, "sed -i 's/foo/bar/' a.txt b.txt");
+check('sed -i with multiple files edits EACH independently, not merged', sh.fs.getNode('/home/student/a.txt').content, 'bar\n');
+check('...same for the second file', sh.fs.getNode('/home/student/b.txt').content, 'bar\n');
+
+// --- grep -R (capital, alongside the existing lowercase -r) ---
+sh = new Shell();
+check('grep -R recurses the same way -r does', run(sh, 'grep -R Welcome /etc').stdout, run(sh, 'grep -r Welcome /etc').stdout);
+
+// --- wget -O (custom output filename; previously broke argument parsing entirely) ---
+sh = new Shell();
+r = run(sh, 'wget -O myfile.repo http://example.com/some/long/path.repo');
+check('wget -O saves under the GIVEN name, not one derived from the URL', sh.fs.exists('/home/student/myfile.repo'), true);
+check('wget -O reports the given name', r.stdout.includes('myfile.repo'), true);
+
+// --- systemctl reload (previously an "unknown action" error) ---
+sh = new Shell();
+r = run(sh, 'systemctl reload nginx');
+check('systemctl reload is a recognized action', r.code, 0);
+
+// --- tar -C (extract into a different directory) ---
+sh = new Shell();
+sh.fs.mkdir('/home/student/srcdir');
+sh.fs.writeFile('/home/student/srcdir/f.txt', 'x\n');
+run(sh, 'tar -czf a.tar.gz srcdir');
+sh.fs.mkdir('/home/student/dest');
+run(sh, 'tar -xzf a.tar.gz -C dest');
+check('tar -xzf ... -C dest extracts into dest, not cwd', sh.fs.exists('/home/student/dest/srcdir/f.txt'), true);
+check('tar -C does not also extract into cwd', sh.fs.exists('/home/student/srcdir/f.txt') && !sh.fs.exists('/home/student/dest/srcdir'), false);
+
+// --- unlink (single-file removal; distinct from rm) ---
+sh = new Shell();
+run(sh, 'touch a.txt');
+run(sh, 'ln -s a.txt link.txt');
+run(sh, 'unlink link.txt');
+check('unlink removes the symlink itself', sh.fs.exists('/home/student/link.txt'), false);
+check('unlink leaves the target file untouched', sh.fs.exists('/home/student/a.txt'), true);
+r = run(sh, 'unlink documents');
+check('unlink refuses a directory (no -r option exists on unlink)', r.code, 1);
+
+// --- dpkg shares the same package database as apt (realistic on Debian/Ubuntu) ---
+sh = new Shell();
+run(sh, 'apt install -y nginx');
+check('dpkg -l sees a package installed via apt', run(sh, 'dpkg -l').stdout.includes('nginx'), true);
+run(sh, 'dpkg -r nginx');
+check('dpkg -r removes it from the SAME database apt reads', sh.state.packages.has('nginx'), false);
+
 module.exports = { passed, failed, failures };

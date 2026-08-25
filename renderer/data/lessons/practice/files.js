@@ -96,6 +96,18 @@ function build() {
 
   NAMES.slice(0, 4).forEach((name, i) => {
     drills.push({
+      id: `p-files-unlink-${i}`,
+      difficulty: 2,
+      prompt: `Створи символьне посилання ${name}-lnk на ${name}.txt, а потім видали САМЕ посилання командою unlink (не rm) так, щоб ${name}.txt лишився неушкодженим.`,
+      hint: `touch ${name}.txt && ln -s ${name}.txt ${name}-lnk && unlink ${name}-lnk`,
+      solution: `touch ${name}.txt && ln -s ${name}.txt ${name}-lnk && unlink ${name}-lnk`,
+      xp: 20,
+      check: (ctx) => h.notExists(ctx.fs, `/home/student/${name}-lnk`) && h.isFile(ctx.fs, `/home/student/${name}.txt`),
+    });
+  });
+
+  NAMES.slice(0, 4).forEach((name, i) => {
+    drills.push({
       id: `p-files-rmrf-${i}`,
       difficulty: 2,
       prompt: `Створи директорію ${name}-tree з файлом всередині (${name}-tree/a.txt), а потім видали всю директорію разом із вмістом.`,

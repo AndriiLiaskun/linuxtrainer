@@ -127,7 +127,7 @@ function fmtEntry(node, flags, name) {
 }
 
 function cmd_ls(args, ctx) {
-  const { flags, rest } = parseFlags(args, ['a', 'l', 'h', 'la', 'al', 'A', 'R', '1', 'd', 'F', 'g', 'i', 'm', 'r']);
+  const { flags, rest } = parseFlags(args, ['a', 'l', 'h', 'la', 'al', 'A', 'R', '1', 'd', 'F', 'g', 'i', 'm', 'r', 't']);
   const showAll = flags.a || flags.A || flags.la || flags.al;
   const long = flags.l || flags.la || flags.al || flags.g;
   const entryFlags = { l: long, F: !!flags.F, g: !!flags.g, i: !!flags.i };
@@ -152,14 +152,18 @@ function cmd_ls(args, ctx) {
       outputs.push(fmtEntry(node, entryFlags, t));
       continue;
     }
-    let names = Array.from(node.children.keys()).sort();
-    if (flags.r) names.reverse();
+    const names = Array.from(node.children.keys()).sort();
     const entries = [];
     if (showAll) entries.push(['.', node], ['..', node]);
     for (const name of names) {
       if (!showAll && name.startsWith('.')) continue;
       entries.push([name, node.children.get(name)]);
     }
+    // -t: newest-created first (this sandbox has no distinct mtime clock, so
+    // the monotonic inode-assignment order — which DOES advance on every
+    // touch/mkdir/cp/write — is used as the "most recently created" proxy).
+    if (flags.t) entries.sort((a, b) => b[1].inode - a[1].inode);
+    if (flags.r) entries.reverse();
     if (long) {
       const lines = entries.map(([name, n]) => fmtEntry(n, entryFlags, name));
       outputs.push((targets.length > 1 ? `${t}:\n` : '') + 'total ' + entries.length + '\n' + lines.join('\n'));
@@ -273,6 +277,22 @@ function cmd_rmdir(args, ctx) {
     } catch (e) {
       return fail(e.message + '\n');
     }
+  }
+  return ok('');
+}
+
+function cmd_unlink(args, ctx) {
+  // unlink takes exactly ONE file (or symlink) and no -r/-f options at
+  // all — it's the thin wrapper around the unlink() syscall, unlike rm.
+  if (args.length !== 1) return fail('unlink: usage: unlink FILE\n');
+  const path = args[0];
+  const node = ctx.fs.getNode(path);
+  if (!node) return fail(`unlink: cannot unlink '${path}': No such file or directory\n`);
+  if (node.type === 'dir') return fail(`unlink: cannot unlink '${path}': Is a directory\n`);
+  try {
+    ctx.fs.remove(path, {});
+  } catch (e) {
+    return fail(e.message + '\n');
   }
   return ok('');
 }
@@ -563,7 +583,9 @@ function cmd_chown(args, ctx) {
   const { flags, rest } = parseFlags(args, ['R', 'recursive']);
   if (rest.length < 2) return fail('chown: missing operand\n');
   const spec = rest[0];
-  const [owner, group] = spec.split(':');
+  // owner:group is standard; owner.group is an older, still-common alternate
+  // separator real chown also accepts (only when there's no ':' present).
+  const [owner, group] = spec.split(spec.includes(':') ? ':' : '.');
   const applyOne = (path) => {
     ctx.fs.chown(path, owner, group);
     if (flags.R || flags.recursive) {
@@ -620,7 +642,7 @@ function collectInputText(args, ctx, cmdName) {
 }
 
 function cmd_grep(args, ctx) {
-  const { flags, rest } = parseFlags(args, ['i', 'v', 'n', 'c', 'r', 'l', 'w', 'E']);
+  const { flags, rest } = parseFlags(args, ['i', 'v', 'n', 'c', 'r', 'R', 'l', 'w', 'E']);
   if (!rest.length) return fail('grep: missing pattern\n');
   const pattern = rest[0];
   const targets = rest.slice(1);
@@ -656,7 +678,7 @@ function cmd_grep(args, ctx) {
   }
 
   let expandedTargets = targets;
-  if (flags.r) {
+  if (flags.r || flags.R) {
     expandedTargets = [];
     for (const t of targets) {
       const node = ctx.fs.getNode(t);
@@ -759,13 +781,11 @@ function cmd_find(args, ctx) {
 }
 
 function cmd_sed(args, ctx) {
-  const { rest } = parseFlags(args, ['n']);
+  const { flags, rest } = parseFlags(args, ['n', 'i']);
   if (!rest.length) return fail('sed: missing script\n');
   const script = rest[0];
   const targets = rest.slice(1);
   const m = script.match(/^s([/#|])(.*?)\1(.*?)\1([a-z]*)$/);
-  const source = collectInputText(targets, ctx, 'sed');
-  if (source.err) return fail(source.err + '\n');
   if (!m) return fail(`sed: unsupported script: ${script}\n`);
   const [, , pat, repl, flags2] = m;
   const global = flags2.includes('g');
@@ -776,11 +796,27 @@ function cmd_sed(args, ctx) {
     return fail(`sed: invalid pattern\n`);
   }
   const replFixed = repl.replace(/\\(\d)/g, '$$$1');
-  const out = source.text
-    .split('\n')
-    .map((line) => line.replace(re, replFixed))
-    .join('\n');
-  return ok(out);
+  const applySubst = (text) => text.split('\n').map((line) => line.replace(re, replFixed)).join('\n');
+
+  if (flags.i) {
+    // -i edits each target file IN PLACE (and independently — unlike the
+    // read path below, files are never concatenated together first).
+    if (!targets.length) return fail('sed: -i requires an explicit file argument (cannot edit stdin in place)\n');
+    for (const t of targets) {
+      let text;
+      try {
+        text = readFileOrErr(ctx.fs, t, 'sed');
+      } catch (e) {
+        return fail(e.message + '\n');
+      }
+      ctx.fs.writeFile(t, applySubst(text));
+    }
+    return ok('');
+  }
+
+  const source = collectInputText(targets, ctx, 'sed');
+  if (source.err) return fail(source.err + '\n');
+  return ok(applySubst(source.text));
 }
 
 function cmd_awk(args, ctx) {
@@ -1005,6 +1041,7 @@ module.exports = {
   cmd_mkdir,
   cmd_rm,
   cmd_rmdir,
+  cmd_unlink,
   cmd_cp,
   cmd_mv,
   cmd_ln,

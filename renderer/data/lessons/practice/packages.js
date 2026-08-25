@@ -209,6 +209,43 @@ function build() {
     check: (ctx) => !ctx.state.packages.has('curl'),
   });
 
+  drills.push({
+    id: 'p-pkg-dpkg-i',
+    difficulty: 2,
+    prompt: 'Встанови .deb-пакет tree_1.7.0-3_amd64.deb низькорівневою командою dpkg.',
+    hint: 'dpkg -i tree_1.7.0-3_amd64.deb',
+    solution: 'dpkg -i tree_1.7.0-3_amd64.deb',
+    xp: 20,
+    check: (ctx) => ctx.state.packages.has('tree'),
+  });
+  drills.push({
+    id: 'p-pkg-dpkg-l',
+    difficulty: 2,
+    prompt: 'Виведи список УСІХ встановлених .deb-пакетів (dpkg -l).',
+    hint: 'dpkg -l',
+    solution: 'dpkg -l',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'bash') && h.stdoutIncludes(ctx.result, 'ii'),
+  });
+  drills.push({
+    id: 'p-pkg-dpkg-r',
+    difficulty: 2,
+    prompt: 'Видали пакет curl (вже встановлений типово) низькорівневою командою dpkg -r.',
+    hint: 'dpkg -r curl',
+    solution: 'dpkg -r curl',
+    xp: 25,
+    check: (ctx) => !ctx.state.packages.has('curl'),
+  });
+  drills.push({
+    id: 'p-pkg-dpkg-L',
+    difficulty: 2,
+    prompt: 'Перевір список файлів, встановлених пакетом git (dpkg -L).',
+    hint: 'dpkg -L git',
+    solution: 'dpkg -L git',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, '/usr/bin/git'),
+  });
+
   return drills;
 }
 
