@@ -113,6 +113,13 @@ class SessionState {
     this.backgroundJobs = [];
     this.users = new Set(['student', 'root']);
     this.groups = new Set(['student', 'root', 'sudo', 'docker']);
+    // uid + supplementary-group membership for dynamically created users
+    // (student/root's uid/gid stay sourced from filesystem.js's USERS map).
+    this.uids = new Map();
+    this.nextUid = 1001;
+    this.gids = new Map([['sudo', 27], ['docker', 999]]);
+    this.nextGid = 1001;
+    this.userGroups = new Map(); // username -> Set(groupname), supplementary only
   }
 }
 

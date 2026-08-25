@@ -58,6 +58,69 @@ function cmd_jobs(args, ctx) {
   return ok(out + '\n');
 }
 
+function cmd_fg(args, ctx) {
+  if (!ctx.state.backgroundJobs.length) return fail('fg: no current job\n');
+  let idx = ctx.state.backgroundJobs.length - 1;
+  if (args[0]) {
+    const n = parseInt(args[0].replace(/^%/, ''), 10);
+    if (isNaN(n) || n < 1 || n > ctx.state.backgroundJobs.length) {
+      return fail(`fg: %${args[0].replace(/^%/, '')}: no such job\n`);
+    }
+    idx = n - 1;
+  }
+  const cmdText = ctx.state.backgroundJobs.splice(idx, 1)[0];
+  return ok(cmdText + '\n');
+}
+
+function procBaseName(cmd) {
+  return cmd.split(' ')[0].split('/').pop().replace(/:$/, '');
+}
+
+function cmd_pmap(args, ctx) {
+  const { rest } = parseFlags(args, ['x', 'd']);
+  const pid = parseInt(rest[0], 10);
+  if (!pid) return fail('pmap: no process specified\n');
+  const proc = ctx.state.processes.find((p) => p.pid === pid);
+  if (!proc) return fail(`pmap: cannot find process ${pid}\n`);
+  const totalKb = Math.max(256, Math.round(proc.mem * 80000));
+  const name = procBaseName(proc.cmd);
+  const segs = [
+    { addr: '0000560d3f000000', size: Math.round(totalKb * 0.15), perm: 'r-x--', name },
+    { addr: '0000560d3f3c0000', size: Math.round(totalKb * 0.05), perm: 'r----', name },
+    { addr: '0000560d3f400000', size: Math.round(totalKb * 0.6), perm: 'rw---', name: '[ anon ]' },
+    { addr: '00007ffee0000000', size: Math.round(totalKb * 0.2), perm: 'rw---', name: '[ stack ]' },
+  ];
+  const lines = segs.map((s) => `${s.addr}  ${String(s.size).padStart(6)}K ${s.perm}  ${s.name}`);
+  const total = segs.reduce((a, s) => a + s.size, 0);
+  return ok(`${pid}:   ${proc.cmd}\n` + lines.join('\n') + `\ntotal          ${total}K\n`);
+}
+
+function cmd_killall(args, ctx) {
+  const { rest } = parseFlags(args, ['9', 'v'], ['s', 'signal']);
+  const name = rest[0];
+  if (!name) return fail('killall: usage: killall [-signal] name\n');
+  const matches = ctx.state.processes.filter((p) => procBaseName(p.cmd) === name);
+  if (!matches.length) return fail(`killall: ${name}: no process found\n`);
+  ctx.state.processes = ctx.state.processes.filter((p) => !matches.includes(p));
+  return ok('');
+}
+
+function cmd_pkill(args, ctx) {
+  const { flags, rest } = parseFlags(args, ['9', 'f'], ['s', 'signal']);
+  const pattern = rest[0];
+  if (!pattern) return fail('pkill: usage: pkill pattern\n');
+  let re;
+  try {
+    re = new RegExp(pattern);
+  } catch (e) {
+    return fail(`pkill: invalid pattern\n`);
+  }
+  const matches = ctx.state.processes.filter((p) => re.test(flags.f ? p.cmd : procBaseName(p.cmd)));
+  if (!matches.length) return { stdout: '', stderr: '', code: 1 };
+  ctx.state.processes = ctx.state.processes.filter((p) => !matches.includes(p));
+  return ok('');
+}
+
 function cmd_free(args, ctx) {
   const { flags } = parseFlags(args, ['h', 'm', 'g']);
   const header = '              total        used        free      shared  buff/cache   available';
@@ -103,8 +166,22 @@ function cmd_whoami(args, ctx) {
 
 function cmd_id(args, ctx) {
   const { USERS } = require('./filesystem');
-  const u = USERS[ctx.fs.currentUser];
-  return ok(`uid=${u.uid}(${ctx.fs.currentUser}) gid=${u.gid}(${u.group}) groups=${u.gid}(${u.group})\n`);
+  const name = args.find((a) => !a.startsWith('-')) || ctx.fs.currentUser;
+  if (!ctx.state.users.has(name)) return fail(`id: '${name}': no such user\n`);
+  let uid, gid, groupName;
+  if (USERS[name]) {
+    uid = USERS[name].uid;
+    gid = USERS[name].gid;
+    groupName = USERS[name].group;
+  } else {
+    uid = ctx.state.uids.get(name);
+    gid = uid;
+    groupName = name;
+  }
+  const supplementary = Array.from(ctx.state.userGroups.get(name) || []);
+  const groupGid = (g) => ctx.state.gids.get(g) || 1000;
+  const groupsStr = [`${gid}(${groupName})`, ...supplementary.map((g) => `${groupGid(g)}(${g})`)].join(',');
+  return ok(`uid=${uid}(${name}) gid=${gid}(${groupName}) groups=${groupsStr}\n`);
 }
 
 function cmd_hostname(args, ctx) {
@@ -742,6 +819,7 @@ function cmd_useradd(args, ctx) {
   if (!name) return fail('useradd: missing user name\n');
   if (ctx.state.users.has(name)) return fail(`useradd: user '${name}' already exists\n`);
   ctx.state.users.add(name);
+  ctx.state.uids.set(name, ctx.state.nextUid++);
   return ok('');
 }
 
@@ -751,6 +829,27 @@ function cmd_userdel(args, ctx) {
   if (!ctx.state.users.has(name)) return fail(`userdel: user '${name}' does not exist\n`);
   if (name === 'root' || name === 'student') return fail(`userdel: cannot remove the '${name}' account\n`);
   ctx.state.users.delete(name);
+  ctx.state.uids.delete(name);
+  ctx.state.userGroups.delete(name);
+  return ok('');
+}
+
+function cmd_usermod(args, ctx) {
+  const { flags, rest } = parseFlags(args, ['a'], ['G']);
+  const name = rest[0];
+  if (!name) return fail('usermod: missing user name\n');
+  if (!ctx.state.users.has(name)) return fail(`usermod: user '${name}' does not exist\n`);
+  if (flags.G === undefined) return fail('usermod: no valid modification specified (this sandbox only supports -G/-aG)\n');
+  const wanted = flags.G.split(',').filter(Boolean);
+  for (const g of wanted) {
+    if (!ctx.state.groups.has(g)) return fail(`usermod: group '${g}' does not exist\n`);
+  }
+  if (!ctx.state.userGroups.has(name)) ctx.state.userGroups.set(name, new Set());
+  const current = ctx.state.userGroups.get(name);
+  // -G alone REPLACES the whole supplementary-group list (a classic real-world
+  // footgun); -aG APPENDS instead, which is why "always use -aG" is the rule.
+  if (!flags.a) current.clear();
+  for (const g of wanted) current.add(g);
   return ok('');
 }
 
@@ -882,6 +981,7 @@ function cmd_groupadd(args, ctx) {
   if (!name) return fail('groupadd: missing group name\n');
   if (ctx.state.groups.has(name)) return fail(`groupadd: group '${name}' already exists\n`);
   ctx.state.groups.add(name);
+  ctx.state.gids.set(name, ctx.state.nextGid++);
   return ok('');
 }
 
@@ -891,6 +991,7 @@ function cmd_groupdel(args, ctx) {
   if (!ctx.state.groups.has(name)) return fail(`groupdel: group '${name}' does not exist\n`);
   if (name === 'root' || name === 'student') return fail(`groupdel: cannot remove the primary group '${name}'\n`);
   ctx.state.groups.delete(name);
+  ctx.state.gids.delete(name);
   return ok('');
 }
 
@@ -916,6 +1017,10 @@ module.exports = {
   cmd_top,
   cmd_kill,
   cmd_jobs,
+  cmd_fg,
+  cmd_pmap,
+  cmd_killall,
+  cmd_pkill,
   cmd_free,
   cmd_df,
   cmd_du,
@@ -946,6 +1051,7 @@ module.exports = {
   cmd_su,
   cmd_useradd,
   cmd_userdel,
+  cmd_usermod,
   cmd_passwd,
   cmd_uname,
   cmd_ip,

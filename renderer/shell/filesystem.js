@@ -423,6 +423,13 @@ class FileSystem {
     );
     this.writeFile('/etc/hostname', 'devops-trainer\n');
     this.writeFile('/etc/motd', 'Welcome to the LinuxTrainer sandbox.\n');
+    const sudoers = this.writeFile(
+      '/etc/sudoers',
+      "# /etc/sudoers\n#\n# This file MUST be edited with the 'visudo' command as root.\n\n" +
+        'root    ALL=(ALL:ALL) ALL\n\n' +
+        '# Allow members of group sudo to execute any command\n%sudo   ALL=(ALL:ALL) ALL\n'
+    );
+    sudoers.mode = 0o440;
     this.writeFile('/var/log/syslog', 'Aug 20 09:59:59 kernel: booting\nAug 20 10:00:00 systemd: started network\n');
 
     const deploy = this.writeFile(

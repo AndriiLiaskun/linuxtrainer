@@ -587,6 +587,29 @@ function cmd_umask() {
   return ok('0022\n');
 }
 
+function cmd_chgrp(args, ctx) {
+  const { flags, rest } = parseFlags(args, ['R', 'recursive']);
+  if (rest.length < 2) return fail('chgrp: missing operand\n');
+  const group = rest[0];
+  const targets = rest.slice(1);
+  const applyOne = (path) => {
+    const node = ctx.fs.getNode(path);
+    if (!node) throw new ShellError(`chgrp: cannot access '${path}': No such file or directory`);
+    node.group = group;
+    if (node.type === 'dir' && (flags.R || flags.recursive)) {
+      for (const name of node.children.keys()) applyOne(path.replace(/\/$/, '') + '/' + name);
+    }
+  };
+  for (const t of targets) {
+    try {
+      applyOne(t);
+    } catch (e) {
+      return fail(e.message + '\n');
+    }
+  }
+  return ok('');
+}
+
 // ---------------------------------------------------------------------
 // Text processing
 // ---------------------------------------------------------------------
@@ -996,6 +1019,7 @@ module.exports = {
   cmd_stat,
   cmd_chmod,
   cmd_chown,
+  cmd_chgrp,
   cmd_umask,
   cmd_grep,
   cmd_find,

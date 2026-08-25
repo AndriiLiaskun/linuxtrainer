@@ -217,6 +217,42 @@ function build() {
     check: (ctx) => ctx.state.backgroundJobs.length === 2 && h.stdoutIncludes(ctx.result, 'sleep 10') && h.stdoutIncludes(ctx.result, 'whoami'),
   });
   drills.push({
+    id: 'p-proc-killall-nginx',
+    difficulty: 2,
+    prompt: 'Заверши ВСІ процеси nginx одразу (і master, і worker) за іменем, не вказуючи PID.',
+    hint: 'killall nginx',
+    solution: 'killall nginx',
+    xp: 25,
+    check: (ctx) => !ctx.state.processes.some((p) => p.cmd.startsWith('nginx')),
+  });
+  drills.push({
+    id: 'p-proc-pkill-python',
+    difficulty: 2,
+    prompt: 'Заверши процес python3 app.py за іменем (pkill), не вказуючи PID.',
+    hint: 'pkill python3',
+    solution: 'pkill python3',
+    xp: 25,
+    check: (ctx) => !ctx.state.processes.some((p) => p.pid === 890),
+  });
+  drills.push({
+    id: 'p-proc-pmap-node',
+    difficulty: 2,
+    prompt: "Перевір карту пам'яті процесу node server.js (PID 1044).",
+    hint: 'pmap 1044',
+    solution: 'pmap 1044',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, '1044:') && h.stdoutIncludes(ctx.result, 'total'),
+  });
+  drills.push({
+    id: 'p-proc-fg',
+    difficulty: 2,
+    prompt: 'Запусти команду sleep 20 у фоновому режимі, а потім виведи це завдання на передній план (fg).',
+    hint: 'sleep 20 & fg',
+    solution: 'sleep 20 & fg',
+    xp: 25,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'sleep 20') && ctx.state.backgroundJobs.length === 0,
+  });
+  drills.push({
     id: 'p-proc-history',
     difficulty: 2,
     prompt: 'Виконай кілька команд (pwd, потім ls), а тоді перевір історію команд цієї сесії.',

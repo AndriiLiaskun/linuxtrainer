@@ -121,6 +121,27 @@ function build() {
     });
   });
 
+  // chgrp — group-only ownership change (no owner side-effect, unlike chown owner:group).
+  const CHGRP_TARGETS = [
+    { group: 'devs', name: 'chg0.txt' },
+    { group: 'ops', name: 'chg1.txt' },
+    { group: 'qa-team', name: 'chg2.txt' },
+  ];
+  CHGRP_TARGETS.forEach((c, i) => {
+    drills.push({
+      id: `p-perm-chgrp-${i}`,
+      difficulty: 2,
+      prompt: `Створи файл ${c.name} і зміни його групу на ${c.group} (без зміни власника).`,
+      hint: `touch ${c.name} && chgrp ${c.group} ${c.name}`,
+      solution: `touch ${c.name} && chgrp ${c.group} ${c.name}`,
+      xp: 20,
+      check: (ctx) => {
+        const n = ctx.fs.getNode(`/home/student/${c.name}`);
+        return !!n && n.owner === 'student' && n.group === c.group;
+      },
+    });
+  });
+
   // chmod on a directory, not just files.
   const DIR_MODES = [
     { mode: 0o700, str: '700' },
@@ -265,6 +286,56 @@ function build() {
       check: (ctx) => ctx.state.users.has(name),
     });
   });
+  drills.push({
+    id: 'p-perm-adduser',
+    difficulty: 1,
+    prompt: "Створи нового користувача з ім'ям intern, використовуючи дружню до Debian команду adduser.",
+    hint: 'adduser intern',
+    solution: 'adduser intern',
+    xp: 20,
+    check: (ctx) => ctx.state.users.has('intern'),
+  });
+
+  const USERMOD_G = [
+    { user: 'deploy1', group: 'docker' },
+    { user: 'deploy2', group: 'sudo' },
+  ];
+  USERMOD_G.forEach((u, i) => {
+    drills.push({
+      id: `p-perm-usermod-aG-${i}`,
+      difficulty: 3,
+      prompt: `Створи користувача ${u.user} і додай його до додаткової групи ${u.group}, НЕ видаляючи інші його групи (usermod -aG).`,
+      hint: `useradd ${u.user} && usermod -aG ${u.group} ${u.user}`,
+      solution: `useradd ${u.user} && usermod -aG ${u.group} ${u.user}`,
+      xp: 30,
+      check: (ctx) => {
+        const groups = ctx.state.userGroups.get(u.user);
+        return !!groups && groups.has(u.group);
+      },
+    });
+  });
+  drills.push({
+    id: 'p-perm-usermod-G-replaces',
+    difficulty: 3,
+    prompt: 'Створи користувача tempuser, додай його до групи docker (-aG), а потім використай usermod -G sudo (БЕЗ -a) — переконайся, що це ЗАМІНИЛО список груп, а не додало нову.',
+    hint: 'useradd tempuser && usermod -aG docker tempuser && usermod -G sudo tempuser',
+    solution: 'useradd tempuser && usermod -aG docker tempuser && usermod -G sudo tempuser',
+    xp: 35,
+    check: (ctx) => {
+      const groups = ctx.state.userGroups.get('tempuser');
+      return !!groups && groups.has('sudo') && !groups.has('docker') && groups.size === 1;
+    },
+  });
+  drills.push({
+    id: 'p-perm-visudo',
+    difficulty: 2,
+    prompt: 'Відкрий файл правил sudo (/etc/sudoers) безпечним способом через visudo.',
+    hint: 'visudo',
+    solution: 'visudo',
+    xp: 20,
+    check: (ctx) => !!ctx.state.pendingEditor && ctx.state.pendingEditor.path === '/etc/sudoers',
+  });
+
   NEW_USERS.forEach((name, i) => {
     drills.push({
       id: `p-perm-userdel-${i}`,

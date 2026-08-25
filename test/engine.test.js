@@ -395,4 +395,58 @@ const notesInode = sh.fs.getNode('/home/student/documents/notes.txt').inode;
 r = run(sh, `find documents -inum ${notesInode}`);
 check('find -inum matches the exact inode reported for that file', r.stdout, '/home/student/documents/notes.txt\n');
 
+// --- chgrp (group-only, unlike chown which also touches the owner) ---
+sh = new Shell();
+run(sh, 'chgrp devs documents/notes.txt');
+r = sh.fs.getNode('/home/student/documents/notes.txt');
+check('chgrp changes only the group', r.group, 'devs');
+check('chgrp leaves the owner untouched', r.owner, 'student');
+
+// --- usermod -aG (append) vs -G (replace) — a classic real-world footgun ---
+sh = new Shell();
+run(sh, 'useradd deploy');
+run(sh, 'usermod -aG docker deploy');
+check('usermod -aG adds the supplementary group', Array.from(sh.state.userGroups.get('deploy')), ['docker']);
+run(sh, 'usermod -aG sudo deploy');
+check('a second -aG APPENDS, keeping the earlier group', Array.from(sh.state.userGroups.get('deploy')).sort(), ['docker', 'sudo']);
+run(sh, 'usermod -G root deploy');
+check('usermod -G WITHOUT -a REPLACES the whole supplementary list', Array.from(sh.state.userGroups.get('deploy')), ['root']);
+r = run(sh, 'usermod -aG nosuchgroup deploy');
+check('usermod -aG on a nonexistent group is refused', r.code, 1);
+
+// --- id on a dynamically-created user (used to always report the CURRENT user, ignoring its argument) ---
+sh = new Shell();
+run(sh, 'useradd deploy');
+r = run(sh, 'id deploy');
+check('id <user> reports that user, not whoever is currently logged in', r.stdout.startsWith('uid=1001(deploy)'), true);
+run(sh, 'usermod -aG docker deploy');
+r = run(sh, 'id deploy');
+check('id shows supplementary groups with their gid', r.stdout, 'uid=1001(deploy) gid=1001(deploy) groups=1001(deploy),999(docker)\n');
+
+// --- killall / pkill (name-based, unlike kill which needs an exact PID) ---
+sh = new Shell();
+run(sh, 'killall nginx');
+check('killall removes every process matching that name', sh.state.processes.some((p) => p.cmd.startsWith('nginx')), false);
+r = run(sh, 'killall nosuchproc');
+check('killall on an unknown name errors', r.code, 1);
+
+sh = new Shell();
+r = run(sh, 'pkill python3');
+check('pkill matches by process-name regex and succeeds (exit 0)', r.code, 0);
+check('pkill removed the matching process', sh.state.processes.some((p) => p.pid === 890), false);
+r = run(sh, 'pkill nosuchproc');
+check('pkill with no match exits 1 (not an error message, matches real pkill)', r.code, 1);
+
+// --- fg (bring a background job to the foreground) ---
+sh = new Shell();
+run(sh, 'sleep 5 &');
+run(sh, 'sleep 3 &');
+r = run(sh, 'fg');
+check('bare fg brings the MOST RECENT job forward and echoes its command', r.stdout, 'sleep 3\n');
+check('fg removes that job from the list', sh.state.backgroundJobs.length, 1);
+r = run(sh, 'fg %1');
+check('fg %N targets a specific job by number', r.stdout, 'sleep 5\n');
+r = run(sh, 'fg');
+check('fg with nothing left running errors', r.stderr, 'fg: no current job\n');
+
 module.exports = { passed, failed, failures };
