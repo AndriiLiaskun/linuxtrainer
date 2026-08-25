@@ -85,6 +85,7 @@ const REGISTRY = {
   'apt-get': sys.pkgManager('apt-get'),
   yum: sys.pkgManager('yum'),
   dnf: sys.pkgManager('dnf'),
+  rpm: sys.cmd_rpm,
   ping: sys.cmd_ping,
   curl: sys.cmd_curl,
   wget: sys.cmd_wget,

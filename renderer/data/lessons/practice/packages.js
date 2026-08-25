@@ -163,6 +163,52 @@ function build() {
     check: (ctx) => h.stdoutIncludes(ctx.result, 'Name: git'),
   });
 
+  drills.push({
+    id: 'p-pkg-rpm-qa',
+    difficulty: 2,
+    prompt: 'Виведи список УСІХ встановлених rpm-пакетів (rpm -qa).',
+    hint: 'rpm -qa',
+    solution: 'rpm -qa',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'bash-1.0'),
+  });
+  drills.push({
+    id: 'p-pkg-rpm-q-installed',
+    difficulty: 2,
+    prompt: 'Встанови пакет httpd через yum, а потім перевір це через rpm -q.',
+    hint: 'yum install -y httpd && rpm -q httpd',
+    solution: 'yum install -y httpd && rpm -q httpd',
+    xp: 25,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'httpd-1.0-1'),
+  });
+  drills.push({
+    id: 'p-pkg-rpm-qi',
+    difficulty: 2,
+    prompt: 'Встанови пакет git (вже встановлений типово) — перевір детальну rpm-інформацію про нього.',
+    hint: 'rpm -qi git',
+    solution: 'rpm -qi git',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Name        : git'),
+  });
+  drills.push({
+    id: 'p-pkg-rpm-ql',
+    difficulty: 2,
+    prompt: 'Перевір список файлів, встановлених пакетом git (rpm -ql).',
+    hint: 'rpm -ql git',
+    solution: 'rpm -ql git',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, '/usr/bin/git'),
+  });
+  drills.push({
+    id: 'p-pkg-rpm-erase',
+    difficulty: 2,
+    prompt: 'Видали пакет curl (вже встановлений типово) через низькорівневу команду rpm -e.',
+    hint: 'rpm -e curl',
+    solution: 'rpm -e curl',
+    xp: 25,
+    check: (ctx) => !ctx.state.packages.has('curl'),
+  });
+
   return drills;
 }
 

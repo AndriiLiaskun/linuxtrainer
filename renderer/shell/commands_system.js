@@ -366,6 +366,53 @@ function pkgManager(name) {
   };
 }
 
+function cmd_rpm(args, ctx) {
+  const { flags, rest } = parseFlags(args, ['q', 'a', 'i', 'l', 'e', 'v', 'h']);
+  if (flags.q && flags.a) {
+    const pkgs = Array.from(ctx.state.packages).sort();
+    return ok(pkgs.map((p) => `${p}-1.0-1.el8.x86_64`).join('\n') + (pkgs.length ? '\n' : ''));
+  }
+  if (flags.e) {
+    const pkg = rest[0];
+    if (!pkg) return fail('rpm: no package given for erase\n');
+    if (!ctx.state.packages.has(pkg)) return fail(`error: package ${pkg} is not installed\n`);
+    ctx.state.packages.delete(pkg);
+    return ok('');
+  }
+  if (flags.i && !flags.q) {
+    const pkg = rest[0];
+    if (!pkg) return fail('rpm: no package given for install\n');
+    const name = pkg.replace(/\.rpm$/, '').split('-')[0];
+    ctx.state.packages.add(name);
+    return ok(
+      flags.v && flags.h
+        ? `Preparing...                          ################# [100%]\nUpdating / installing...\n   1:${name}-1.0-1                  ################# [100%]\n`
+        : ''
+    );
+  }
+  if (flags.q && flags.l) {
+    const pkg = rest[0];
+    if (!pkg) return fail('rpm: no package given for query\n');
+    if (!ctx.state.packages.has(pkg)) return fail(`package ${pkg} is not installed\n`);
+    return ok(`/etc/${pkg}.conf\n/usr/bin/${pkg}\n/usr/share/doc/${pkg}/README\n`);
+  }
+  if (flags.q && flags.i) {
+    const pkg = rest[0];
+    if (!pkg) return fail('rpm: no package given for query\n');
+    if (!ctx.state.packages.has(pkg)) return fail(`package ${pkg} is not installed\n`);
+    return ok(
+      `Name        : ${pkg}\nVersion     : 1.0\nRelease     : 1.el8\nArchitecture: x86_64\nInstall Date: Sat Aug 22 12:00:00 2026\n`
+    );
+  }
+  if (flags.q) {
+    const pkg = rest[0];
+    if (!pkg) return fail('rpm: no package given for query\n');
+    if (!ctx.state.packages.has(pkg)) return fail(`package ${pkg} is not installed\n`);
+    return ok(`${pkg}-1.0-1.el8.x86_64\n`);
+  }
+  return fail('rpm: unknown option combination\n');
+}
+
 // ---------------------------------------------------------------------
 // Networking (simulated)
 // ---------------------------------------------------------------------
@@ -1234,6 +1281,7 @@ module.exports = {
   cmd_mpstat,
   cmd_iostat,
   cmd_tcpdump,
+  cmd_rpm,
   cmd_uptime,
   cmd_whoami,
   cmd_id,

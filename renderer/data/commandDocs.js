@@ -149,6 +149,18 @@ const COMMAND_DOCS = {
   apt: { desc: 'Пакетний менеджер Debian/Ubuntu (alias: apt-get — старіший синтаксис).', opts: [['install -y', 'встановити пакет', 'apt install -y nginx'], ['remove', 'видалити пакет', 'apt remove nginx'], ['update', 'оновити список пакетів', 'apt update'], ['clean all', 'очистити кеш завантажених пакетів', 'apt clean all'], ['info', 'детальна інформація про пакет', 'apt info git']], example: 'apt install -y nginx' },
   yum: { desc: 'Пакетний менеджер RHEL/CentOS (старіший).', opts: [['repolist', 'список підключених репозиторіїв', 'yum repolist'], ['history', 'історія транзакцій (встановлень/видалень)', 'yum history'], ['grouplist', 'список доступних груп пакетів', 'yum grouplist'], ['groupinstall', "встановити всю групу пакетів", 'yum groupinstall "Development Tools"'], ['clean all', 'очистити кеш', 'yum clean all'], ['info', 'детальна інформація про пакет', 'yum info httpd']], example: 'yum install -y httpd' },
   dnf: { desc: 'Пакетний менеджер Fedora/RHEL 8+ (наступник yum).', opts: [['repolist', 'список підключених репозиторіїв', 'dnf repolist'], ['history', 'історія транзакцій', 'dnf history'], ['grouplist', 'список доступних груп пакетів', 'dnf grouplist']], example: 'dnf install -y vim' },
+  rpm: {
+    desc: 'Низькорівнева робота з .rpm-пакетами (та ж база пакетів, що й у yum/dnf).',
+    opts: [
+      ['-qa', 'список УСІХ встановлених пакетів', 'rpm -qa'],
+      ['-q pkg', "перевірити, чи встановлено конкретний пакет", 'rpm -q httpd'],
+      ['-qi pkg', 'детальна інформація про пакет', 'rpm -qi httpd'],
+      ['-ql pkg', 'список файлів, встановлених пакетом', 'rpm -ql httpd'],
+      ['-ivh pkg.rpm', 'встановити .rpm-файл (verbose + прогрес-бар)', 'rpm -ivh custom-tool-2.1.rpm'],
+      ['-e pkg', 'видалити пакет', 'rpm -e httpd'],
+    ],
+    example: 'rpm -qa',
+  },
 
   whoami: { desc: "Виводить ім'я поточного користувача.", example: 'whoami' },
   id: { desc: 'Показує UID/GID та групи поточного користувача.', example: 'id' },

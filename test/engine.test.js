@@ -485,4 +485,13 @@ check('yum repolist works', run(sh, 'yum repolist').code, 0);
 r = run(sh, 'apt repolist');
 check('apt repolist is refused (apt has no repolist concept, unlike yum/dnf)', r.code, 1);
 
+// --- rpm shares the same package database as yum/dnf (realistic on RHEL) ---
+sh = new Shell();
+run(sh, 'yum install -y httpd');
+check('rpm -q sees a package installed via yum', run(sh, 'rpm -q httpd').stdout, 'httpd-1.0-1.el8.x86_64\n');
+r = run(sh, 'rpm -q nosuchpkg');
+check('rpm -q on an uninstalled package exits 1', r.code, 1);
+run(sh, 'rpm -e httpd');
+check('rpm -e removes it from the SAME database yum reads', sh.state.packages.has('httpd'), false);
+
 module.exports = { passed, failed, failures };
