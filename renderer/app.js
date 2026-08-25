@@ -95,8 +95,8 @@ const el = {
   commandDocOpts: $('command-doc-opts'),
   commandDocExample: $('command-doc-example'),
   cheatsheetSearch: $('cheatsheet-search'),
+  cheatsheetSearchResults: $('cheatsheet-search-results'),
   cheatsheetGroups: $('cheatsheet-groups'),
-  cheatsheetEmpty: $('cheatsheet-empty'),
   cheatsheetGrid: $('cheatsheet-grid'),
   appVersion: $('app-version'),
   updateCheckBtn: $('update-check-btn'),
@@ -1097,18 +1097,22 @@ function setupUpdater() {
   });
 }
 
-function cheatsheetSearchHaystack(entry, cmd) {
-  const doc = COMMAND_DOCS[cmd.key] || {};
+function cheatsheetSearchHaystack(entry, cmd, doc) {
   const parts = [cmd.label, entry.title, doc.desc, doc.example];
   if (doc.opts) for (const opt of doc.opts) parts.push(opt[0], opt[1], opt[2]);
   return parts.filter(Boolean).join('   ').toLowerCase();
 }
+
+// Flat, pre-built index over every cheatsheet entry — built once by
+// renderCheatsheet(), searched on every keystroke without touching the DOM.
+let cheatsheetIndex = [];
 
 function renderCheatsheet() {
   const grid = el.cheatsheetGrid;
   if (!grid) return;
   grid.innerHTML = '';
   el.cheatsheetGroups.innerHTML = '';
+  cheatsheetIndex = [];
 
   CHEATSHEET.forEach((entry, ci) => {
     const anchorId = `cheatsheet-card-${ci}`;
@@ -1131,36 +1135,94 @@ function renderCheatsheet() {
     const cmds = document.createElement('div');
     cmds.className = 'cheatsheet-card-cmds';
     entry.cmds.forEach((cmd, i) => {
+      const doc = COMMAND_DOCS[cmd.key] || {};
       const token = document.createElement('span');
       token.className = 'cmd-token';
       token.textContent = cmd.label;
-      token.dataset.search = cheatsheetSearchHaystack(entry, cmd);
       token.addEventListener('click', () => showCommandDoc(cmd.label, cmd.key));
       cmds.appendChild(token);
       if (i < entry.cmds.length - 1) cmds.appendChild(document.createTextNode(', '));
+
+      cheatsheetIndex.push({
+        label: cmd.label,
+        key: cmd.key,
+        categoryIcon: entry.icon,
+        categoryTitle: entry.title,
+        desc: doc.desc || '',
+        haystack: cheatsheetSearchHaystack(entry, cmd, doc),
+      });
     });
     card.appendChild(title);
     card.appendChild(cmds);
     grid.appendChild(card);
   });
-
-  filterCheatsheet('');
 }
 
-function filterCheatsheet(rawQuery) {
+function closeCheatsheetSearchResults() {
+  el.cheatsheetSearchResults.classList.add('hidden');
+  el.cheatsheetSearchResults.innerHTML = '';
+}
+
+function renderCheatsheetSearchResults(rawQuery) {
   const query = rawQuery.trim().toLowerCase();
-  let anyVisible = false;
-  for (const card of el.cheatsheetGrid.children) {
-    const cardHasMatch = !query || Array.from(card.querySelectorAll('.cmd-token')).some((t) => t.dataset.search.includes(query));
-    card.classList.toggle('hidden', !cardHasMatch);
-    if (cardHasMatch) anyVisible = true;
+  if (!query) {
+    closeCheatsheetSearchResults();
+    return;
   }
-  el.cheatsheetEmpty.classList.toggle('hidden', anyVisible);
-  el.cheatsheetGroups.classList.toggle('hidden', !!query);
+
+  const matches = cheatsheetIndex.filter((entry) => entry.haystack.includes(query)).slice(0, 30);
+  el.cheatsheetSearchResults.innerHTML = '';
+
+  if (!matches.length) {
+    const empty = document.createElement('div');
+    empty.className = 'cheatsheet-search-empty';
+    empty.textContent = 'Нічого не знайдено. Спробуй інший запит.';
+    el.cheatsheetSearchResults.appendChild(empty);
+  } else {
+    for (const m of matches) {
+      const row = document.createElement('div');
+      row.className = 'cheatsheet-search-row';
+      const label = document.createElement('span');
+      label.className = 'cheatsheet-search-row-label';
+      label.textContent = m.label;
+      const cat = document.createElement('span');
+      cat.className = 'cheatsheet-search-row-cat';
+      cat.textContent = `${m.categoryIcon} ${m.categoryTitle}`;
+      const desc = document.createElement('span');
+      desc.className = 'cheatsheet-search-row-desc';
+      desc.textContent = m.desc;
+      row.appendChild(label);
+      row.appendChild(cat);
+      row.appendChild(desc);
+      row.addEventListener('click', () => {
+        showCommandDoc(m.label, m.key);
+        el.cheatsheetSearch.value = '';
+        closeCheatsheetSearchResults();
+      });
+      el.cheatsheetSearchResults.appendChild(row);
+    }
+  }
+
+  el.cheatsheetSearchResults.classList.remove('hidden');
 }
 
 if (el.cheatsheetSearch) {
-  el.cheatsheetSearch.addEventListener('input', () => filterCheatsheet(el.cheatsheetSearch.value));
+  el.cheatsheetSearch.addEventListener('input', () => renderCheatsheetSearchResults(el.cheatsheetSearch.value));
+  el.cheatsheetSearch.addEventListener('focus', () => {
+    if (el.cheatsheetSearch.value.trim()) renderCheatsheetSearchResults(el.cheatsheetSearch.value);
+  });
+  el.cheatsheetSearch.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      el.cheatsheetSearch.value = '';
+      closeCheatsheetSearchResults();
+      el.cheatsheetSearch.blur();
+    }
+  });
+  document.addEventListener('click', (e) => {
+    if (!el.cheatsheetSearch.contains(e.target) && !el.cheatsheetSearchResults.contains(e.target)) {
+      closeCheatsheetSearchResults();
+    }
+  });
 }
 
 function showCommandDoc(label, key) {

@@ -70,16 +70,18 @@
 
         <div class="cheatsheet">
           <h2>📋 Швидкий довідник команд <span class="cheatsheet-hint">(клікни на команду, щоб побачити опис)</span></h2>
-          <input
-            type="text"
-            class="cheatsheet-search"
-            id="cheatsheet-search"
-            placeholder="🔍 Шукай команду або опиши, що тобі треба (напр. «мережа», «архів», «права»)…"
-            autocomplete="off"
-          />
+          <div class="cheatsheet-search-wrap">
+            <input
+              type="text"
+              class="cheatsheet-search"
+              id="cheatsheet-search"
+              placeholder="🔍 Шукай команду або опиши, що тобі треба (напр. «мережа», «архів», «права»)…"
+              autocomplete="off"
+            />
+            <div class="cheatsheet-search-results hidden" id="cheatsheet-search-results"></div>
+          </div>
           <div class="cheatsheet-groups" id="cheatsheet-groups"></div>
           <div class="cheatsheet-grid" id="cheatsheet-grid"></div>
-          <p class="cheatsheet-empty hidden" id="cheatsheet-empty">Нічого не знайдено. Спробуй інший запит.</p>
         </div>
       </section>
 
