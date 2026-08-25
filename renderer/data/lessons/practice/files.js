@@ -66,6 +66,22 @@ function build() {
     });
   });
 
+  // mv -v — переконайся, що переміщення видно у виводі.
+  NAMES.slice(0, 4).forEach((name, i) => {
+    drills.push({
+      id: `p-files-mv-v-${i}`,
+      difficulty: 2,
+      prompt: `Створи файл ${name}-src.txt і перейменуй його на ${name}-dst.txt із виведенням інформації про переміщення (прапорець -v).`,
+      hint: `touch ${name}-src.txt && mv -v ${name}-src.txt ${name}-dst.txt`,
+      solution: `touch ${name}-src.txt && mv -v ${name}-src.txt ${name}-dst.txt`,
+      xp: 20,
+      check: (ctx) =>
+        h.notExists(ctx.fs, `/home/student/${name}-src.txt`) &&
+        h.isFile(ctx.fs, `/home/student/${name}-dst.txt`) &&
+        h.stdoutIncludes(ctx.result, `renamed '${name}-src.txt' -> '${name}-dst.txt'`),
+    });
+  });
+
   NAMES.slice(0, 6).forEach((name, i) => {
     drills.push({
       id: `p-files-rm-${i}`,

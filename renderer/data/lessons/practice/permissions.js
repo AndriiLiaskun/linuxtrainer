@@ -91,6 +91,36 @@ function build() {
     });
   });
 
+  // chown -R — recursive ownership change across a whole directory tree.
+  const CHOWN_R = [
+    { owner: 'alice', path: 'projects/webapp' },
+    { owner: 'bob', path: 'projects' },
+  ];
+  CHOWN_R.forEach((c, i) => {
+    drills.push({
+      id: `p-perm-chown-r-${i}`,
+      difficulty: 3,
+      prompt: `Зміни власника на ${c.owner} для директорії ${c.path} та УСЬОГО її вмісту рекурсивно.`,
+      hint: `chown -R ${c.owner} ${c.path}`,
+      solution: `chown -R ${c.owner} ${c.path}`,
+      xp: 30,
+      check: (ctx) => {
+        const dir = ctx.fs.getNode(`/home/student/${c.path}`);
+        if (!dir || dir.owner !== c.owner) return false;
+        const walk = (node) => {
+          if (node.owner !== c.owner) return false;
+          if (node.type === 'dir') {
+            for (const child of node.children.values()) {
+              if (!walk(child)) return false;
+            }
+          }
+          return true;
+        };
+        return walk(dir);
+      },
+    });
+  });
+
   // chmod on a directory, not just files.
   const DIR_MODES = [
     { mode: 0o700, str: '700' },
@@ -143,6 +173,24 @@ function build() {
       solution: `stat ${path}`,
       xp: 20,
       check: (ctx) => h.stdoutIncludes(ctx.result, 'Access:'),
+    });
+  });
+
+  // ls -ld — check a DIRECTORY's own permissions without ls dumping
+  // everything inside it (the classic "-d" idiom).
+  const LSD_TARGETS = ['projects', 'documents', '/etc', '/tmp'];
+  LSD_TARGETS.forEach((path, i) => {
+    drills.push({
+      id: `p-perm-lsd-${i}`,
+      difficulty: 2,
+      prompt: `Переглянь права доступу самої директорії ${path} (не її вмісту!) командою ls з відповідним прапорцем.`,
+      hint: `ls -ld ${path}`,
+      solution: `ls -ld ${path}`,
+      xp: 20,
+      check: (ctx) => {
+        const lines = h.stdoutLines(ctx.result);
+        return lines.length === 1 && lines[0].startsWith('d') && lines[0].endsWith(path);
+      },
     });
   });
 

@@ -298,6 +298,13 @@ check('unquoted glob in a grep pattern gets expanded by the SHELL first, breakin
 r = run(sh, "ls | grep '.txt'");
 check('quoting the pattern prevents glob expansion, so grep gets the literal string', r.stdout.includes('notes.txt'), true);
 
+// --- ls -d (info about the directory itself, not its contents) ---
+sh = new Shell();
+r = run(sh, 'ls -ld /etc');
+check('ls -ld shows one line about the directory, not its contents', r.stdout, 'drwxr-xr-x 1 student student  4096 Aug 22 12:00 /etc\n');
+r = run(sh, 'ls -d documents');
+check('ls -d (no -l) just prints the name, does not descend into it', r.stdout, 'documents\n');
+
 // --- xargs -I {} (per-item placeholder substitution, real common idiom) ---
 sh = new Shell();
 r = run(sh, 'ls documents | xargs -I {} echo file: {}');

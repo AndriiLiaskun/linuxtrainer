@@ -117,7 +117,7 @@ function fmtEntry(node, flags, name) {
 }
 
 function cmd_ls(args, ctx) {
-  const { flags, rest } = parseFlags(args, ['a', 'l', 'h', 'la', 'al', 'A', 'R', '1']);
+  const { flags, rest } = parseFlags(args, ['a', 'l', 'h', 'la', 'al', 'A', 'R', '1', 'd']);
   const showAll = flags.a || flags.A || flags.la || flags.al;
   const long = flags.l || flags.la || flags.al;
   const targets = rest.length ? rest : ['.'];
@@ -134,8 +134,11 @@ function cmd_ls(args, ctx) {
       outputs.push(`ls: cannot access '${t}': No such file or directory`);
       continue;
     }
-    if (node.type !== 'dir') {
-      outputs.push(fmtEntry(node, { l: long }, t));
+    if (node.type !== 'dir' || flags.d) {
+      // -d: show info about the directory entry ITSELF, not its contents
+      // (matches real ls -d — the classic "how do I check permissions on
+      // a directory without it dumping everything inside" idiom).
+      outputs.push(long ? fmtEntry(node, { l: true }, t) : t);
       continue;
     }
     let names = Array.from(node.children.keys()).sort();
@@ -261,17 +264,25 @@ function cmd_cp(args, ctx) {
 }
 
 function cmd_mv(args, ctx) {
-  if (args.length < 2) return fail('mv: missing file operand\n');
-  const dest = args[args.length - 1];
-  const srcs = args.slice(0, -1);
+  const { flags, rest } = parseFlags(args, ['v', 'verbose', 'i', 'interactive', 'f', 'force']);
+  if (rest.length < 2) return fail('mv: missing file operand\n');
+  const dest = rest[rest.length - 1];
+  const srcs = rest.slice(0, -1);
+  const verbose = flags.v || flags.verbose;
+  const out = [];
   for (const s of srcs) {
     try {
+      const destNode = ctx.fs.getNode(dest);
+      const resolvedDest = destNode && destNode.type === 'dir'
+        ? dest.replace(/\/+$/, '') + '/' + ctx.fs.basename(s)
+        : dest;
       ctx.fs.move(s, dest);
+      if (verbose) out.push(`renamed '${s}' -> '${resolvedDest}'`);
     } catch (e) {
       return fail(e.message + '\n');
     }
   }
-  return ok('');
+  return ok(out.length ? out.join('\n') + '\n' : '');
 }
 
 function cmd_ln(args, ctx) {
@@ -512,12 +523,22 @@ function cmd_chmod(args, ctx) {
 }
 
 function cmd_chown(args, ctx) {
-  if (args.length < 2) return fail('chown: missing operand\n');
-  const spec = args[0];
+  const { flags, rest } = parseFlags(args, ['R', 'recursive']);
+  if (rest.length < 2) return fail('chown: missing operand\n');
+  const spec = rest[0];
   const [owner, group] = spec.split(':');
-  for (const t of args.slice(1)) {
+  const applyOne = (path) => {
+    ctx.fs.chown(path, owner, group);
+    if (flags.R || flags.recursive) {
+      const node = ctx.fs.getNode(path);
+      if (node && node.type === 'dir') {
+        for (const name of node.children.keys()) applyOne(path.replace(/\/$/, '') + '/' + name);
+      }
+    }
+  };
+  for (const t of rest.slice(1)) {
     try {
-      ctx.fs.chown(t, owner, group);
+      applyOne(t);
     } catch (e) {
       return fail(e.message + '\n');
     }

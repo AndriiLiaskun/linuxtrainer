@@ -21,7 +21,7 @@ const COMMAND_DOCS = {
 
   pwd: { desc: 'Виводить поточну робочу директорію.', example: 'pwd' },
   cd: { desc: 'Переходить у вказану директорію.', opts: [['-', 'повернутись у попередню директорію', 'cd -'], ['~', 'домашня директорія', 'cd ~']], example: 'cd projects' },
-  ls: { desc: 'Виводить вміст директорії.', opts: [['-a', 'показати приховані файли', 'ls -a'], ['-l', 'детальний список з правами', 'ls -l'], ['-h', 'розміри у зручному форматі (разом із -l)', 'ls -lh']], example: 'ls -la' },
+  ls: { desc: 'Виводить вміст директорії.', opts: [['-a', 'показати приховані файли', 'ls -a'], ['-l', 'детальний список з правами', 'ls -l'], ['-h', 'розміри у зручному форматі (разом із -l)', 'ls -lh'], ['-d', 'показати інфо про САМУ директорію, а не її вміст', 'ls -ld /etc']], example: 'ls -la' },
   tree: { desc: 'Показує деревовидну структуру директорії.', opts: [['-a', 'включно з прихованими файлами', 'tree -a']], example: 'tree projects' },
   dirname: { desc: 'Виводить шлях до директорії, що містить файл (без імені файлу).', example: 'dirname documents/notes.txt' },
   basename: { desc: 'Виводить лише ім\'я файлу (без шляху).', opts: [['суфікс', 'прибрати вказаний суфікс, напр. .txt', 'basename documents/notes.txt .txt']], example: 'basename documents/notes.txt' },
@@ -30,7 +30,7 @@ const COMMAND_DOCS = {
   touch: { desc: 'Створює порожній файл (або оновлює час зміни).', example: 'touch notes.txt' },
   mkdir: { desc: 'Створює нову директорію.', opts: [['-p', 'створити всі проміжні директорії', 'mkdir -p a/b/c']], example: 'mkdir -p a/b/c' },
   cp: { desc: 'Копіює файли або директорії.', opts: [['-r', 'рекурсивно (для директорій)', 'cp -r src dest']], example: 'cp -r src dest' },
-  mv: { desc: 'Переміщує або перейменовує файл/директорію.', example: 'mv old.txt new.txt' },
+  mv: { desc: 'Переміщує або перейменовує файл/директорію.', opts: [['-v', 'показати, що саме переміщено', 'mv -v old.txt new.txt']], example: 'mv old.txt new.txt' },
   rm: { desc: 'Видаляє файли або директорії.', opts: [['-r', 'рекурсивно', 'rm -r tmp/'], ['-f', 'без підтвердження/помилок', 'rm -f old.txt']], example: 'rm -rf tmp/' },
   rmdir: { desc: 'Видаляє ПОРОЖНЮ директорію (для непорожніх — rm -r).', example: 'rmdir empty-dir' },
   ln: { desc: 'Створює посилання на файл.', opts: [['-s', 'символьне (soft) посилання', 'ln -s target link']], example: 'ln -s target link' },
@@ -44,7 +44,7 @@ const COMMAND_DOCS = {
   diff: { desc: 'Порівнює вміст двох файлів рядок за рядком.', example: 'diff file1.txt file2.txt' },
 
   chmod: { desc: 'Змінює права доступу до файлу.', opts: [['755/644/…', 'числовий режим', 'chmod 644 file.txt'], ['u+x, g-w…', 'символьний режим', 'chmod u+x script.sh']], example: 'chmod 644 file.txt' },
-  chown: { desc: 'Змінює власника (і групу) файлу.', opts: [['owner:group', 'встановити обидва одразу', 'chown alice:devs file']], example: 'chown alice:devs file' },
+  chown: { desc: 'Змінює власника (і групу) файлу.', opts: [['owner:group', 'встановити обидва одразу', 'chown alice:devs file'], ['-R', 'рекурсивно (для директорій)', 'chown -R alice:devs projects/']], example: 'chown alice:devs file' },
   stat: { desc: 'Показує детальні метадані файлу (розмір, права, час зміни).', example: 'stat file.txt' },
   umask: { desc: 'Показує маску прав за замовчуванням для нових файлів.', example: 'umask' },
   sudo: { desc: "Виконує одну команду від імені root (підвищені права).", example: 'sudo systemctl restart nginx' },
