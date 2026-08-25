@@ -94,6 +94,7 @@ const REGISTRY = {
   ss: sys.cmd_ss,
   netstat: sys.cmd_netstat,
   ssh: sys.cmd_ssh,
+  telnet: sys.cmd_telnet,
   scp: sys.cmd_scp,
   dig: sys.cmd_dig,
   nslookup: sys.cmd_nslookup,

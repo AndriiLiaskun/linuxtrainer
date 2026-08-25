@@ -164,6 +164,24 @@ function build() {
   });
 
   drills.push({
+    id: 'p-net-telnet-open',
+    difficulty: 2,
+    prompt: 'Перевір, чи відкритий порт 80 на api.internal, підключившись командою telnet.',
+    hint: 'telnet api.internal 80',
+    solution: 'telnet api.internal 80',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Connected to api.internal'),
+  });
+  drills.push({
+    id: 'p-net-telnet-closed',
+    difficulty: 2,
+    prompt: 'Спробуй підключитись telnet-ом до порту 9999 на api.internal (порт закритий) і переконайся, що з\'єднання відхилено.',
+    hint: 'telnet api.internal 9999',
+    solution: 'telnet api.internal 9999',
+    xp: 20,
+    check: (ctx) => ctx.result.code === 1 && (ctx.result.stderr || '').includes('Connection refused'),
+  });
+  drills.push({
     id: 'p-net-tcpdump',
     difficulty: 2,
     prompt: 'Перехопи мережеві пакети на інтерфейсі eth0 (tcpdump).',

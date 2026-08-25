@@ -289,6 +289,51 @@ function build() {
     check: (ctx) => /^\d+\.\d+\.\d+\.\d+$/.test(h.stdoutTrim(ctx.result)),
   });
   drills.push({
+    id: 'p-proc-cpuinfo',
+    difficulty: 1,
+    prompt: 'Перевір детальну інформацію про CPU системи через файл /proc/cpuinfo.',
+    hint: 'cat /proc/cpuinfo',
+    solution: 'cat /proc/cpuinfo',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'model name'),
+  });
+  drills.push({
+    id: 'p-proc-meminfo',
+    difficulty: 1,
+    prompt: "Перевір детальну інформацію про пам'ять системи через файл /proc/meminfo.",
+    hint: 'cat /proc/meminfo',
+    solution: 'cat /proc/meminfo',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'MemTotal'),
+  });
+  drills.push({
+    id: 'p-proc-meminfo-grep',
+    difficulty: 2,
+    prompt: 'Знайди лише рядок MemTotal у /proc/meminfo (без усього іншого виводу).',
+    hint: 'grep MemTotal /proc/meminfo',
+    solution: 'grep MemTotal /proc/meminfo',
+    xp: 20,
+    check: (ctx) => h.stdoutLines(ctx.result).length === 1 && h.stdoutIncludes(ctx.result, 'MemTotal'),
+  });
+  drills.push({
+    id: 'p-proc-interrupts',
+    difficulty: 2,
+    prompt: 'Перевір статистику апаратних переривань (IRQ) через файл /proc/interrupts.',
+    hint: 'cat /proc/interrupts',
+    solution: 'cat /proc/interrupts',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'IO-APIC'),
+  });
+  drills.push({
+    id: 'p-proc-uptime-raw',
+    difficulty: 2,
+    prompt: "Перевір сирі дані про час роботи системи (у секундах) через файл /proc/uptime (на відміну від зручного для читання виводу команди uptime).",
+    hint: 'cat /proc/uptime',
+    solution: 'cat /proc/uptime',
+    xp: 15,
+    check: (ctx) => /^\d+\.\d+ \d+\.\d+/.test(h.stdoutTrim(ctx.result)),
+  });
+  drills.push({
     id: 'p-proc-dmesg',
     difficulty: 1,
     prompt: 'Перевір повідомлення ядра (kernel ring buffer) командою dmesg.',

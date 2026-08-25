@@ -394,6 +394,23 @@ class FileSystem {
     this.mkdir('/dev', { parents: true });
     this.touch('/dev/null'); // seeded directly via touch — writeFile() special-cases this path to always discard
     this.mkdir('/home/student/k8s', { parents: true });
+    this.mkdir('/proc', { parents: true });
+
+    this.writeFile(
+      '/proc/cpuinfo',
+      'processor\t: 0\nvendor_id\t: GenuineIntel\nmodel name\t: Intel(R) Xeon(R) CPU @ 2.20GHz\ncpu MHz\t\t: 2200.000\ncache size\t: 39424 KB\ncpu cores\t: 4\n\n' +
+        'processor\t: 1\nvendor_id\t: GenuineIntel\nmodel name\t: Intel(R) Xeon(R) CPU @ 2.20GHz\ncpu MHz\t\t: 2200.000\ncache size\t: 39424 KB\ncpu cores\t: 4\n'
+    );
+    this.writeFile(
+      '/proc/meminfo',
+      'MemTotal:        8000000 kB\nMemFree:         3900000 kB\nMemAvailable:    5300000 kB\nBuffers:          182340 kB\nCached:          1843200 kB\nSwapTotal:       2000000 kB\nSwapFree:        2000000 kB\n'
+    );
+    this.writeFile(
+      '/proc/interrupts',
+      '           CPU0       CPU1\n  0:         32          0   IO-APIC   2-edge      timer\n  1:          9          0   IO-APIC   1-edge      i8042\n' +
+        ' 22:          0        128   IO-APIC  22-fasteoi   eth0\n'
+    );
+    this.writeFile('/proc/uptime', '270321.45 1080123.90\n');
 
     this.writeFile('/home/student/documents/notes.txt', 'TODO: learn grep and sed\nBuy coffee\nDeploy app on Friday\n');
     this.writeFile('/home/student/documents/report.csv', 'name,score\nalice,91\nbob,74\ncarol,88\n');

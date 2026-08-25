@@ -108,6 +108,15 @@ function build() {
     },
   });
   drills.push({
+    id: 'p-nav-ls-t-newest',
+    difficulty: 3,
+    prompt: 'Створи файли old.txt і new.txt (у цьому порядку), а потім виведи вміст домашньої директорії, відсортований за часом створення — найновіший файл першим (прапорець -t).',
+    hint: 'touch old.txt && touch new.txt && ls -t',
+    solution: 'touch old.txt && touch new.txt && ls -t',
+    xp: 25,
+    check: (ctx) => h.stdoutTrim(ctx.result).split(/\s+/)[0] === 'new.txt',
+  });
+  drills.push({
     id: 'p-nav-tree-webapp',
     difficulty: 2,
     prompt: 'Виведи деревовидну структуру директорії projects/webapp.',

@@ -515,6 +515,18 @@ function cmd_netstat(args, ctx) {
   return ok([header, ...rows].join('\n') + '\n');
 }
 
+function cmd_telnet(args, ctx) {
+  const host = args[0];
+  if (!host) return fail('telnet: usage: telnet host [port]\n');
+  const port = args[1] ? parseInt(args[1], 10) : 23;
+  const ip = ctx.state.network.hosts[host] || '198.51.100.23';
+  const listening = ctx.state.network.listeningPorts.some((lp) => parseInt(lp.local.split(':')[1], 10) === port);
+  if (listening) {
+    return ok(`Trying ${ip}...\nConnected to ${host}.\nEscape character is '^]'.\n`);
+  }
+  return { stdout: `Trying ${ip}...\n`, stderr: `telnet: connect to address ${ip}: Connection refused\n`, code: 1 };
+}
+
 function cmd_ssh(args, ctx) {
   const { flags, rest } = parseFlags(args, [], ['p']);
   const target = rest[rest.length - 1];
@@ -1343,6 +1355,7 @@ module.exports = {
   cmd_ss,
   cmd_netstat,
   cmd_ssh,
+  cmd_telnet,
   cmd_scp,
   cmd_dig,
   cmd_nslookup,

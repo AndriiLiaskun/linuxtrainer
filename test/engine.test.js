@@ -355,6 +355,13 @@ run(sh, 'touch e.txt');
 r = run(sh, 'rm -v e.txt');
 check('rm -v reports the removal', r.stdout, "removed 'e.txt'\n");
 
+// --- ls -t (newest-created first; uses inode order as an mtime proxy) ---
+sh = new Shell();
+run(sh, 'touch old.txt');
+run(sh, 'touch new.txt');
+check('ls -t sorts newest-created first', run(sh, 'ls -t').stdout, 'new.txt  old.txt  k8s  documents  projects\n');
+check('ls -tr reverses it back to oldest first', run(sh, 'ls -tr').stdout, 'projects  documents  k8s  old.txt  new.txt\n');
+
 // --- ls -F / -i / -g / -m / -r ---
 sh = new Shell();
 r = run(sh, 'ls -F');
@@ -570,5 +577,20 @@ run(sh, 'apt install -y nginx');
 check('dpkg -l sees a package installed via apt', run(sh, 'dpkg -l').stdout.includes('nginx'), true);
 run(sh, 'dpkg -r nginx');
 check('dpkg -r removes it from the SAME database apt reads', sh.state.packages.has('nginx'), false);
+
+// --- telnet (open vs closed port; connection state comes from listeningPorts) ---
+sh = new Shell();
+r = run(sh, 'telnet api.internal 80');
+check('telnet to an open port connects', r.stdout.includes('Connected to api.internal'), true);
+r = run(sh, 'telnet api.internal 9999');
+check('telnet to a closed port is refused', r.code, 1);
+check('the refusal message goes to stderr, matching real telnet', r.stderr.includes('Connection refused'), true);
+
+// --- /proc/* files (seeded, real-world content students actually cat) ---
+sh = new Shell();
+check('/proc/cpuinfo exists and is readable', run(sh, 'cat /proc/cpuinfo').stdout.includes('model name'), true);
+check('/proc/meminfo exists and is readable', run(sh, 'cat /proc/meminfo').stdout.includes('MemTotal'), true);
+check('/proc/interrupts exists and is readable', run(sh, 'cat /proc/interrupts').stdout.includes('IO-APIC'), true);
+check('/proc/uptime exists and is readable', /^\d+\.\d+/.test(run(sh, 'cat /proc/uptime').stdout), true);
 
 module.exports = { passed, failed, failures };
