@@ -12,8 +12,9 @@ function createVimState(content, path) {
     lines: lines.length ? lines : [''],
     cursorRow: 0,
     cursorCol: 0,
-    mode: 'normal', // 'normal' | 'insert' | 'command'
+    mode: 'normal', // 'normal' | 'insert' | 'command' | 'search'
     commandBuffer: '',
+    searchBuffer: '',
     countBuffer: '',
     pendingOp: null, // 'd' | 'y' | 'g' — waiting for a second key
     yankBuffer: null, // { lines: [...] } — always line-wise for simplicity
@@ -110,6 +111,82 @@ function wordBackward(state) {
 
 function count(state) {
   return state.countBuffer ? Math.max(1, parseInt(state.countBuffer, 10)) : 1;
+}
+
+function compileSearchPattern(pattern) {
+  try {
+    return new RegExp(pattern);
+  } catch (e) {
+    // fall back to a literal-string search if the typed pattern isn't valid regex
+    return new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  }
+}
+
+// Leftmost match in `line` at or after `fromCol`, or -1.
+function firstMatchFrom(line, re, fromCol) {
+  const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
+  let m;
+  while ((m = g.exec(line))) {
+    if (m.index >= fromCol) return m.index;
+    if (m[0].length === 0) g.lastIndex++;
+  }
+  return -1;
+}
+
+// Rightmost match in `line` strictly before `beforeCol`, or -1.
+function lastMatchBefore(line, re, beforeCol) {
+  const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
+  let m;
+  let best = -1;
+  while ((m = g.exec(line))) {
+    if (m.index < beforeCol) best = m.index;
+    else break;
+    if (m[0].length === 0) g.lastIndex++;
+  }
+  return best;
+}
+
+// Finds the next (or, if backward, previous) match of `pattern` relative to
+// the cursor, wrapping around the buffer like real vim's default 'wrapscan'.
+// Returns { row, col } or null if the pattern doesn't occur anywhere.
+function findSearchMatch(state, pattern, backward) {
+  if (!pattern) return null;
+  let re;
+  try {
+    re = compileSearchPattern(pattern);
+  } catch (e) {
+    return null;
+  }
+  const n = state.lines.length;
+  if (!backward) {
+    let col = firstMatchFrom(state.lines[state.cursorRow], re, state.cursorCol + 1);
+    if (col !== -1) return { row: state.cursorRow, col };
+    for (let i = 1; i <= n; i++) {
+      const r = (state.cursorRow + i) % n;
+      col = firstMatchFrom(state.lines[r], re, 0);
+      if (col !== -1) return { row: r, col };
+    }
+  } else {
+    let col = lastMatchBefore(state.lines[state.cursorRow], re, state.cursorCol);
+    if (col !== -1) return { row: state.cursorRow, col };
+    for (let i = 1; i <= n; i++) {
+      const r = (state.cursorRow - i + n * 2) % n;
+      col = lastMatchBefore(state.lines[r], re, state.lines[r].length + 1);
+      if (col !== -1) return { row: r, col };
+    }
+  }
+  return null;
+}
+
+function jumpToSearchMatch(state, pattern, backward) {
+  const match = findSearchMatch(state, pattern, backward);
+  if (match) {
+    state.cursorRow = match.row;
+    state.cursorCol = match.col;
+    state.message = (backward ? '?' : '/') + pattern;
+  } else {
+    state.message = `E486: Pattern not found: ${pattern}`;
+  }
 }
 
 // Returns { exit: bool, save: bool, forceQuit: bool }
@@ -211,6 +288,30 @@ function handleKey(state, key, ctrlKey) {
     return {};
   }
 
+  if (state.mode === 'search') {
+    if (key === 'Escape') {
+      state.mode = 'normal';
+      state.searchBuffer = '';
+      return {};
+    }
+    if (key === 'Enter') {
+      const pattern = state.searchBuffer;
+      state.searchBuffer = '';
+      state.mode = 'normal';
+      if (pattern) {
+        state.lastSearch = pattern;
+        jumpToSearchMatch(state, pattern, false);
+      }
+      return {};
+    }
+    if (key === 'Backspace') {
+      state.searchBuffer = state.searchBuffer.slice(0, -1);
+      return {};
+    }
+    if (key.length === 1) state.searchBuffer += key;
+    return {};
+  }
+
   // NORMAL mode
   if (key === 'Escape') {
     state.pendingOp = null;
@@ -233,6 +334,30 @@ function handleKey(state, key, ctrlKey) {
   if (key === ':') {
     state.mode = 'command';
     state.commandBuffer = '';
+    state.countBuffer = '';
+    return {};
+  }
+  if (key === '/') {
+    state.mode = 'search';
+    state.searchBuffer = '';
+    state.countBuffer = '';
+    return {};
+  }
+  if (key === 'n') {
+    if (!state.lastSearch) {
+      state.message = 'E35: No previous regular expression';
+    } else {
+      jumpToSearchMatch(state, state.lastSearch, false);
+    }
+    state.countBuffer = '';
+    return {};
+  }
+  if (key === 'N') {
+    if (!state.lastSearch) {
+      state.message = 'E35: No previous regular expression';
+    } else {
+      jumpToSearchMatch(state, state.lastSearch, true);
+    }
     state.countBuffer = '';
     return {};
   }

@@ -168,4 +168,55 @@ function type(state, text) {
   check('runVimScript can edit an existing seeded file (dd removes first line)', sh.fs.getNode('/home/student/documents/notes.txt').content, 'Buy coffee\nDeploy app on Friday\n');
 }
 
+// --- /pattern search + n/N navigation between matches ---
+{
+  const s = createVimState('the quick brown fox\njumps over the lazy dog\nthe fox runs\n', 'f.txt');
+  handleKey(s, '/', false);
+  check('/ enters search mode', s.mode, 'search');
+  type(s, 'fox');
+  check('typing builds up the search buffer (visible in the statusline)', s.searchBuffer, 'fox');
+  handleKey(s, 'Enter', false);
+  check('Enter jumps to the first match after the cursor', [s.cursorRow, s.cursorCol], [0, 16]);
+  check('search mode exits back to normal after Enter', s.mode, 'normal');
+  handleKey(s, 'n', false);
+  check('n jumps to the NEXT match', [s.cursorRow, s.cursorCol], [2, 4]);
+  handleKey(s, 'n', false);
+  check('n wraps back around to the first match when at the last one', [s.cursorRow, s.cursorCol], [0, 16]);
+  handleKey(s, 'N', false);
+  check('N searches BACKWARD, wrapping to the last match', [s.cursorRow, s.cursorCol], [2, 4]);
+}
+{
+  const s = createVimState('alpha\nbeta\ngamma\n', 'f.txt');
+  handleKey(s, '/', false);
+  type(s, 'zzz');
+  handleKey(s, 'Enter', false);
+  check('a pattern with no match shows E486 and leaves the cursor put', s.message, 'E486: Pattern not found: zzz');
+  check('cursor did not move on a failed search', [s.cursorRow, s.cursorCol], [0, 0]);
+}
+{
+  const s = createVimState('one two\n', 'f.txt');
+  const r = handleKey(s, 'n', false);
+  check('n with no previous search shows E35, not a crash', s.message, 'E35: No previous regular expression');
+}
+{
+  const s = createVimState('one two\n', 'f.txt');
+  handleKey(s, '/', false);
+  type(s, 'tw');
+  handleKey(s, 'Escape', false);
+  check('Escape cancels the search and returns to normal mode', s.mode, 'normal');
+  check('Escape clears the half-typed search buffer', s.searchBuffer, '');
+  check('cursor stays put when a search is cancelled', [s.cursorRow, s.cursorCol], [0, 0]);
+}
+{
+  // dd after a search should operate on the line the search landed on —
+  // confirms search integrates with the rest of normal-mode, not a bolt-on.
+  const s = createVimState('keep me\nfind this line\nkeep me too\n', 'f.txt');
+  handleKey(s, '/', false);
+  type(s, 'find');
+  handleKey(s, 'Enter', false);
+  handleKey(s, 'd', false);
+  handleKey(s, 'd', false);
+  check('dd after a search deletes the line the search moved the cursor to', s.lines, ['keep me', 'keep me too']);
+}
+
 module.exports = { passed, failed, failures };

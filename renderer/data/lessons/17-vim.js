@@ -112,5 +112,28 @@ module.exports = {
       vim: { path: 'config.txt', script: 'iport=8080<Enter>debug=false<Esc>:wq<Enter>' },
       check: (ctx) => h.contentEquals(ctx.fs, '/home/student/config.txt', 'port=8080\ndebug=false\n'),
     },
+    {
+      id: 'vim-10',
+      difficulty: 2,
+      prompt: 'Відкрий documents/notes.txt у vim, знайди слово "coffee" пошуком (/coffee, потім Enter — курсор стрибне прямо на цей рядок), видали цей рядок (dd), і збережи.',
+      hint: 'vim documents/notes.txt → /coffee → Enter → dd → :wq → Enter',
+      solution: 'vim documents/notes.txt   (/coffee⏎ → dd → :wq⏎)',
+      xp: 30,
+      vim: { path: 'documents/notes.txt', script: '/coffee<Enter>dd:wq<Enter>' },
+      check: (ctx) => !h.contentContains(ctx.fs, '/home/student/documents/notes.txt', 'coffee'),
+    },
+    {
+      id: 'vim-11',
+      difficulty: 3,
+      prompt: 'Створи новий файл search-demo.txt у vim з трьома рядками: web-01, web-02, db-01. Потім (не виходячи з vim) перейди на початок файлу (gg), знайди "web" (/web — курсор стрибне на web-02, бо пошук завжди йде ВІД курсора вперед, а не з нього самого), натисни n, щоб перейти до НАСТУПНОГО збігу (по колу поверне на web-01), видали САМЕ цей рядок (dd), і збережи.',
+      hint: 'vim search-demo.txt → i → web-01⏎web-02⏎db-01 → Esc → gg → /web → Enter → n → dd → :wq → Enter',
+      solution: 'vim search-demo.txt   (iweb-01⏎web-02⏎db-01 → Esc → gg → /web⏎ → n → dd → :wq⏎)',
+      xp: 35,
+      vim: { path: 'search-demo.txt', script: 'iweb-01<Enter>web-02<Enter>db-01<Esc>gg/web<Enter>ndd:wq<Enter>' },
+      check: (ctx) => {
+        const n = ctx.fs.getNode('/home/student/search-demo.txt');
+        return !!n && !n.content.includes('web-01') && n.content.includes('web-02') && n.content.includes('db-01');
+      },
+    },
   ],
 };

@@ -875,6 +875,7 @@ function renderVim() {
   let status;
   if (vimState.mode === 'insert') status = '-- INSERT --';
   else if (vimState.mode === 'command') status = ':' + vimState.commandBuffer;
+  else if (vimState.mode === 'search') status = '/' + vimState.searchBuffer;
   else status = vimState.message || (vimState.dirty ? '[+] ' + vimState.path : vimState.path);
   el.vimStatusline.textContent = status;
 }
