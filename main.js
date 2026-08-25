@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
+const { PythonRunner } = require('./pythonRunner');
 
 // Lives in userData (%APPDATA%/linuxtrainer on Windows) — a directory
 // completely separate from the app's install folder, so NSIS
@@ -139,6 +140,19 @@ ipcMain.handle('updater:install', () => {
 });
 
 ipcMain.handle('updater:getVersion', () => app.getVersion());
+
+// ---------------------------------------------------------------------
+// Python execution (Pyodide, sandboxed WASM interpreter) for the
+// Python-for-DevOps track. Runs in a worker_thread, NOT the renderer —
+// Pyodide's internal loader does a dynamic require('node:fs') inside an
+// ES module that Electron's renderer rejects even with nodeIntegration
+// on; a plain Node worker has no such restriction. See pythonRunner.js
+// for the timeout/respawn safety net and pythonWorker.js for the
+// sandboxed execution + subprocess-to-Shell bridge.
+// ---------------------------------------------------------------------
+
+const pythonRunner = new PythonRunner();
+ipcMain.handle('python:run', (event, code) => pythonRunner.run(code));
 
 function createWindow() {
   const win = new BrowserWindow({

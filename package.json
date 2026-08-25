@@ -38,8 +38,14 @@
     },
     "files": [
       "main.js",
+      "pythonRunner.js",
+      "pythonWorker.js",
       "renderer/**/*",
-      "package.json"
+      "package.json",
+      "node_modules/pyodide/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/pyodide/**/*"
     ],
     "win": {
       "target": "nsis",
