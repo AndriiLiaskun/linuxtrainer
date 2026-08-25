@@ -321,6 +321,12 @@ el.practiceFilter.querySelectorAll('.filter-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     practiceFilterDifficulty = btn.dataset.filter ? Number(btn.dataset.filter) : null;
     el.practiceFilter.querySelectorAll('.filter-btn').forEach((b) => b.classList.toggle('active', b === btn));
+    // Changing the filter must show a NEW drill matching it right away —
+    // if the user had rewound with Prev, practiceGoNext() would otherwise
+    // just replay whatever was already cached ahead in history (picked
+    // under the OLD filter) instead of respecting the new selection.
+    // Dropping that cached tail forces a fresh pick.
+    practiceHistory = practiceHistory.slice(0, practiceHistoryPos + 1);
     practiceGoNext();
   });
 });
@@ -1095,7 +1101,7 @@ function cheatsheetSearchHaystack(entry, cmd) {
   const doc = COMMAND_DOCS[cmd.key] || {};
   const parts = [cmd.label, entry.title, doc.desc, doc.example];
   if (doc.opts) for (const opt of doc.opts) parts.push(opt[0], opt[1], opt[2]);
-  return parts.filter(Boolean).join('   ').toLowerCase();
+  return parts.filter(Boolean).join('   ').toLowerCase();
 }
 
 function renderCheatsheet() {

@@ -13,6 +13,12 @@ function nowStamp() {
   return 'Aug 22 12:00';
 }
 
+// True if `norm` (an already-normalized absolute path) IS /dev/null or is
+// an ancestor directory that would take /dev/null down with it (e.g. /dev).
+function isOrContainsDevNull(norm) {
+  return norm === '/dev/null' || '/dev/null'.startsWith(norm + '/');
+}
+
 class VNode {
   constructor(type, name, opts = {}) {
     this.type = type; // 'dir' | 'file' | 'symlink'
@@ -215,6 +221,13 @@ class FileSystem {
   remove(path, { recursive = false, force = false } = {}) {
     const norm = this.normalize(path);
     if (norm === '/') throw new ShellError('refusing to remove ‘/’');
+    // /dev/null is special-cased in writeFile() to always discard writes
+    // regardless of whether the node exists — removing it (directly, or
+    // via a recursive `rm -r /dev`) would leave no way to recreate it (no
+    // mknod here), permanently breaking every "> /dev/null" idiom for the
+    // rest of the session. Real Linux doesn't protect it either, but real
+    // Linux also has mknod to fix your mistake.
+    if (isOrContainsDevNull(norm)) throw new ShellError(`cannot remove '${path}': Operation not permitted`);
     const node = this.getNode(norm);
     if (!node) {
       if (force) return;
@@ -281,6 +294,7 @@ class FileSystem {
 
   move(src, dest) {
     const srcNorm = this.normalize(src);
+    if (isOrContainsDevNull(srcNorm)) throw new ShellError(`cannot move '${src}': Operation not permitted`);
     const srcNode = this.getNode(srcNorm);
     if (!srcNode) throw new ShellError(`cannot stat '${src}': No such file or directory`);
     let destNorm = this.normalize(dest);

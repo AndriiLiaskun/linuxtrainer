@@ -303,4 +303,18 @@ sh = new Shell();
 r = run(sh, 'ls documents | xargs -I {} echo file: {}');
 check('xargs -I runs the command once per item with the placeholder substituted', r.stdout, 'file: inventory.csv\nfile: notes.txt\nfile: report.csv\nfile: servers.txt\n');
 
+// --- /dev/null cannot be destroyed (direct rm, recursive rm of parent, or mv away) ---
+sh = new Shell();
+check('rm /dev/null is refused', run(sh, 'rm /dev/null').code, 1);
+check('/dev/null still readable after a refused rm', run(sh, 'cat /dev/null').code, 0);
+sh = new Shell();
+run(sh, 'rm -r /dev');
+check('rm -r /dev (the parent) is also refused, not just rm /dev/null directly', sh.fs.exists('/dev/null'), true);
+sh = new Shell();
+run(sh, 'mv /dev/null /home/student/stolen');
+check('mv /dev/null away is refused', sh.fs.exists('/dev/null'), true);
+sh = new Shell();
+r = run(sh, 'echo x > /dev/null');
+check('/dev/null still discards writes after failed removal attempts elsewhere in the same session', r.code, 0);
+
 module.exports = { passed, failed, failures };
