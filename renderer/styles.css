@@ -398,7 +398,10 @@ html, body {
   font-weight: 700;
   color: var(--text);
   margin-bottom: 4px;
+  cursor: pointer;
+  width: fit-content;
 }
+.cheatsheet-card-title:hover { color: var(--accent); }
 .cheatsheet-card-cmds {
   font-family: var(--mono);
   font-size: 13px;
@@ -497,6 +500,34 @@ html, body {
   border-radius: 6px;
   padding: 9px 11px;
   color: var(--accent);
+}
+
+.category-doc-modal { width: min(640px, 92vw); }
+.category-doc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.category-doc-section {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.category-doc-section:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.category-doc-cmd-name {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.category-doc-cmd-desc {
+  font-size: 13.5px;
+  color: var(--text-dim);
+  margin: 0 0 10px;
+  line-height: 1.5;
 }
 
 .welcome-glyph {

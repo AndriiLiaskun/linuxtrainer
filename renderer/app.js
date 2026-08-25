@@ -98,6 +98,10 @@ const el = {
   cheatsheetSearchResults: $('cheatsheet-search-results'),
   cheatsheetGroups: $('cheatsheet-groups'),
   cheatsheetGrid: $('cheatsheet-grid'),
+  categoryDocModal: $('category-doc-modal'),
+  categoryDocTitle: $('category-doc-title'),
+  categoryDocClose: $('category-doc-close'),
+  categoryDocBody: $('category-doc-body'),
   appVersion: $('app-version'),
   updateCheckBtn: $('update-check-btn'),
   updateBanner: $('update-banner'),
@@ -1121,9 +1125,7 @@ function renderCheatsheet() {
     chip.type = 'button';
     chip.className = 'cheatsheet-group-chip';
     chip.textContent = `${entry.icon} ${entry.title}`;
-    chip.addEventListener('click', () => {
-      document.getElementById(anchorId).scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    chip.addEventListener('click', () => showCategoryDoc(entry));
     el.cheatsheetGroups.appendChild(chip);
 
     const card = document.createElement('div');
@@ -1132,6 +1134,7 @@ function renderCheatsheet() {
     const title = document.createElement('div');
     title.className = 'cheatsheet-card-title';
     title.textContent = `${entry.icon} ${entry.title}`;
+    title.addEventListener('click', () => showCategoryDoc(entry));
     const cmds = document.createElement('div');
     cmds.className = 'cheatsheet-card-cmds';
     entry.cmds.forEach((cmd, i) => {
@@ -1225,43 +1228,87 @@ if (el.cheatsheetSearch) {
   });
 }
 
+function renderOptsInto(container, opts) {
+  container.innerHTML = '';
+  if (!opts) return;
+  for (const [flag, desc, example] of opts) {
+    const row = document.createElement('div');
+    row.className = 'command-doc-opt';
+    const head = document.createElement('div');
+    head.className = 'command-doc-opt-head';
+    const flagEl = document.createElement('span');
+    flagEl.className = 'command-doc-opt-flag';
+    flagEl.textContent = flag;
+    const descEl = document.createElement('span');
+    descEl.className = 'command-doc-opt-desc';
+    descEl.textContent = desc;
+    head.appendChild(flagEl);
+    head.appendChild(descEl);
+    row.appendChild(head);
+    if (example) {
+      const exEl = document.createElement('div');
+      exEl.className = 'command-doc-opt-example';
+      exEl.textContent = '$ ' + example;
+      row.appendChild(exEl);
+    }
+    container.appendChild(row);
+  }
+}
+
 function showCommandDoc(label, key) {
   const doc = COMMAND_DOCS[key];
   if (!doc) return;
   el.commandDocTitle.textContent = label;
   el.commandDocDesc.textContent = doc.desc;
-
-  el.commandDocOpts.innerHTML = '';
-  if (doc.opts) {
-    for (const [flag, desc, example] of doc.opts) {
-      const row = document.createElement('div');
-      row.className = 'command-doc-opt';
-      const head = document.createElement('div');
-      head.className = 'command-doc-opt-head';
-      const flagEl = document.createElement('span');
-      flagEl.className = 'command-doc-opt-flag';
-      flagEl.textContent = flag;
-      const descEl = document.createElement('span');
-      descEl.className = 'command-doc-opt-desc';
-      descEl.textContent = desc;
-      head.appendChild(flagEl);
-      head.appendChild(descEl);
-      row.appendChild(head);
-      if (example) {
-        const exEl = document.createElement('div');
-        exEl.className = 'command-doc-opt-example';
-        exEl.textContent = '$ ' + example;
-        row.appendChild(exEl);
-      }
-      el.commandDocOpts.appendChild(row);
-    }
-  }
-
+  renderOptsInto(el.commandDocOpts, doc.opts);
   el.commandDocExample.textContent = doc.example ? '$ ' + doc.example : '';
   el.commandDocExample.classList.toggle('hidden', !doc.example);
-
   el.commandDocModal.classList.remove('hidden');
 }
+
+function showCategoryDoc(entry) {
+  el.categoryDocTitle.textContent = `${entry.icon} ${entry.title}`;
+  el.categoryDocBody.innerHTML = '';
+
+  for (const cmd of entry.cmds) {
+    const doc = COMMAND_DOCS[cmd.key] || {};
+    const section = document.createElement('div');
+    section.className = 'category-doc-section';
+
+    const head = document.createElement('div');
+    head.className = 'category-doc-cmd-name';
+    head.textContent = cmd.label;
+    section.appendChild(head);
+
+    if (doc.desc) {
+      const desc = document.createElement('p');
+      desc.className = 'category-doc-cmd-desc';
+      desc.textContent = doc.desc;
+      section.appendChild(desc);
+    }
+
+    const opts = document.createElement('div');
+    opts.className = 'command-doc-opts';
+    renderOptsInto(opts, doc.opts);
+    section.appendChild(opts);
+
+    if (doc.example) {
+      const ex = document.createElement('div');
+      ex.className = 'command-doc-example';
+      ex.textContent = '$ ' + doc.example;
+      section.appendChild(ex);
+    }
+
+    el.categoryDocBody.appendChild(section);
+  }
+
+  el.categoryDocModal.classList.remove('hidden');
+}
+
+el.categoryDocClose.addEventListener('click', () => el.categoryDocModal.classList.add('hidden'));
+el.categoryDocModal.addEventListener('click', (e) => {
+  if (e.target === el.categoryDocModal) el.categoryDocModal.classList.add('hidden');
+});
 
 el.commandDocClose.addEventListener('click', () => el.commandDocModal.classList.add('hidden'));
 el.commandDocModal.addEventListener('click', (e) => {
