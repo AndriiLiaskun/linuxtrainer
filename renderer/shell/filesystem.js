@@ -19,10 +19,13 @@ function isOrContainsDevNull(norm) {
   return norm === '/dev/null' || '/dev/null'.startsWith(norm + '/');
 }
 
+let nextInode = 1;
+
 class VNode {
   constructor(type, name, opts = {}) {
     this.type = type; // 'dir' | 'file' | 'symlink'
     this.name = name;
+    this.inode = nextInode++;
     this.owner = opts.owner || 'student';
     this.group = opts.group || 'student';
     this.mode = opts.mode !== undefined ? opts.mode : (type === 'dir' ? 0o755 : 0o644);
@@ -41,6 +44,11 @@ class VNode {
 
 class FileSystem {
   constructor() {
+    // Reset the module-level inode counter so a fresh FileSystem always
+    // numbers inodes deterministically from 1, matching what a student
+    // sees in a clean session (each FileSystem is independent — nothing
+    // else shares this counter at the same time).
+    nextInode = 1;
     this.root = new VNode('dir', '/', { mode: 0o755 });
     this.cwd = '/';
     this.prevCwd = null;
@@ -322,7 +330,7 @@ class FileSystem {
   chown(path, owner, group) {
     const node = this.getNode(path);
     if (!node) throw new ShellError(`cannot access '${path}': No such file or directory`);
-    node.owner = owner;
+    if (owner) node.owner = owner;
     if (group) node.group = group;
   }
 

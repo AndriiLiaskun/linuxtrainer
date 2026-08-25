@@ -108,18 +108,29 @@ function cmd_cd(args, ctx) {
   }
 }
 
+function indicatorFor(node) {
+  if (node.type === 'dir') return '/';
+  if (node.type === 'symlink') return '@';
+  if (node.type === 'file' && (node.mode & 0o111)) return '*';
+  return '';
+}
+
 function fmtEntry(node, flags, name) {
-  if (!flags.l) return name;
   const { FileSystem } = require('./filesystem');
+  const display = flags.F ? name + indicatorFor(node) : name;
+  const inodePrefix = flags.i ? `${node.inode} ` : '';
+  if (!flags.l) return inodePrefix + display;
   const perms = FileSystem.modeString(node);
   const size = node.type === 'dir' ? 4096 : (node.type === 'file' ? node.content.length : node.target.length);
-  return `${perms} 1 ${node.owner} ${node.group} ${String(size).padStart(5)} ${node.mtime} ${name}`;
+  const ownerGroup = flags.g ? node.group : `${node.owner} ${node.group}`;
+  return `${inodePrefix}${perms} 1 ${ownerGroup} ${String(size).padStart(5)} ${node.mtime} ${display}`;
 }
 
 function cmd_ls(args, ctx) {
-  const { flags, rest } = parseFlags(args, ['a', 'l', 'h', 'la', 'al', 'A', 'R', '1', 'd']);
+  const { flags, rest } = parseFlags(args, ['a', 'l', 'h', 'la', 'al', 'A', 'R', '1', 'd', 'F', 'g', 'i', 'm', 'r']);
   const showAll = flags.a || flags.A || flags.la || flags.al;
-  const long = flags.l || flags.la || flags.al;
+  const long = flags.l || flags.la || flags.al || flags.g;
+  const entryFlags = { l: long, F: !!flags.F, g: !!flags.g, i: !!flags.i };
   const targets = rest.length ? rest : ['.'];
   const outputs = [];
   for (const t of targets) {
@@ -138,10 +149,11 @@ function cmd_ls(args, ctx) {
       // -d: show info about the directory entry ITSELF, not its contents
       // (matches real ls -d — the classic "how do I check permissions on
       // a directory without it dumping everything inside" idiom).
-      outputs.push(long ? fmtEntry(node, { l: true }, t) : t);
+      outputs.push(fmtEntry(node, entryFlags, t));
       continue;
     }
     let names = Array.from(node.children.keys()).sort();
+    if (flags.r) names.reverse();
     const entries = [];
     if (showAll) entries.push(['.', node], ['..', node]);
     for (const name of names) {
@@ -149,10 +161,13 @@ function cmd_ls(args, ctx) {
       entries.push([name, node.children.get(name)]);
     }
     if (long) {
-      const lines = entries.map(([name, n]) => fmtEntry(n, { l: true }, n.type === 'dir' && name !== '.' && name !== '..' ? name : name));
+      const lines = entries.map(([name, n]) => fmtEntry(n, entryFlags, name));
       outputs.push((targets.length > 1 ? `${t}:\n` : '') + 'total ' + entries.length + '\n' + lines.join('\n'));
+    } else if (flags.m) {
+      const names2 = entries.map(([name, n]) => fmtEntry(n, entryFlags, name));
+      outputs.push((targets.length > 1 ? `${t}:\n` : '') + names2.join(', '));
     } else {
-      const names2 = entries.map(([name]) => name);
+      const names2 = entries.map(([name, n]) => fmtEntry(n, entryFlags, name));
       outputs.push((targets.length > 1 ? `${t}:\n` : '') + names2.join('  '));
     }
   }
@@ -219,20 +234,35 @@ function cmd_mkdir(args, ctx) {
   return ok('');
 }
 
+function collectRemoved(path, node, out) {
+  if (node.type === 'dir') {
+    for (const [name, child] of node.children) {
+      collectRemoved(path.replace(/\/+$/, '') + '/' + name, child, out);
+    }
+    out.push(`removed directory '${path}'`);
+  } else {
+    out.push(`removed '${path}'`);
+  }
+}
+
 function cmd_rm(args, ctx) {
-  const { flags, rest } = parseFlags(args, ['r', 'R', 'f', 'recursive', 'force', 'rf', 'fr']);
+  const { flags, rest } = parseFlags(args, ['r', 'R', 'f', 'v', 'recursive', 'force', 'verbose', 'rf', 'fr']);
   const recursive = flags.r || flags.R || flags.recursive || flags.rf || flags.fr;
   const force = flags.f || flags.force || flags.rf || flags.fr;
+  const verbose = flags.v || flags.verbose;
   if (!rest.length) return fail('rm: missing operand\n');
+  const out = [];
   for (const a of rest) {
     try {
+      const node = verbose ? ctx.fs.getNode(a) : null;
       ctx.fs.remove(a, { recursive: !!recursive, force: !!force });
+      if (verbose && node) collectRemoved(a, node, out);
     } catch (e) {
       if (force) continue;
       return fail(e.message + '\n');
     }
   }
-  return ok('');
+  return ok(out.length ? out.join('\n') + '\n' : '');
 }
 
 function cmd_rmdir(args, ctx) {
@@ -248,19 +278,26 @@ function cmd_rmdir(args, ctx) {
 }
 
 function cmd_cp(args, ctx) {
-  const { flags, rest } = parseFlags(args, ['r', 'R', 'recursive']);
+  const { flags, rest } = parseFlags(args, ['r', 'R', 'recursive', 'v', 'verbose']);
   const recursive = flags.r || flags.R || flags.recursive;
+  const verbose = flags.v || flags.verbose;
   if (rest.length < 2) return fail('cp: missing file operand\n');
   const dest = rest[rest.length - 1];
   const srcs = rest.slice(0, -1);
+  const out = [];
   for (const s of srcs) {
     try {
+      const destNode = ctx.fs.getNode(dest);
+      const resolvedDest = destNode && destNode.type === 'dir'
+        ? dest.replace(/\/+$/, '') + '/' + ctx.fs.basename(s)
+        : dest;
       ctx.fs.copy(s, dest, { recursive: !!recursive });
+      if (verbose) out.push(`'${s}' -> '${resolvedDest}'`);
     } catch (e) {
       return fail(e.message + '\n');
     }
   }
-  return ok('');
+  return ok(out.length ? out.join('\n') + '\n' : '');
 }
 
 function cmd_mv(args, ctx) {
@@ -457,7 +494,7 @@ function cmd_stat(args, ctx) {
     if (!node) return fail(`stat: cannot stat '${a}': No such file or directory\n`);
     const size = node.type === 'file' ? node.content.length : 4096;
     out.push(
-      `  File: ${a}\n  Size: ${size}\t\tType: ${node.type}\n` +
+      `  File: ${a}\n  Size: ${size}\t\tType: ${node.type}\nInode: ${node.inode}\n` +
         `Access: (${node.mode.toString(8).padStart(4, '0')}/${FileSystem.modeString(node)})  Uid: (${node.owner})   Gid: (${node.group})\n` +
         `Modify: ${node.mtime}`
     );
@@ -640,8 +677,20 @@ function cmd_grep(args, ctx) {
   return { stdout: allOut.length ? allOut.join('\n') + '\n' : '', stderr: '', code: anyMatch ? 0 : 1 };
 }
 
+// Parses find's `-size` argument: an optional +/- prefix (bigger/smaller
+// than) followed by a number and a unit suffix (c=bytes, k=KiB, default
+// unit is 512-byte blocks, like real find).
+function parseSizeSpec(spec) {
+  const m = /^([+-]?)(\d+)([ckMG]?)$/.exec(spec);
+  if (!m) return null;
+  const [, sign, numStr, unit] = m;
+  const num = parseInt(numStr, 10);
+  const unitBytes = unit === 'c' ? 1 : unit === 'k' ? 1024 : unit === 'M' ? 1024 * 1024 : unit === 'G' ? 1024 * 1024 * 1024 : 512;
+  return { sign, bytes: num * unitBytes };
+}
+
 function cmd_find(args, ctx) {
-  const { flags, rest } = parseFlags(args, [], ['name', 'type']);
+  const { flags, rest } = parseFlags(args, [], ['name', 'type', 'size', 'inum', 'user', 'group', 'maxdepth']);
   const startPath = rest[0] || '.';
   const startNode = ctx.fs.getNode(startPath);
   if (!startNode) return fail(`find: '${startPath}': No such file or directory\n`);
@@ -651,21 +700,38 @@ function cmd_find(args, ctx) {
   const nameRe = nameGlob
     ? new RegExp('^' + nameGlob.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$')
     : null;
+  const sizeSpec = flags.size !== undefined ? parseSizeSpec(flags.size) : null;
+  if (flags.size !== undefined && !sizeSpec) return fail(`find: invalid argument \`${flags.size}' to \`-size'\n`);
+  const inumFilter = flags.inum !== undefined ? parseInt(flags.inum, 10) : null;
+  const userFilter = flags.user;
+  const groupFilter = flags.group;
+  const maxDepth = flags.maxdepth !== undefined ? parseInt(flags.maxdepth, 10) : Infinity;
 
   const norm = ctx.fs.normalize(startPath);
-  const walk = (node, path) => {
+  const nodeSize = (node) => (node.type === 'file' ? node.content.length : node.type === 'symlink' ? node.target.length : 4096);
+  const sizeOk = (node) => {
+    if (!sizeSpec) return true;
+    const s = nodeSize(node);
+    if (sizeSpec.sign === '+') return s > sizeSpec.bytes;
+    if (sizeSpec.sign === '-') return s < sizeSpec.bytes;
+    return s === sizeSpec.bytes;
+  };
+  const walk = (node, path, depth) => {
     const typeChar = node.type === 'dir' ? 'd' : node.type === 'symlink' ? 'l' : 'f';
     const nameOk = !nameRe || nameRe.test(ctx.fs.basename(path));
     const typeOk = !typeFilter || typeFilter === typeChar;
-    if (nameOk && typeOk) results.push(path);
-    if (node.type === 'dir') {
+    const inumOk = inumFilter === null || node.inode === inumFilter;
+    const userOk = !userFilter || node.owner === userFilter;
+    const groupOk = !groupFilter || node.group === groupFilter;
+    if (nameOk && typeOk && sizeOk(node) && inumOk && userOk && groupOk) results.push(path);
+    if (node.type === 'dir' && depth < maxDepth) {
       const names = Array.from(node.children.keys()).sort();
       for (const name of names) {
-        walk(node.children.get(name), path === '/' ? '/' + name : path + '/' + name);
+        walk(node.children.get(name), path === '/' ? '/' + name : path + '/' + name, depth + 1);
       }
     }
   };
-  walk(startNode, norm);
+  walk(startNode, norm, 0);
   return ok(results.join('\n') + (results.length ? '\n' : ''));
 }
 

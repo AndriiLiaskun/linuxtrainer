@@ -221,6 +221,62 @@ function build() {
     check: (ctx) => h.stdoutIncludes(ctx.result, 'ERROR'),
   });
 
+  // find -size — filter by byte size (+bigger, -smaller, c=bytes).
+  drills.push({
+    id: 'p-search-find-size',
+    difficulty: 2,
+    prompt: 'Створи файл big.txt з текстом довшим за 10 байт, а потім у поточній директорії (без заглиблення в піддиректорії) знайди файли розміром понад 10 байт.',
+    hint: "echo 'this is a long line' > big.txt && find . -maxdepth 1 -size +10c",
+    solution: "echo 'this is a long line' > big.txt && find . -maxdepth 1 -size +10c",
+    xp: 25,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'big.txt'),
+  });
+
+  // find -user / -group — filter by ownership (chown first, then find).
+  drills.push({
+    id: 'p-search-find-user',
+    difficulty: 3,
+    prompt: 'Зміни власника файлу projects/webapp/deploy.sh на alice, а потім знайди в projects усі файли, що належать alice.',
+    hint: 'chown alice projects/webapp/deploy.sh && find projects -user alice',
+    solution: 'chown alice projects/webapp/deploy.sh && find projects -user alice',
+    xp: 30,
+    check: (ctx) => h.stdoutTrim(ctx.result) === '/home/student/projects/webapp/deploy.sh',
+  });
+  drills.push({
+    id: 'p-search-find-group',
+    difficulty: 3,
+    prompt: 'Зміни групу файлу documents/notes.txt на devs, а потім знайди в documents усі файли групи devs.',
+    hint: 'chown :devs documents/notes.txt && find documents -group devs',
+    solution: 'chown :devs documents/notes.txt && find documents -group devs',
+    xp: 30,
+    check: (ctx) => h.stdoutTrim(ctx.result) === '/home/student/documents/notes.txt',
+  });
+
+  // find -maxdepth — limit how deep the search descends.
+  drills.push({
+    id: 'p-search-find-maxdepth',
+    difficulty: 2,
+    prompt: 'Знайди директорії всередині projects, НЕ заглиблюючись у вкладені піддиректорії (лише перший рівень).',
+    hint: 'find projects -maxdepth 1 -type d',
+    solution: 'find projects -maxdepth 1 -type d',
+    xp: 25,
+    check: (ctx) => {
+      const lines = h.stdoutLines(ctx.result);
+      return lines.includes('/home/student/projects') && lines.includes('/home/student/projects/webapp') && !lines.some((l) => l.includes('/webapp/'));
+    },
+  });
+
+  // find -inum — search by inode number (as reported by stat / ls -i).
+  drills.push({
+    id: 'p-search-find-inum',
+    difficulty: 3,
+    prompt: 'Подивись inode-номер файлу documents/notes.txt командою stat, а потім знайди цей самий файл у directory documents за цим inode-номером (find -inum).',
+    hint: 'stat documents/notes.txt   (дивись рядок Inode: N) && find documents -inum N',
+    solution: 'find documents -inum 22',
+    xp: 30,
+    check: (ctx) => h.stdoutTrim(ctx.result) === '/home/student/documents/notes.txt',
+  });
+
   // inventory.csv item lookups (different domain than the log file).
   const INVENTORY_ITEMS = ['keyboard', 'monitor', 'webcam'];
   INVENTORY_ITEMS.forEach((item, i) => {

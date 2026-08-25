@@ -60,6 +60,54 @@ function build() {
     check: (ctx) => /^d[rwx-]{9}/m.test(ctx.result.stdout),
   });
   drills.push({
+    id: 'p-nav-ls-F-projects',
+    difficulty: 2,
+    prompt: 'Виведи вміст projects із позначками типу файлу (/ для директорій, * для виконуваних, @ для symlink) — прапорець -F.',
+    hint: 'ls -F projects',
+    solution: 'ls -F projects',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'webapp/'),
+  });
+  drills.push({
+    id: 'p-nav-ls-i-documents',
+    difficulty: 2,
+    prompt: 'Виведи вміст documents разом з inode-номером кожного файлу (прапорець -i).',
+    hint: 'ls -i documents',
+    solution: 'ls -i documents',
+    xp: 15,
+    check: (ctx) => /^\d+ /m.test(ctx.result.stdout),
+  });
+  drills.push({
+    id: 'p-nav-ls-g-projects',
+    difficulty: 2,
+    prompt: 'Виведи детальний список projects, але БЕЗ стовпця власника (прапорець -g).',
+    hint: 'ls -g projects',
+    solution: 'ls -g projects',
+    xp: 15,
+    check: (ctx) => /^d[rwx-]{9} 1 student\s/m.test(ctx.result.stdout),
+  });
+  drills.push({
+    id: 'p-nav-ls-m-home',
+    difficulty: 2,
+    prompt: 'Виведи вміст домашньої директорії одним рядком через кому (прапорець -m).',
+    hint: 'ls -m',
+    solution: 'ls -m',
+    xp: 15,
+    check: (ctx) => h.stdoutTrim(ctx.result).includes(', ') && h.stdoutLines(ctx.result).length === 1,
+  });
+  drills.push({
+    id: 'p-nav-ls-r-home',
+    difficulty: 2,
+    prompt: 'Виведи вміст домашньої директорії у зворотньому алфавітному порядку (прапорець -r).',
+    hint: 'ls -r',
+    solution: 'ls -r',
+    xp: 15,
+    check: (ctx) => {
+      const first = h.stdoutTrim(ctx.result).split(/\s+/)[0];
+      return first === 'projects';
+    },
+  });
+  drills.push({
     id: 'p-nav-tree-webapp',
     difficulty: 2,
     prompt: 'Виведи деревовидну структуру директорії projects/webapp.',

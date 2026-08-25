@@ -324,4 +324,75 @@ sh = new Shell();
 r = run(sh, 'echo x > /dev/null');
 check('/dev/null still discards writes after failed removal attempts elsewhere in the same session', r.code, 0);
 
+// --- chown -R (recursive ownership, was silently misparsing -R as the owner spec) ---
+sh = new Shell();
+run(sh, 'chown -R alice projects');
+check('chown -R changes owner on the directory itself', sh.fs.getNode('/home/student/projects').owner, 'alice');
+check('chown -R changes owner on a nested file', sh.fs.getNode('/home/student/projects/webapp/deploy.sh').owner, 'alice');
+
+// --- chown :group (owner segment omitted must leave the owner untouched) ---
+sh = new Shell();
+run(sh, 'chown :devs documents/notes.txt');
+r = sh.fs.getNode('/home/student/documents/notes.txt');
+check('chown :group leaves the owner unchanged', r.owner, 'student');
+check('chown :group still applies the group', r.group, 'devs');
+
+// --- mv -v / cp -v / rm -v (none of these called parseFlags at all before the fix) ---
+sh = new Shell();
+run(sh, 'touch a.txt');
+r = run(sh, 'mv -v a.txt b.txt');
+check('mv -v reports the rename', r.stdout, "renamed 'a.txt' -> 'b.txt'\n");
+check('mv without -v stays silent', run(sh, 'touch c.txt; mv c.txt d.txt').stdout, '');
+
+sh = new Shell();
+r = run(sh, 'cp -v documents/notes.txt notes-copy.txt');
+check('cp -v reports the copy', r.stdout, "'documents/notes.txt' -> 'notes-copy.txt'\n");
+
+sh = new Shell();
+r = run(sh, 'rm -v notes-copy.txt');
+check('rm -v on a nonexistent file still errors (flag alone is not a bypass)', r.code, 1);
+run(sh, 'touch e.txt');
+r = run(sh, 'rm -v e.txt');
+check('rm -v reports the removal', r.stdout, "removed 'e.txt'\n");
+
+// --- ls -F / -i / -g / -m / -r ---
+sh = new Shell();
+r = run(sh, 'ls -F');
+check('ls -F marks directories with a trailing /', r.stdout, 'documents/  k8s/  projects/\n');
+r = run(sh, 'ls -m');
+check('ls -m lists entries comma-separated on one line', r.stdout, 'documents, k8s, projects\n');
+r = run(sh, 'ls -r');
+check('ls -r reverses the sort order', r.stdout, 'projects  k8s  documents\n');
+r = run(sh, 'ls -g documents');
+check('ls -g (long format) omits the owner column', r.stdout.split('\n')[1].startsWith('-rw-r--r-- 1 student '), true);
+
+// --- find -size / -user / -group / -maxdepth / -inum ---
+sh = new Shell();
+run(sh, "echo 'this is a long line' > big.txt");
+r = run(sh, 'find . -maxdepth 1 -size +10c');
+check('find -size +Nc matches files bigger than N bytes', r.stdout.includes('big.txt'), true);
+r = run(sh, 'find . -maxdepth 1 -size -1c');
+check('find -size -Nc matches nothing when no file is that small', r.stdout, '');
+
+sh = new Shell();
+run(sh, 'chown alice projects/webapp/deploy.sh');
+r = run(sh, 'find projects -user alice');
+check('find -user filters by file owner', r.stdout, '/home/student/projects/webapp/deploy.sh\n');
+r = run(sh, 'find projects -user nobody');
+check('find -user with no matching owner returns nothing', r.stdout, '');
+
+sh = new Shell();
+run(sh, 'chown bob:devs documents/notes.txt');
+r = run(sh, 'find documents -group devs');
+check('find -group filters by file group', r.stdout, '/home/student/documents/notes.txt\n');
+
+sh = new Shell();
+r = run(sh, 'find projects -maxdepth 1 -type d');
+check('find -maxdepth 1 does not descend past the first level', r.stdout, '/home/student/projects\n/home/student/projects/webapp\n');
+
+sh = new Shell();
+const notesInode = sh.fs.getNode('/home/student/documents/notes.txt').inode;
+r = run(sh, `find documents -inum ${notesInode}`);
+check('find -inum matches the exact inode reported for that file', r.stdout, '/home/student/documents/notes.txt\n');
+
 module.exports = { passed, failed, failures };
