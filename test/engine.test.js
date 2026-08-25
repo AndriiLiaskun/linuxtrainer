@@ -262,4 +262,45 @@ sh = new Shell();
 run(sh, 'cat documents/notes.txt nope.txt &> both.log');
 check('&> combines stdout+stderr into one file', sh.fs.getNode('/home/student/both.log').content.includes('TODO') && sh.fs.getNode('/home/student/both.log').content.includes('No such file'), true);
 
+// --- 2>&1 / 1>&2 fd-duplication (extremely common real bash idiom) ---
+sh = new Shell();
+r = run(sh, 'ls /nope > out.txt 2>&1');
+check('"> file 2>&1" merges stderr into the same file as stdout', sh.fs.getNode('/home/student/out.txt').content.includes('No such file'), true);
+check('"> file 2>&1" leaves nothing on stdout/stderr of the shell itself', r.stdout, '');
+sh = new Shell();
+r = run(sh, 'ls /nope 2>&1');
+check('bare "2>&1" (no file) merges stderr into the stdout stream', r.stdout.includes('No such file'), true);
+check('bare "2>&1" leaves stderr empty after merging', r.stderr, '');
+sh = new Shell();
+r = run(sh, 'echo hi 2>&1');
+check('"2>&1" on a command with no stderr is a no-op on stdout', r.stdout, 'hi\n');
+sh = new Shell();
+check('"2>&1" does not get misparsed as the & background operator', sh.state.backgroundJobs.length, 0);
+
+// --- /dev/null (writes silently discarded, reads return empty) ---
+sh = new Shell();
+r = run(sh, 'echo secret > /dev/null');
+check('redirecting stdout to /dev/null discards it', r.stdout, '');
+check('/dev/null never actually stores written content', sh.fs.getNode('/dev/null').content, '');
+sh = new Shell();
+r = run(sh, 'ls /nope 2> /dev/null');
+check('redirecting stderr to /dev/null discards it silently', r.stderr, '');
+r = run(sh, 'ls /nope > /dev/null 2>&1');
+check('/dev/null combined with 2>&1 discards everything', r.stdout === '' && r.stderr === '', true);
+r = run(sh, 'cat /dev/null');
+check('reading /dev/null returns empty content', r.stdout, '');
+
+// --- unquoted glob expansion feeding grep the wrong arguments (real trap) ---
+sh = new Shell();
+run(sh, 'cd documents');
+r = run(sh, 'ls | grep *.txt');
+check('unquoted glob in a grep pattern gets expanded by the SHELL first, breaking the search', r.stdout, '');
+r = run(sh, "ls | grep '.txt'");
+check('quoting the pattern prevents glob expansion, so grep gets the literal string', r.stdout.includes('notes.txt'), true);
+
+// --- xargs -I {} (per-item placeholder substitution, real common idiom) ---
+sh = new Shell();
+r = run(sh, 'ls documents | xargs -I {} echo file: {}');
+check('xargs -I runs the command once per item with the placeholder substituted', r.stdout, 'file: inventory.csv\nfile: notes.txt\nfile: report.csv\nfile: servers.txt\n');
+
 module.exports = { passed, failed, failures };

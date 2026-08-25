@@ -30,6 +30,8 @@ const REGISTRY = {
   more: base.cmd_less,
   vim: base.cmd_vim,
   vi: base.cmd_vim,
+  tee: base.cmd_tee,
+  man: base.cmd_man,
   echo: base.cmd_echo,
   head: base.cmd_head,
   tail: base.cmd_tail,
@@ -53,6 +55,7 @@ const REGISTRY = {
 
   ps: sys.cmd_ps,
   top: sys.cmd_top,
+  htop: sys.cmd_top,
   kill: sys.cmd_kill,
   jobs: sys.cmd_jobs,
   free: sys.cmd_free,
@@ -85,6 +88,25 @@ const REGISTRY = {
   'docker-compose': sys.cmd_docker_compose,
   crontab: sys.cmd_crontab,
   kubectl: k8s.cmd_kubectl,
+  sudo: sys.cmd_sudo,
+  su: sys.cmd_su,
+  useradd: sys.cmd_useradd,
+  userdel: sys.cmd_userdel,
+  passwd: sys.cmd_passwd,
+  uname: sys.cmd_uname,
+  ip: sys.cmd_ip,
+  rsync: sys.cmd_rsync,
+  locate: sys.cmd_locate,
+  unalias: sys.cmd_unalias,
+  watch: sys.cmd_watch,
+  traceroute: sys.cmd_traceroute,
+  cal: sys.cmd_cal,
+  who: sys.cmd_who,
+  last: sys.cmd_last,
+  lsof: sys.cmd_lsof,
+  groupadd: sys.cmd_groupadd,
+  groupdel: sys.cmd_groupdel,
+  updatedb: sys.cmd_updatedb,
 
   tar: archive.cmd_tar,
   gzip: archive.cmd_gzip,
@@ -213,6 +235,8 @@ class Shell {
         combinedFile,
         combinedAppend,
         stdinFile,
+        mergeStderrToStdout,
+        mergeStdoutToStderr,
       } = parser.extractRedirects(stages[i]);
       const words = this._expandWords(rawArgs);
       if (words.length === 0) continue;
@@ -231,6 +255,18 @@ class Shell {
 
       const result = this._exec(cmdName, args, stageStdin);
       finalCode = result.code;
+
+      // "2>&1" / "1>&2": merge one stream into the other before any file
+      // redirect below writes it out (matches the extremely common
+      // `cmd > file 2>&1` pattern — see extractRedirects for the caveat on
+      // reversed ordering, which this training shell doesn't model).
+      if (mergeStderrToStdout) {
+        result.stdout = result.stdout + result.stderr;
+        result.stderr = '';
+      } else if (mergeStdoutToStderr) {
+        result.stderr = result.stderr + result.stdout;
+        result.stdout = '';
+      }
 
       const isLast = i === stages.length - 1;
       if (isLast) {

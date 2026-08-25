@@ -116,6 +116,53 @@ function build() {
     });
   });
 
+  drills.push({
+    id: 'p-net-ip-addr',
+    difficulty: 2,
+    prompt: 'Переглянь IP-адреси мережевих інтерфейсів цього сервера.',
+    hint: 'ip addr',
+    solution: 'ip addr',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'eth0') && h.stdoutIncludes(ctx.result, 'inet'),
+  });
+  drills.push({
+    id: 'p-net-ip-route',
+    difficulty: 2,
+    prompt: 'Переглянь таблицю маршрутизації сервера.',
+    hint: 'ip route',
+    solution: 'ip route',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'default via'),
+  });
+
+  const RSYNC_TARGETS = [
+    { src: 'documents', dest: 'backup-docs' },
+    { src: 'projects/webapp', dest: 'backup-webapp' },
+  ];
+  RSYNC_TARGETS.forEach(({ src, dest }, i) => {
+    drills.push({
+      id: `p-net-rsync-${i}`,
+      difficulty: 2,
+      prompt: `Синхронізуй директорію ${src} у ${dest} командою rsync (у режимі архіву, з докладним виводом).`,
+      hint: `rsync -av ${src} ${dest}`,
+      solution: `rsync -av ${src} ${dest}`,
+      xp: 25,
+      check: (ctx) => h.isDir(ctx.fs, `/home/student/${dest}`),
+    });
+  });
+
+  HOSTS.slice(0, 3).forEach((host, i) => {
+    drills.push({
+      id: `p-net-traceroute-${i}`,
+      difficulty: 2,
+      prompt: `Прослідкуй маршрут пакетів до хосту ${host}.`,
+      hint: `traceroute ${host}`,
+      solution: `traceroute ${host}`,
+      xp: 20,
+      check: (ctx) => h.stdoutIncludes(ctx.result, `traceroute to ${host}`),
+    });
+  });
+
   return drills;
 }
 

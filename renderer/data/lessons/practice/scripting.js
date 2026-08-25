@@ -136,6 +136,37 @@ function build() {
     check: (ctx) => h.stdoutTrim(ctx.result) === 'start\ndone',
   });
 
+  const MAN_TARGETS = ['grep', 'find', 'chmod'];
+  MAN_TARGETS.forEach((cmd, i) => {
+    drills.push({
+      id: `p-script-man-${i}`,
+      difficulty: 1,
+      prompt: `Перевір довідку (man) по команді ${cmd}, не покладаючись на власну пам'ять.`,
+      hint: `man ${cmd}`,
+      solution: `man ${cmd}`,
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, 'NAME') && h.stdoutIncludes(ctx.result, cmd),
+    });
+  });
+  drills.push({
+    id: 'p-script-alias-unalias',
+    difficulty: 2,
+    prompt: 'Створи псевдонім ll для команди "ls -la", а потім прибери цей псевдонім командою unalias.',
+    hint: "alias ll='ls -la' && unalias ll",
+    solution: "alias ll='ls -la' && unalias ll",
+    xp: 20,
+    check: (ctx) => !ctx.state.aliases.ll,
+  });
+  drills.push({
+    id: 'p-script-cal',
+    difficulty: 1,
+    prompt: 'Виведи календар поточного місяця.',
+    hint: 'cal',
+    solution: 'cal',
+    xp: 10,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Su Mo Tu We Th Fr Sa'),
+  });
+
   return drills;
 }
 

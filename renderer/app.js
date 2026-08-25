@@ -94,6 +94,10 @@ const el = {
   commandDocDesc: $('command-doc-desc'),
   commandDocOpts: $('command-doc-opts'),
   commandDocExample: $('command-doc-example'),
+  cheatsheetSearch: $('cheatsheet-search'),
+  cheatsheetGroups: $('cheatsheet-groups'),
+  cheatsheetEmpty: $('cheatsheet-empty'),
+  cheatsheetGrid: $('cheatsheet-grid'),
   appVersion: $('app-version'),
   updateCheckBtn: $('update-check-btn'),
   updateBanner: $('update-banner'),
@@ -252,6 +256,7 @@ function resetDrillCardChrome(drill) {
   el.drillHint.textContent = '';
   el.successToast.classList.add('hidden');
   el.feedbackNote.classList.add('hidden');
+  el.practiceDoneBadge.classList.add('hidden'); // re-shown explicitly by loadPracticeHistoryEntry() when relevant
   attemptCounts[drill.id] = 0;
   renderDifficultyBadge(drill);
   renderCommandsHint(drill);
@@ -372,11 +377,11 @@ function loadPracticeHistoryEntry() {
   }
 
   el.drillIndex.textContent = 'Практика · нескінченний режим';
+  resetDrillCardChrome(currentPracticeDrill);
   el.practiceDoneBadge.classList.toggle(
     'hidden',
     !progress.isPracticeDrillCompleted(currentLesson.id, currentPracticeDrill.id)
   );
-  resetDrillCardChrome(currentPracticeDrill);
   updatePromptText();
   renderPracticeStats();
 }
@@ -1086,12 +1091,34 @@ function setupUpdater() {
   });
 }
 
+function cheatsheetSearchHaystack(entry, cmd) {
+  const doc = COMMAND_DOCS[cmd.key] || {};
+  const parts = [cmd.label, entry.title, doc.desc, doc.example];
+  if (doc.opts) for (const opt of doc.opts) parts.push(opt[0], opt[1], opt[2]);
+  return parts.filter(Boolean).join('   ').toLowerCase();
+}
+
 function renderCheatsheet() {
-  const grid = $('cheatsheet-grid');
+  const grid = el.cheatsheetGrid;
   if (!grid) return;
-  for (const entry of CHEATSHEET) {
+  grid.innerHTML = '';
+  el.cheatsheetGroups.innerHTML = '';
+
+  CHEATSHEET.forEach((entry, ci) => {
+    const anchorId = `cheatsheet-card-${ci}`;
+
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'cheatsheet-group-chip';
+    chip.textContent = `${entry.icon} ${entry.title}`;
+    chip.addEventListener('click', () => {
+      document.getElementById(anchorId).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    el.cheatsheetGroups.appendChild(chip);
+
     const card = document.createElement('div');
     card.className = 'cheatsheet-card';
+    card.id = anchorId;
     const title = document.createElement('div');
     title.className = 'cheatsheet-card-title';
     title.textContent = `${entry.icon} ${entry.title}`;
@@ -1101,6 +1128,7 @@ function renderCheatsheet() {
       const token = document.createElement('span');
       token.className = 'cmd-token';
       token.textContent = cmd.label;
+      token.dataset.search = cheatsheetSearchHaystack(entry, cmd);
       token.addEventListener('click', () => showCommandDoc(cmd.label, cmd.key));
       cmds.appendChild(token);
       if (i < entry.cmds.length - 1) cmds.appendChild(document.createTextNode(', '));
@@ -1108,7 +1136,25 @@ function renderCheatsheet() {
     card.appendChild(title);
     card.appendChild(cmds);
     grid.appendChild(card);
+  });
+
+  filterCheatsheet('');
+}
+
+function filterCheatsheet(rawQuery) {
+  const query = rawQuery.trim().toLowerCase();
+  let anyVisible = false;
+  for (const card of el.cheatsheetGrid.children) {
+    const cardHasMatch = !query || Array.from(card.querySelectorAll('.cmd-token')).some((t) => t.dataset.search.includes(query));
+    card.classList.toggle('hidden', !cardHasMatch);
+    if (cardHasMatch) anyVisible = true;
   }
+  el.cheatsheetEmpty.classList.toggle('hidden', anyVisible);
+  el.cheatsheetGroups.classList.toggle('hidden', !!query);
+}
+
+if (el.cheatsheetSearch) {
+  el.cheatsheetSearch.addEventListener('input', () => filterCheatsheet(el.cheatsheetSearch.value));
 }
 
 function showCommandDoc(label, key) {
@@ -1119,17 +1165,26 @@ function showCommandDoc(label, key) {
 
   el.commandDocOpts.innerHTML = '';
   if (doc.opts) {
-    for (const [flag, desc] of doc.opts) {
+    for (const [flag, desc, example] of doc.opts) {
       const row = document.createElement('div');
       row.className = 'command-doc-opt';
+      const head = document.createElement('div');
+      head.className = 'command-doc-opt-head';
       const flagEl = document.createElement('span');
       flagEl.className = 'command-doc-opt-flag';
       flagEl.textContent = flag;
       const descEl = document.createElement('span');
       descEl.className = 'command-doc-opt-desc';
       descEl.textContent = desc;
-      row.appendChild(flagEl);
-      row.appendChild(descEl);
+      head.appendChild(flagEl);
+      head.appendChild(descEl);
+      row.appendChild(head);
+      if (example) {
+        const exEl = document.createElement('div');
+        exEl.className = 'command-doc-opt-example';
+        exEl.textContent = '$ ' + example;
+        row.appendChild(exEl);
+      }
       el.commandDocOpts.appendChild(row);
     }
   }

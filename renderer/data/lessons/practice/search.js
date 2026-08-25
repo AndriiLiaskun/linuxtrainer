@@ -235,6 +235,43 @@ function build() {
     });
   });
 
+  // locate — like find, but searches by name across the WHOLE filesystem
+  // without needing to specify a starting directory.
+  const LOCATE_TARGETS = [
+    { pattern: 'app.log', expect: '/home/student/projects/webapp/logs/app.log' },
+    { pattern: 'deploy.sh', expect: '/home/student/projects/webapp/deploy.sh' },
+    { pattern: 'inventory.csv', expect: '/home/student/documents/inventory.csv' },
+  ];
+  LOCATE_TARGETS.forEach(({ pattern, expect }, i) => {
+    drills.push({
+      id: `p-search-locate-${i}`,
+      difficulty: 2,
+      prompt: `Знайди повний шлях до файлу ${pattern} по всій файловій системі, не вказуючи, де саме шукати (locate).`,
+      hint: `locate ${pattern}`,
+      solution: `locate ${pattern}`,
+      xp: 20,
+      check: (ctx) => h.stdoutTrim(ctx.result) === expect,
+    });
+  });
+  drills.push({
+    id: 'p-search-locate-not-found',
+    difficulty: 1,
+    prompt: 'Спробуй знайти неіснуючий файл ghost-file.xyz через locate і переконайся, що нічого не знайдено (код завершення відмінний від 0).',
+    hint: 'locate ghost-file.xyz',
+    solution: 'locate ghost-file.xyz',
+    xp: 15,
+    check: (ctx) => h.failed(ctx.result),
+  });
+  drills.push({
+    id: 'p-search-updatedb',
+    difficulty: 2,
+    prompt: 'Встанови пакет mlocate, онови базу даних locate (updatedb), а потім знайди файл notes.txt.',
+    hint: 'apt install -y mlocate && updatedb && locate notes.txt',
+    solution: 'apt install -y mlocate && updatedb && locate notes.txt',
+    xp: 25,
+    check: (ctx) => h.stdoutIncludes(ctx.result, '/home/student/documents/notes.txt'),
+  });
+
   return drills;
 }
 

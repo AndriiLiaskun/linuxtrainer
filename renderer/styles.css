@@ -290,28 +290,73 @@ html, body {
   font-weight: 400;
   color: var(--text-faint);
 }
+.cheatsheet-search {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.cheatsheet-search::placeholder { color: var(--text-faint); }
+.cheatsheet-search:focus {
+  outline: none;
+  border-color: var(--accent-dim);
+}
+.cheatsheet-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.cheatsheet-group-chip {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-family: var(--sans);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cheatsheet-group-chip:hover {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+}
+.cheatsheet-empty {
+  font-size: 13px;
+  color: var(--text-faint);
+  padding: 10px 0;
+}
 .cheatsheet-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 8px;
 }
 .cheatsheet-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 9px 12px;
+  padding: 10px 13px;
   text-align: left;
+  scroll-margin-top: 16px;
 }
 .cheatsheet-card-title {
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--text);
-  margin-bottom: 3px;
+  margin-bottom: 4px;
 }
 .cheatsheet-card-cmds {
   font-family: var(--mono);
-  font-size: 11px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.7;
 }
 .cmd-token {
   color: var(--accent);
@@ -362,22 +407,28 @@ html, body {
 }
 
 /* Command detail popup */
-.command-doc-modal { width: min(420px, 90vw); }
+.command-doc-modal { width: min(500px, 90vw); max-height: 82vh; overflow-y: auto; }
 .command-doc-desc {
-  font-size: 13px;
+  font-size: 14.5px;
   color: var(--text-dim);
-  margin: 0 0 10px;
+  margin: 0 0 12px;
+  line-height: 1.5;
 }
 .command-doc-opts {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-bottom: 10px;
+  gap: 9px;
+  margin-bottom: 12px;
 }
 .command-doc-opt {
+  border-left: 2px solid var(--border-soft);
+  padding-left: 9px;
+}
+.command-doc-opt-head {
   display: flex;
   gap: 8px;
-  font-size: 12px;
+  font-size: 13px;
+  flex-wrap: wrap;
 }
 .command-doc-opt-flag {
   font-family: var(--mono);
@@ -386,13 +437,19 @@ html, body {
   flex-shrink: 0;
 }
 .command-doc-opt-desc { color: var(--text-dim); }
-.command-doc-example {
+.command-doc-opt-example {
   font-family: var(--mono);
   font-size: 12px;
+  color: var(--text-faint);
+  margin-top: 3px;
+}
+.command-doc-example {
+  font-family: var(--mono);
+  font-size: 13px;
   background: var(--bg-terminal);
   border: 1px solid var(--border-soft);
   border-radius: 6px;
-  padding: 8px 10px;
+  padding: 9px 11px;
   color: var(--accent);
 }
 

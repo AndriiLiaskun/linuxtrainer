@@ -191,6 +191,10 @@ class FileSystem {
 
   writeFile(path, content, { append = false } = {}) {
     const norm = this.normalize(path);
+    // /dev/null is a black hole: every write is silently discarded, exactly
+    // like the real device — this matters a lot for `cmd > /dev/null 2>&1`
+    // style redirects, which are extremely common in real shell usage.
+    if (norm === '/dev/null') return this.getNode('/dev/null');
     let node = this.getNode(norm);
     if (node && node.type === 'dir') {
       throw new ShellError(`${path}: Is a directory`);
@@ -365,6 +369,8 @@ class FileSystem {
     this.mkdir('/tmp', { parents: true, mode: 0o1777 });
     this.mkdir('/usr/bin', { parents: true });
     this.mkdir('/opt', { parents: true });
+    this.mkdir('/dev', { parents: true });
+    this.touch('/dev/null'); // seeded directly via touch — writeFile() special-cases this path to always discard
     this.mkdir('/home/student/k8s', { parents: true });
 
     this.writeFile('/home/student/documents/notes.txt', 'TODO: learn grep and sed\nBuy coffee\nDeploy app on Friday\n');

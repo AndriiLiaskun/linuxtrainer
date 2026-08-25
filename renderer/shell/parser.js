@@ -208,12 +208,18 @@ function splitSequence(tokens) {
       continue;
     }
     if (t.op && t.v === '&') {
-      // A lone '&' is the background operator, UNLESS it's immediately
-      // followed by '>'/'>>' — that's the combined-redirect "&>"/"&>>"
-      // (tokenized as two separate op tokens), which extractRedirects
-      // handles later on the pipeline itself, not here.
+      // A lone '&' is the background operator, UNLESS it's part of a
+      // redirect: '&>'/'&>>' (combined stdout+stderr — '&' immediately
+      // FOLLOWED by '>'/'>>') or 'N>&M'/'N>>&M' fd-duplication like the
+      // extremely common "2>&1" (‘&’ immediately PRECEDED by '>'/'>>',
+      // tokenized as ...,'2','>','&','1'). Both cases are handled later
+      // by extractRedirects on the pipeline itself, not here.
       const next = tokens[i + 1];
-      if (next && next.op && (next.v === '>' || next.v === '>>')) {
+      const prev = cur[cur.length - 1];
+      const isRedirectForm =
+        (next && next.op && (next.v === '>' || next.v === '>>')) ||
+        (prev && prev.op && (prev.v === '>' || prev.v === '>>'));
+      if (isRedirectForm) {
         cur.push(t);
         continue;
       }
@@ -251,16 +257,36 @@ function extractRedirects(tokens) {
   let combinedFile = null;
   let combinedAppend = false;
   let stdinFile = null;
+  let mergeStderrToStdout = false; // 2>&1
+  let mergeStdoutToStderr = false; // 1>&2
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i];
     if (t.op && (t.v === '>' || t.v === '>>')) {
+      const prev = out[out.length - 1];
+      const append = t.v === '>>';
+
+      // fd-duplication: "2>&1" / "1>&2" (also plain "&1"/"&2" i.e. defaulting
+      // to fd 1) tokenize as ...,'>', '&', '<digit>' — a real file redirect
+      // to a literal filename never has a bare '&' right after the '>', so
+      // this lookahead is unambiguous.
+      const next = tokens[i + 1];
+      const next2 = tokens[i + 2];
+      if (next && next.op && next.v === '&' && next2 && !next2.op && /^\d+$/.test(next2.v)) {
+        const srcFd = prev && !prev.op && !prev.noExpand && /^\d+$/.test(prev.v) ? prev.v : '1';
+        if (prev && !prev.op && !prev.noExpand && /^\d+$/.test(prev.v)) out.pop();
+        const dstFd = next2.v;
+        if (srcFd === '2' && dstFd === '1') mergeStderrToStdout = true;
+        else if (srcFd === '1' && dstFd === '2') mergeStdoutToStderr = true;
+        // Other fd numbers aren't modeled by this training shell — ignored.
+        i += 2;
+        continue;
+      }
+
       // "2>file"/"2>>file" (stderr) and "&>file"/"&>>file" (both streams) tokenize
       // as a plain word ("2" or "&") immediately followed by this operator —
       // there is no way to tell that apart from a genuine standalone argument
       // "2"/"&", so we treat that adjacency as always meaning a redirect
       // (fine for a training shell; real bash resolves this via lexing, not us).
-      const prev = out[out.length - 1];
-      const append = t.v === '>>';
       if (prev && !prev.op && !prev.noExpand && prev.v === '2') {
         out.pop();
         stderrFile = tokens[i + 1] ? tokens[i + 1].v : undefined;
@@ -283,7 +309,18 @@ function extractRedirects(tokens) {
     }
     out.push(t);
   }
-  return { args: out, stdoutFile, stdoutAppend, stderrFile, stderrAppend, combinedFile, combinedAppend, stdinFile };
+  return {
+    args: out,
+    stdoutFile,
+    stdoutAppend,
+    stderrFile,
+    stderrAppend,
+    combinedFile,
+    combinedAppend,
+    stdinFile,
+    mergeStderrToStdout,
+    mergeStdoutToStderr,
+  };
 }
 
 module.exports = {

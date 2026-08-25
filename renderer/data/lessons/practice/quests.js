@@ -142,6 +142,75 @@ function build() {
     check: (ctx) => h.cwdIs(ctx.fs, '/home/student/documents') && h.stdoutIncludes(ctx.result, 'web-01'),
   });
 
+  // Template G: bash mechanics/gotchas — the goal is understanding WHY
+  // something works or breaks, not just memorizing another command.
+  drills.push({
+    id: 'p-quest-glob-trap',
+    difficulty: 3,
+    prompt: 'У documents лежить кілька .txt файлів серед інших. Виведи (через ls, відфільтрований по .txt командою grep) лише ті файли, назва яких містить ".txt" — так, щоб команда справді спрацювала (підказка: без лапок символ * в grep спочатку розгортає САМА ОБОЛОНКА, підставляючи назви наявних файлів замість шаблону, і тоді grep шукає геть не те, що ти думав).',
+    hint: "cd documents && ls | grep '.txt'",
+    solution: "cd documents && ls | grep '.txt'",
+    xp: 35,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'notes.txt') && h.stdoutIncludes(ctx.result, 'servers.txt'),
+  });
+  drills.push({
+    id: 'p-quest-single-quote-literal',
+    difficulty: 2,
+    prompt: 'Створи змінну NAME зі значенням world. Потім виведи буквальний текст Hello $NAME так, щоб $NAME НЕ підставився (лишився як текст) — на відміну від подвійних лапок, одинарні лапки в bash не розкривають змінні.',
+    hint: "NAME=world && echo 'Hello $NAME'",
+    solution: "NAME=world && echo 'Hello $NAME'",
+    xp: 25,
+    check: (ctx) => h.stdoutTrim(ctx.result) === 'Hello $NAME',
+  });
+  drills.push({
+    id: 'p-quest-redirect-both-to-file',
+    difficulty: 3,
+    prompt: 'Спробуй прочитати неіснуючий файл /nope.txt і збережи звичайний вивід ТА повідомлення про помилку в один файл errors.log — однією командою, у правильному порядку (спочатку stdout-редирект, а вже потім 2>&1, інакше не спрацює як треба).',
+    hint: 'cat /nope.txt > errors.log 2>&1',
+    solution: 'cat /nope.txt > errors.log 2>&1',
+    xp: 30,
+    check: (ctx) => {
+      const f = ctx.fs.getNode('/home/student/errors.log');
+      return !!f && f.content.includes('No such file') && (ctx.result.stdout || '') === '';
+    },
+  });
+  drills.push({
+    id: 'p-quest-devnull-silence-error',
+    difficulty: 2,
+    prompt: 'Спробуй видалити неіснуючий файл /nope.txt, але приховай повідомлення про помилку, перенаправивши stderr у /dev/null (щоб екран лишився чистим).',
+    hint: 'rm /nope.txt 2> /dev/null',
+    solution: 'rm /nope.txt 2> /dev/null',
+    xp: 25,
+    check: (ctx) => (ctx.result.stderr || '') === '',
+  });
+  drills.push({
+    id: 'p-quest-xargs-placeholder',
+    difficulty: 3,
+    prompt: 'У documents лежить кілька файлів. Для КОЖНОГО з них виведи рядок у форматі "Знайдено: <ім\'я>", використавши xargs -I {} (щоб підставити ім\'я файлу в довільне місце команди, а не просто в кінець).',
+    hint: 'cd documents && ls | xargs -I {} echo "Знайдено: {}"',
+    solution: 'cd documents && ls | xargs -I {} echo "Знайдено: {}"',
+    xp: 30,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Знайдено: notes.txt') && h.stdoutIncludes(ctx.result, 'Знайдено: servers.txt'),
+  });
+  drills.push({
+    id: 'p-quest-conditional-fallback',
+    difficulty: 3,
+    prompt: 'Перевір, чи існує директорія /etc/nginx: якщо так — виведи "found", якщо ні — виведи "missing". Зроби це одним рядком, скориставшись test та комбінацією && і || (а не if/else).',
+    hint: 'test -d /etc/nginx && echo found || echo missing',
+    solution: 'test -d /etc/nginx && echo found || echo missing',
+    xp: 30,
+    check: (ctx) => h.stdoutTrim(ctx.result) === 'missing',
+  });
+  drills.push({
+    id: 'p-quest-nested-cmdsub',
+    difficulty: 2,
+    prompt: 'Виведи рядок "Lines: N", де N — реальна кількість рядків у файлі documents/servers.txt, отримана підстановкою команди $(...) прямо всередині echo (без проміжної змінної).',
+    hint: 'echo "Lines: $(wc -l < documents/servers.txt)"',
+    solution: 'echo "Lines: $(wc -l < documents/servers.txt)"',
+    xp: 25,
+    check: (ctx) => h.stdoutTrim(ctx.result) === 'Lines: 5',
+  });
+
   return drills;
 }
 

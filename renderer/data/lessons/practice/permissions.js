@@ -175,6 +175,93 @@ function build() {
     check: (ctx) => h.succeeded(ctx.result) && /^\d+$/.test(h.stdoutTrim(ctx.result)),
   });
 
+  drills.push({
+    id: 'p-perm-sudo',
+    difficulty: 2,
+    prompt: 'Виконай команду whoami з підвищеними правами (від імені root) за допомогою sudo.',
+    hint: 'sudo whoami',
+    solution: 'sudo whoami',
+    xp: 25,
+    check: (ctx) => h.stdoutTrim(ctx.result) === 'root',
+  });
+  drills.push({
+    id: 'p-perm-sudo-reverts',
+    difficulty: 3,
+    prompt: 'Виконай sudo whoami, а потім звичайний whoami — переконайся, що підвищені права діють лише на одну команду.',
+    hint: 'sudo whoami && whoami',
+    solution: 'sudo whoami && whoami',
+    xp: 30,
+    check: (ctx) => {
+      const lines = h.stdoutLines(ctx.result);
+      return lines.length === 2 && lines[0] === 'root' && lines[1] === 'student';
+    },
+  });
+  drills.push({
+    id: 'p-perm-su',
+    difficulty: 2,
+    prompt: 'Перемкнись на користувача root командою su, а потім перевір, під ким ти тепер працюєш.',
+    hint: 'su root && whoami',
+    solution: 'su root && whoami',
+    xp: 25,
+    check: (ctx) => ctx.fs.currentUser === 'root' && h.stdoutTrim(ctx.result) === 'root',
+  });
+  const NEW_USERS = ['deploy', 'ci-bot', 'backup-agent'];
+  NEW_USERS.forEach((name, i) => {
+    drills.push({
+      id: `p-perm-useradd-${i}`,
+      difficulty: 2,
+      prompt: `Створи нового користувача з ім'ям ${name}.`,
+      hint: `useradd ${name}`,
+      solution: `useradd ${name}`,
+      xp: 20,
+      check: (ctx) => ctx.state.users.has(name),
+    });
+  });
+  NEW_USERS.forEach((name, i) => {
+    drills.push({
+      id: `p-perm-userdel-${i}`,
+      difficulty: 2,
+      prompt: `Створи користувача ${name}, а потім одразу видали його.`,
+      hint: `useradd ${name} && userdel ${name}`,
+      solution: `useradd ${name} && userdel ${name}`,
+      xp: 25,
+      check: (ctx) => !ctx.state.users.has(name),
+    });
+  });
+  drills.push({
+    id: 'p-perm-passwd',
+    difficulty: 1,
+    prompt: 'Онови пароль поточного користувача командою passwd.',
+    hint: 'passwd',
+    solution: 'passwd',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'password updated'),
+  });
+
+  const NEW_GROUPS = ['devops', 'qa-team', 'release-managers'];
+  NEW_GROUPS.forEach((name, i) => {
+    drills.push({
+      id: `p-perm-groupadd-${i}`,
+      difficulty: 2,
+      prompt: `Створи нову групу з ім'ям ${name}.`,
+      hint: `groupadd ${name}`,
+      solution: `groupadd ${name}`,
+      xp: 20,
+      check: (ctx) => ctx.state.groups.has(name),
+    });
+  });
+  NEW_GROUPS.forEach((name, i) => {
+    drills.push({
+      id: `p-perm-groupdel-${i}`,
+      difficulty: 2,
+      prompt: `Створи групу ${name}, а потім одразу видали її.`,
+      hint: `groupadd ${name} && groupdel ${name}`,
+      solution: `groupadd ${name} && groupdel ${name}`,
+      xp: 25,
+      check: (ctx) => !ctx.state.groups.has(name),
+    });
+  });
+
   return drills;
 }
 

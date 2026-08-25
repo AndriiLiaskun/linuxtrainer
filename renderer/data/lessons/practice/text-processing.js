@@ -196,6 +196,40 @@ function build() {
     check: (ctx) => h.stdoutTrim(ctx.result) === 'a b c',
   });
 
+  // tee — write to a file AND pass the stream through unchanged, so you can
+  // still pipe it further (the whole point vs a plain redirect).
+  const TEE_TARGETS = [
+    { path: 'documents/servers.txt', file: 'servers-copy.txt' },
+    { path: 'documents/notes.txt', file: 'notes-copy.txt' },
+  ];
+  TEE_TARGETS.forEach(({ path, file }, i) => {
+    drills.push({
+      id: `p-text-tee-${i}`,
+      difficulty: 2,
+      prompt: `Виведи вміст ${path} на екран І одночасно збережи копію у файл ${file} (однією командою, через tee).`,
+      hint: `cat ${path} | tee ${file}`,
+      solution: `cat ${path} | tee ${file}`,
+      xp: 25,
+      check: (ctx) => {
+        const original = ctx.fs.getNode(`/home/student/${path}`);
+        const copy = ctx.fs.getNode(`/home/student/${file}`);
+        return h.succeeded(ctx.result) && !!copy && copy.content === original.content && ctx.result.stdout === original.content;
+      },
+    });
+  });
+  drills.push({
+    id: 'p-text-tee-pipe-through',
+    difficulty: 3,
+    prompt: 'Збережи список серверів у servers-log.txt, але при цьому продовж обробку і виведи лише кількість рядків (tee всередині конвеєра, не в кінці).',
+    hint: 'cat documents/servers.txt | tee servers-log.txt | wc -l',
+    solution: 'cat documents/servers.txt | tee servers-log.txt | wc -l',
+    xp: 30,
+    check: (ctx) => {
+      const copy = ctx.fs.getNode('/home/student/servers-log.txt');
+      return !!copy && h.stdoutTrim(ctx.result) === '5';
+    },
+  });
+
   // diff — compare two files line by line.
   drills.push({
     id: 'p-text-diff-same',

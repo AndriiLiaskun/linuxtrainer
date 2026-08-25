@@ -800,11 +800,31 @@ function expandTrSet(spec) {
 }
 
 function cmd_xargs(args, ctx) {
+  const { flags, rest } = parseFlags(args, [], ['I']);
   const text = (ctx.stdin || '').trim();
   if (!text) return ok('');
   const items = text.split(/\s+/);
-  const cmdName = args[0] || 'echo';
-  const restArgs = args.slice(1);
+
+  if (flags.I) {
+    // -I {}: run the command ONCE PER ITEM, substituting the placeholder
+    // wherever it appears (real xargs -I implies one invocation per line).
+    const placeholder = flags.I;
+    const template = rest.join(' ');
+    let stdout = '';
+    let stderr = '';
+    let code = 0;
+    for (const item of items) {
+      const cmdStr = template.split(placeholder).join(item);
+      const r = ctx.run(cmdStr);
+      stdout += r.stdout;
+      stderr += r.stderr;
+      code = r.code;
+    }
+    return { stdout, stderr, code };
+  }
+
+  const cmdName = rest[0] || 'echo';
+  const restArgs = rest.slice(1);
   const result = ctx.run(`${cmdName} ${restArgs.join(' ')} ${items.join(' ')}`.trim());
   return { stdout: result.stdout, stderr: result.stderr, code: result.code };
 }
@@ -830,6 +850,34 @@ function cmd_diff(args, ctx) {
     }
   }
   return { stdout: out.join('\n') + '\n', stderr: '', code: 1 };
+}
+
+function cmd_tee(args, ctx) {
+  const { flags, rest } = parseFlags(args, ['a']);
+  const input = ctx.stdin || '';
+  for (const file of rest) {
+    try {
+      ctx.fs.writeFile(file, input, { append: flags.a });
+    } catch (e) {
+      return { stdout: input, stderr: e.message + '\n', code: 1 };
+    }
+  }
+  return ok(input);
+}
+
+function cmd_man(args, ctx) {
+  const { COMMAND_DOCS } = require('../data/commandDocs.js');
+  const name = args[0];
+  if (!name) return fail('What manual page do you want?\n');
+  const doc = COMMAND_DOCS[name];
+  if (!doc) return fail(`No manual entry for ${name}\n`, 16);
+  let out = `NAME\n    ${name} — ${doc.desc}\n`;
+  if (doc.opts && doc.opts.length) {
+    out += `\nOPTIONS\n`;
+    for (const [flag, d] of doc.opts) out += `    ${flag}\n        ${d}\n`;
+  }
+  if (doc.example) out += `\nEXAMPLE\n    ${doc.example}\n`;
+  return ok(out);
 }
 
 module.exports = {
@@ -872,5 +920,7 @@ module.exports = {
   cmd_tr,
   cmd_xargs,
   cmd_diff,
+  cmd_tee,
+  cmd_man,
   readFileOrErr,
 };

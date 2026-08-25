@@ -715,6 +715,202 @@ function cmd_crontab(args, ctx) {
   return fail('crontab: interactive editing is not supported in this sandbox; use --add via the drill checker\n');
 }
 
+// ---------------------------------------------------------------------
+// Users, privilege, and misc system utilities
+// ---------------------------------------------------------------------
+
+function cmd_sudo(args, ctx) {
+  if (!args.length) return fail('usage: sudo <command>\n');
+  const prevUser = ctx.fs.currentUser;
+  ctx.fs.currentUser = 'root';
+  try {
+    return ctx.run(args.join(' '));
+  } finally {
+    ctx.fs.currentUser = prevUser;
+  }
+}
+
+function cmd_su(args, ctx) {
+  const target = args[0] === '-' ? 'root' : args[0] || 'root';
+  if (!ctx.state.users.has(target)) return fail(`su: user ${target} does not exist\n`);
+  ctx.fs.currentUser = target;
+  return ok('');
+}
+
+function cmd_useradd(args, ctx) {
+  const name = args.find((a) => !a.startsWith('-'));
+  if (!name) return fail('useradd: missing user name\n');
+  if (ctx.state.users.has(name)) return fail(`useradd: user '${name}' already exists\n`);
+  ctx.state.users.add(name);
+  return ok('');
+}
+
+function cmd_userdel(args, ctx) {
+  const name = args.find((a) => !a.startsWith('-'));
+  if (!name) return fail('userdel: missing user name\n');
+  if (!ctx.state.users.has(name)) return fail(`userdel: user '${name}' does not exist\n`);
+  if (name === 'root' || name === 'student') return fail(`userdel: cannot remove the '${name}' account\n`);
+  ctx.state.users.delete(name);
+  return ok('');
+}
+
+function cmd_passwd(args, ctx) {
+  const name = args[0] || ctx.fs.currentUser;
+  if (!ctx.state.users.has(name)) return fail(`passwd: user '${name}' does not exist\n`);
+  return ok(`passwd: password updated successfully for ${name}\n`);
+}
+
+function cmd_uname(args, ctx) {
+  const { flags } = parseFlags(args, ['a', 's', 'r', 'n', 'm', 'o']);
+  if (flags.a) return ok('Linux devops-trainer 5.15.0-devops #1 SMP x86_64 GNU/Linux\n');
+  if (flags.r) return ok('5.15.0-devops\n');
+  if (flags.n) return ok('devops-trainer\n');
+  if (flags.m || flags.o) return ok('x86_64\n');
+  return ok('Linux\n');
+}
+
+function cmd_ip(args, ctx) {
+  const [sub] = args;
+  if (/^(addr|address|a)$/.test(sub)) {
+    return ok(
+      '1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536\n    inet 127.0.0.1/8 scope host lo\n' +
+        '2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500\n    inet 10.0.0.15/24 brd 10.0.0.255 scope global eth0\n'
+    );
+  }
+  if (/^(route|r)$/.test(sub)) {
+    return ok('default via 10.0.0.1 dev eth0\n10.0.0.0/24 dev eth0 proto kernel scope link src 10.0.0.15\n');
+  }
+  if (!sub) return fail('Usage: ip [ addr | route ] ...\n');
+  return fail(`ip: unknown command "${sub}"\n`);
+}
+
+function cmd_rsync(args, ctx) {
+  const { flags, rest } = parseFlags(args, ['a', 'v', 'z', 'r', 'n']);
+  if (rest.length < 2) return fail('rsync: missing source and/or destination operand\n');
+  const dest = rest[rest.length - 1];
+  const sources = rest.slice(0, -1);
+  const names = [];
+  for (const src of sources) {
+    try {
+      ctx.fs.copy(src, dest, { recursive: true });
+      names.push(ctx.fs.basename(src));
+    } catch (e) {
+      return fail(`rsync: ${e.message}\n`);
+    }
+  }
+  if (!flags.v) return ok('');
+  return ok(
+    `sending incremental file list\n${names.join('\n')}\n\n` +
+      'sent 1,024 bytes  received 128 bytes  2,304.00 bytes/sec\ntotal size is 4,096  speedup is 3.55\n'
+  );
+}
+
+function cmd_locate(args, ctx) {
+  const pattern = args[0];
+  if (!pattern) return fail('locate: no pattern specified\n');
+  const results = [];
+  const walk = (node, path) => {
+    if (node.name.includes(pattern)) results.push(path);
+    if (node.type === 'dir') {
+      for (const [name, child] of node.children) {
+        walk(child, path === '/' ? '/' + name : path + '/' + name);
+      }
+    }
+  };
+  const root = ctx.fs.getNode('/');
+  for (const [name, child] of root.children) {
+    walk(child, '/' + name);
+  }
+  if (!results.length) return { stdout: '', stderr: '', code: 1 };
+  return ok(results.sort().join('\n') + '\n');
+}
+
+function cmd_unalias(args, ctx) {
+  const name = args[0];
+  if (!name) return fail('unalias: usage: unalias name\n');
+  if (!ctx.state.aliases[name]) return fail(`unalias: ${name}: not found\n`);
+  delete ctx.state.aliases[name];
+  return ok('');
+}
+
+function cmd_watch(args, ctx) {
+  const { flags, rest } = parseFlags(args, [], ['n']);
+  if (!rest.length) return fail('watch: missing command\n');
+  const cmdStr = rest.join(' ');
+  const result = ctx.run(cmdStr);
+  const header = `Every ${flags.n || '2.0'}s: ${cmdStr}    devops-trainer: Sat Aug 22 12:00:00 2026\n\n`;
+  return { stdout: header + result.stdout, stderr: result.stderr, code: result.code };
+}
+
+function cmd_traceroute(args, ctx) {
+  const host = args.find((a) => !a.startsWith('-'));
+  if (!host) return fail('traceroute: missing host operand\n');
+  const ip = ctx.state.network.hosts[host] || '93.184.216.34';
+  return ok(
+    `traceroute to ${host} (${ip}), 30 hops max\n` +
+      ' 1  10.0.0.1  0.512 ms\n' +
+      ' 2  172.16.0.1  1.203 ms\n' +
+      ` 3  ${ip}  8.417 ms\n`
+  );
+}
+
+function cmd_who() {
+  return ok('student  pts/0        2026-08-22 12:00 (10.0.0.5)\n');
+}
+
+function cmd_last(args, ctx) {
+  return ok(
+    'student  pts/0        10.0.0.5         Sat Aug 22 12:00   still logged in\n' +
+      'student  pts/0        10.0.0.5         Fri Aug 21 09:15 - 10:42  (01:27)\n' +
+      'reboot   system boot  5.15.0-devops    Fri Aug 21 09:00\n' +
+      '\nwtmp begins Fri Aug 21 09:00:00 2026\n'
+  );
+}
+
+function cmd_lsof(args, ctx) {
+  const { flags } = parseFlags(args, ['i']);
+  const header = 'COMMAND   PID  USER   FD   TYPE DEVICE SIZE/OFF NODE NAME';
+  const rows = ctx.state.network.listeningPorts.map(
+    (p, i) =>
+      `${p.process.padEnd(9)} ${String(100 + i).padStart(3)}  root   6u   IPv4  1234${i}      0t0  TCP ${p.local} (LISTEN)`
+  );
+  return ok([header, ...rows].join('\n') + '\n');
+}
+
+function cmd_groupadd(args, ctx) {
+  const name = args.find((a) => !a.startsWith('-'));
+  if (!name) return fail('groupadd: missing group name\n');
+  if (ctx.state.groups.has(name)) return fail(`groupadd: group '${name}' already exists\n`);
+  ctx.state.groups.add(name);
+  return ok('');
+}
+
+function cmd_groupdel(args, ctx) {
+  const name = args.find((a) => !a.startsWith('-'));
+  if (!name) return fail('groupdel: missing group name\n');
+  if (!ctx.state.groups.has(name)) return fail(`groupdel: group '${name}' does not exist\n`);
+  if (name === 'root' || name === 'student') return fail(`groupdel: cannot remove the primary group '${name}'\n`);
+  ctx.state.groups.delete(name);
+  return ok('');
+}
+
+function cmd_updatedb(args, ctx) {
+  return ok('');
+}
+
+function cmd_cal() {
+  return ok(
+    '     August 2026\n' +
+      'Su Mo Tu We Th Fr Sa\n' +
+      '                   1\n' +
+      ' 2  3  4  5  6  7  8\n' +
+      ' 9 10 11 12 13 14 15\n' +
+      '16 17 18 19 20 21 22\n' +
+      '23 24 25 26 27 28 29\n' +
+      '30 31\n'
+  );
+}
+
 module.exports = {
   cmd_ps,
   cmd_top,
@@ -746,4 +942,23 @@ module.exports = {
   cmd_docker,
   cmd_docker_compose,
   cmd_crontab,
+  cmd_sudo,
+  cmd_su,
+  cmd_useradd,
+  cmd_userdel,
+  cmd_passwd,
+  cmd_uname,
+  cmd_ip,
+  cmd_rsync,
+  cmd_locate,
+  cmd_unalias,
+  cmd_watch,
+  cmd_traceroute,
+  cmd_cal,
+  cmd_who,
+  cmd_last,
+  cmd_lsof,
+  cmd_groupadd,
+  cmd_groupdel,
+  cmd_updatedb,
 };

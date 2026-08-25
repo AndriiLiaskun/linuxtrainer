@@ -34,7 +34,7 @@ const AVAILABLE_PACKAGES = new Set([
   'nginx', 'docker.io', 'docker-ce', 'postgresql', 'python3', 'python3-pip',
   'nodejs', 'npm', 'htop', 'tree', 'vim', 'curl', 'wget', 'git', 'coreutils',
   'bash', 'openssh-client', 'openssh-server', 'net-tools', 'unzip', 'zip',
-  'httpd', 'apache2', 'mariadb-server', 'firewalld',
+  'httpd', 'apache2', 'mariadb-server', 'firewalld', 'mlocate', 'rsync',
 ]);
 
 function freshDocker() {
@@ -111,6 +111,8 @@ class SessionState {
     this.aliases = {};
     this.jobCounter = 0;
     this.backgroundJobs = [];
+    this.users = new Set(['student', 'root']);
+    this.groups = new Set(['student', 'root', 'sudo', 'docker']);
   }
 }
 
