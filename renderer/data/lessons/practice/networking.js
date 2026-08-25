@@ -163,6 +163,43 @@ function build() {
     });
   });
 
+  drills.push({
+    id: 'p-net-tcpdump',
+    difficulty: 2,
+    prompt: 'Перехопи мережеві пакети на інтерфейсі eth0 (tcpdump).',
+    hint: 'tcpdump -i eth0',
+    solution: 'tcpdump -i eth0',
+    xp: 25,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'listening on eth0'),
+  });
+  drills.push({
+    id: 'p-net-ssh-port',
+    difficulty: 2,
+    prompt: 'Підключись по SSH до api.internal на нестандартному порту 2222.',
+    hint: 'ssh -p 2222 api.internal',
+    solution: 'ssh -p 2222 api.internal',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'port 2222'),
+  });
+  drills.push({
+    id: 'p-net-scp-recursive',
+    difficulty: 2,
+    prompt: 'Скопіюй ЦІЛУ директорію projects на віддалений сервер api.internal у /tmp/ (рекурсивно).',
+    hint: 'scp -r projects student@api.internal:/tmp/',
+    solution: 'scp -r projects student@api.internal:/tmp/',
+    xp: 25,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'projects') && h.stdoutIncludes(ctx.result, '100%'),
+  });
+  drills.push({
+    id: 'p-net-df-inodes',
+    difficulty: 2,
+    prompt: 'Перевір використання inode (а не байтів) файлових систем.',
+    hint: 'df -i',
+    solution: 'df -i',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'IUse%'),
+  });
+
   return drills;
 }
 

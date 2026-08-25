@@ -132,12 +132,37 @@ function cmd_free(args, ctx) {
 }
 
 function cmd_df(args, ctx) {
-  const { flags } = parseFlags(args, ['h']);
+  const { flags } = parseFlags(args, ['h', 'i']);
+  if (flags.i) {
+    const header = 'Filesystem      Inodes  IUsed   IFree IUse% Mounted on';
+    const rows = ['/dev/sda1      2621440 312450 2308990   12% /', 'tmpfs           500000     412  499588    1% /dev/shm'];
+    return ok([header, ...rows].join('\n') + '\n');
+  }
   const header = 'Filesystem      Size  Used Avail Use% Mounted on';
   const rows = flags.h
     ? ['/dev/sda1        40G   14G   24G  37% /', 'tmpfs           3.9G     0  3.9G   0% /dev/shm']
     : ['/dev/sda1     41943040 14680064 25165824  37% /', 'tmpfs          4096000        0  4096000   0% /dev/shm'];
   return ok([header, ...rows].join('\n') + '\n');
+}
+
+function cmd_fdisk(args, ctx) {
+  const { flags } = parseFlags(args, ['l']);
+  if (!flags.l) return fail('fdisk: interactive partitioning is not supported in this sandbox; use -l to list\n');
+  return ok(
+    'Disk /dev/sda: 40 GiB, 42949672960 bytes, 83886080 sectors\n' +
+      'Units: sectors of 1 * 512 = 512 bytes\n\n' +
+      'Device     Boot   Start      End  Sectors  Size Type\n' +
+      '/dev/sda1  *       2048 83884031 83881984   40G Linux\n'
+  );
+}
+
+function cmd_mount(args, ctx) {
+  if (args.length) return fail('mount: mounting new filesystems is not supported in this sandbox\n');
+  return ok(
+    '/dev/sda1 on / type ext4 (rw,relatime)\n' +
+      'tmpfs on /dev/shm type tmpfs (rw,nosuid,nodev)\n' +
+      'tmpfs on /tmp type tmpfs (rw,nosuid,nodev)\n'
+  );
 }
 
 function cmd_du(args, ctx) {
@@ -305,6 +330,38 @@ function pkgManager(name) {
       const found = Array.from(AVAILABLE_PACKAGES).filter((p) => p.includes(term));
       return ok(found.join('\n') + (found.length ? '\n' : ''));
     }
+    if (action === 'clean' && pkgs[0] === 'all') return ok('Cleaning repos...\n0 files removed\n');
+    if (action === 'info') {
+      const p = pkgs[0];
+      if (!p) return fail(`${name}: missing package name\n`);
+      if (!AVAILABLE_PACKAGES.has(p)) return fail(`${name}: No package ${p} available.\n`);
+      const status = ctx.state.packages.has(p) ? 'installed' : 'available';
+      return ok(`Name: ${p}\nVersion: 1.0-1\nStatus: ${status}\nDescription: ${p} package\n`);
+    }
+    const isYumFamily = name === 'yum' || name === 'dnf';
+    if (action === 'history' && isYumFamily) {
+      return ok(
+        'ID     | Command line             | Date\n' +
+          '-------------------------------------------\n' +
+          '     2 | install git curl         | 2026-08-20\n' +
+          '     1 | install coreutils bash   | 2026-08-19\n'
+      );
+    }
+    if (action === 'repolist' && isYumFamily) {
+      return ok(
+        'repo id                repo name                     status\n' +
+          'base                   Base OS repository            enabled\n' +
+          'updates                Updates repository            enabled\n'
+      );
+    }
+    if (action === 'grouplist' && isYumFamily) {
+      return ok('Available Groups:\n   Development Tools\n   Web Server\n');
+    }
+    if (action === 'groupinstall' && isYumFamily) {
+      const group = pkgs.join(' ');
+      if (!group) return fail(`${name}: missing group name\n`);
+      return ok(`Installing group '${group}'...\nComplete!\n`);
+    }
     return fail(`${name}: unknown command '${action}'\n`);
   };
 }
@@ -371,14 +428,21 @@ function cmd_netstat(args, ctx) {
 }
 
 function cmd_ssh(args, ctx) {
-  const target = args[args.length - 1];
+  const { flags, rest } = parseFlags(args, [], ['p']);
+  const target = rest[rest.length - 1];
   if (!target) return fail('ssh: missing host\n');
-  return ok(`Connecting to ${target}... (simulated) Welcome to Ubuntu 22.04 LTS\n`);
+  const portNote = flags.p ? ` on port ${flags.p}` : '';
+  return ok(`Connecting to ${target}${portNote}... (simulated) Welcome to Ubuntu 22.04 LTS\n`);
 }
 
 function cmd_scp(args, ctx) {
-  if (args.length < 2) return fail('scp: missing operand\n');
-  return ok(`${args[0]}                              100%   1KB   1.0MB/s   00:00\n`);
+  // Note: scp's port flag is capital -P, unlike ssh's lowercase -p — a
+  // classic real-world gotcha, modeled deliberately rather than unified.
+  const { rest } = parseFlags(args, ['r'], ['P']);
+  if (rest.length < 2) return fail('scp: missing operand\n');
+  const sources = rest.slice(0, -1);
+  const lines = sources.map((s) => `${s}                              100%   1KB   1.0MB/s   00:00`);
+  return ok(lines.join('\n') + '\n');
 }
 
 function cmd_dig(args, ctx) {
@@ -386,6 +450,44 @@ function cmd_dig(args, ctx) {
   if (!host) return fail('dig: missing host\n');
   const ip = ctx.state.network.hosts[host] || '93.184.216.34';
   return ok(`;; ANSWER SECTION:\n${host}.\t\t300\tIN\tA\t${ip}\n`);
+}
+
+function cmd_vmstat(args, ctx) {
+  return ok(
+    'procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----\n' +
+      ' r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st\n' +
+      ' 1  0      0 3984512 182340 1843200    0    0     2     5   45   80  3  1 96  0  0\n'
+  );
+}
+
+function cmd_mpstat(args, ctx) {
+  return ok(
+    'Linux 5.15.0-devops (devops-trainer)   08/22/2026  _x86_64_ (4 CPU)\n\n' +
+      '12:00:00 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest   %idle\n' +
+      '12:00:00 PM  all    3.20    0.00    1.10    0.05    0.00    0.10    0.00    0.00   95.55\n'
+  );
+}
+
+function cmd_iostat(args, ctx) {
+  return ok(
+    'Linux 5.15.0-devops (devops-trainer)   08/22/2026  _x86_64_ (4 CPU)\n\n' +
+      'avg-cpu:  %user   %nice %system %iowait  %steal   %idle\n' +
+      '           3.20    0.00    1.10    0.05    0.00   95.65\n\n' +
+      'Device             tps    kB_read/s    kB_wrtn/s    kB_read    kB_wrtn\n' +
+      'sda               4.32        86.40        21.60     345600      86400\n'
+  );
+}
+
+function cmd_tcpdump(args, ctx) {
+  const { flags } = parseFlags(args, [], ['i', 'c']);
+  const iface = flags.i || 'eth0';
+  return ok(
+    'tcpdump: verbose output suppressed, use -v for full protocol decode\n' +
+      `listening on ${iface}, link-type EN10MB (Ethernet), capture size 262144 bytes\n` +
+      '12:00:01.123456 IP 10.0.0.5.54321 > 10.0.0.15.22: Flags [S], seq 123456789, win 64240\n' +
+      '12:00:01.123789 IP 10.0.0.15.22 > 10.0.0.5.54321: Flags [S.], seq 987654321, ack 123456790, win 65160\n' +
+      '2 packets captured\n'
+  );
 }
 
 function cmd_nslookup(args, ctx) {
@@ -1125,7 +1227,13 @@ module.exports = {
   cmd_pkill,
   cmd_free,
   cmd_df,
+  cmd_fdisk,
+  cmd_mount,
   cmd_du,
+  cmd_vmstat,
+  cmd_mpstat,
+  cmd_iostat,
+  cmd_tcpdump,
   cmd_uptime,
   cmd_whoami,
   cmd_id,

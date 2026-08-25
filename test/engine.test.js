@@ -466,4 +466,23 @@ sh = new Shell();
 check('lsof -u root shows the root-owned listening services', run(sh, 'lsof -u root').stdout.includes('sshd'), true);
 check('lsof -u student (nobody listens as student) shows just the header', run(sh, 'lsof -u student').stdout, 'COMMAND   PID  USER   FD   TYPE DEVICE SIZE/OFF NODE NAME\n');
 
+// --- ssh -p (lowercase) vs scp -P (uppercase) — a classic real-world gotcha ---
+sh = new Shell();
+check('ssh -p uses a LOWERCASE p', run(sh, 'ssh -p 2222 host').stdout, 'Connecting to host on port 2222... (simulated) Welcome to Ubuntu 22.04 LTS\n');
+r = run(sh, 'scp -r projects student@host:/tmp/');
+check('scp -r no longer misparses -r as the source file', r.stdout.startsWith('projects '), true);
+r = run(sh, 'scp a.txt b.txt student@host:/tmp/');
+check('scp with multiple sources reports each one, not just the first', r.stdout.split('\n').filter(Boolean).length, 2);
+
+// --- df -i (inode usage, distinct table from the default byte-based one) ---
+sh = new Shell();
+check('df -i shows inode columns instead of byte sizes', run(sh, 'df -i').stdout.includes('IUse%'), true);
+check('plain df still shows byte sizes', run(sh, 'df').stdout.includes('Size'), true);
+
+// --- yum/dnf-only subcommands correctly refused on apt (real apt has no repo/group concept) ---
+sh = new Shell();
+check('yum repolist works', run(sh, 'yum repolist').code, 0);
+r = run(sh, 'apt repolist');
+check('apt repolist is refused (apt has no repolist concept, unlike yum/dnf)', r.code, 1);
+
 module.exports = { passed, failed, failures };

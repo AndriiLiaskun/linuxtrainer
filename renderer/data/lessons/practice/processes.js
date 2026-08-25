@@ -352,6 +352,51 @@ function build() {
     check: (ctx) => h.stdoutIncludes(ctx.result, 'bad blocks'),
   });
   drills.push({
+    id: 'p-proc-fdisk',
+    difficulty: 2,
+    prompt: 'Виведи список дискових розділів системи (fdisk -l).',
+    hint: 'fdisk -l',
+    solution: 'fdisk -l',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, '/dev/sda1'),
+  });
+  drills.push({
+    id: 'p-proc-mount',
+    difficulty: 1,
+    prompt: 'Перевір, які файлові системи зараз змонтовані.',
+    hint: 'mount',
+    solution: 'mount',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'type ext4'),
+  });
+  drills.push({
+    id: 'p-proc-vmstat',
+    difficulty: 2,
+    prompt: "Перевір статистику пам'яті/CPU/I/O системи (vmstat).",
+    hint: 'vmstat',
+    solution: 'vmstat',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'procs'),
+  });
+  drills.push({
+    id: 'p-proc-mpstat',
+    difficulty: 2,
+    prompt: 'Перевір детальну статистику навантаження CPU (mpstat).',
+    hint: 'mpstat',
+    solution: 'mpstat',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, '%idle'),
+  });
+  drills.push({
+    id: 'p-proc-iostat',
+    difficulty: 2,
+    prompt: 'Перевір статистику вводу/виводу диска (iostat).',
+    hint: 'iostat',
+    solution: 'iostat',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Device'),
+  });
+  drills.push({
     id: 'p-proc-history',
     difficulty: 2,
     prompt: 'Виконай кілька команд (pwd, потім ls), а тоді перевір історію команд цієї сесії.',

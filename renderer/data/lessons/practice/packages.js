@@ -1,4 +1,5 @@
 'use strict';
+const h = require('../helpers');
 
 const INSTALLABLE = ['nginx', 'htop', 'tree', 'vim', 'python3', 'nodejs', 'postgresql', 'unzip', 'zip', 'docker.io'];
 const REMOVABLE = ['git', 'curl']; // present in the seeded "installed" set
@@ -105,6 +106,61 @@ function build() {
       xp: 15,
       check: (ctx) => ctx.state.packages.has(pkg),
     });
+  });
+
+  drills.push({
+    id: 'p-pkg-yum-repolist',
+    difficulty: 2,
+    prompt: 'Перевір список підключених репозиторіїв (yum repolist).',
+    hint: 'yum repolist',
+    solution: 'yum repolist',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'repo id'),
+  });
+  drills.push({
+    id: 'p-pkg-yum-history',
+    difficulty: 2,
+    prompt: 'Перевір історію транзакцій пакетного менеджера (yum history).',
+    hint: 'yum history',
+    solution: 'yum history',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Command line'),
+  });
+  drills.push({
+    id: 'p-pkg-yum-grouplist',
+    difficulty: 2,
+    prompt: 'Перевір список доступних груп пакетів (yum grouplist).',
+    hint: 'yum grouplist',
+    solution: 'yum grouplist',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Development Tools'),
+  });
+  drills.push({
+    id: 'p-pkg-yum-groupinstall',
+    difficulty: 2,
+    prompt: "Встанови всю групу пакетів 'Development Tools' одразу (yum groupinstall).",
+    hint: "yum groupinstall 'Development Tools'",
+    solution: "yum groupinstall 'Development Tools'",
+    xp: 25,
+    check: (ctx) => h.stdoutIncludes(ctx.result, "Installing group 'Development Tools'"),
+  });
+  drills.push({
+    id: 'p-pkg-apt-clean',
+    difficulty: 1,
+    prompt: 'Очисти кеш завантажених пакетів (apt clean all).',
+    hint: 'apt clean all',
+    solution: 'apt clean all',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Cleaning repos'),
+  });
+  drills.push({
+    id: 'p-pkg-apt-info',
+    difficulty: 2,
+    prompt: 'Перевір детальну інформацію про пакет git (apt info).',
+    hint: 'apt info git',
+    solution: 'apt info git',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Name: git'),
   });
 
   return drills;
