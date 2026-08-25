@@ -103,8 +103,14 @@ function build() {
     solution: 'ls -r',
     xp: 15,
     check: (ctx) => {
-      const first = h.stdoutTrim(ctx.result).split(/\s+/)[0];
-      return first === 'projects';
+      // Derived from the live seed rather than a hardcoded name — a fixed
+      // expected name here would silently go stale the moment any new
+      // top-level file/dir sorting after it alphabetically gets seeded.
+      const liveNames = Array.from(ctx.fs.getNode('/home/student').children.keys())
+        .filter((n) => !n.startsWith('.'))
+        .sort()
+        .reverse();
+      return h.stdoutTrim(ctx.result).split(/\s+/)[0] === liveNames[0];
     },
   });
   drills.push({

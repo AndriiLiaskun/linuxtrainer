@@ -1,6 +1,6 @@
 {
   "name": "linuxtrainer",
-  "version": "1.17.0",
+  "version": "1.17.1",
   "description": "DevOps/Linux термінал-тренажер у стилі Terminal Drill",
   "main": "main.js",
   "scripts": {

@@ -356,20 +356,38 @@ r = run(sh, 'rm -v e.txt');
 check('rm -v reports the removal', r.stdout, "removed 'e.txt'\n");
 
 // --- ls -t (newest-created first; uses inode order as an mtime proxy) ---
+// These assert only facts about the two files THIS test creates, never the
+// full seed listing — a hardcoded full-listing string would silently go
+// stale (and require manual fixing) every time a seed file is added
+// elsewhere, exactly like the find -inum drill's inode literal did.
 sh = new Shell();
 run(sh, 'touch old.txt');
 run(sh, 'touch new.txt');
-check('ls -t sorts newest-created first', run(sh, 'ls -t').stdout, 'new.txt  old.txt  k8s  documents  projects\n');
-check('ls -tr reverses it back to oldest first', run(sh, 'ls -tr').stdout, 'projects  documents  k8s  old.txt  new.txt\n');
+let names = run(sh, 'ls -t').stdout.trim().split(/\s+/);
+check('ls -t puts the most-recently-created file first', names[0], 'new.txt');
+check('ls -t puts the next-most-recent file second', names[1], 'old.txt');
+names = run(sh, 'ls -tr').stdout.trim().split(/\s+/);
+check('ls -tr (reversed) puts the most-recently-created file last', names[names.length - 1], 'new.txt');
+check('ls -tr puts the next-most-recent file second-to-last', names[names.length - 2], 'old.txt');
 
 // --- ls -F / -i / -g / -m / -r ---
+// Expected values are computed from the LIVE seed (not a frozen string), so
+// these track whatever /home/student happens to contain going forward.
 sh = new Shell();
+const homeNode = sh.fs.getNode('/home/student');
+const liveNames = Array.from(homeNode.children.keys()).filter((n) => !n.startsWith('.')).sort();
+const indicatorFor = (n) => {
+  const node = homeNode.children.get(n);
+  if (node.type === 'dir') return '/';
+  if (node.type === 'symlink') return '@';
+  return node.mode & 0o111 ? '*' : '';
+};
 r = run(sh, 'ls -F');
-check('ls -F marks directories with a trailing /', r.stdout, 'documents/  k8s/  projects/\n');
+check('ls -F marks each entry with its type indicator', r.stdout.trim(), liveNames.map((n) => n + indicatorFor(n)).join('  '));
 r = run(sh, 'ls -m');
-check('ls -m lists entries comma-separated on one line', r.stdout, 'documents, k8s, projects\n');
+check('ls -m lists entries comma-separated on one line', r.stdout, liveNames.join(', ') + '\n');
 r = run(sh, 'ls -r');
-check('ls -r reverses the sort order', r.stdout, 'projects  k8s  documents\n');
+check('ls -r reverses the sort order', r.stdout, liveNames.slice().reverse().join('  ') + '\n');
 r = run(sh, 'ls -g documents');
 check('ls -g (long format) omits the owner column', r.stdout.split('\n')[1].startsWith('-rw-r--r-- 1 student '), true);
 

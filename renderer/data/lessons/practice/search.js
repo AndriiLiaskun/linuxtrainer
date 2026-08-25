@@ -267,17 +267,17 @@ function build() {
   });
 
   // find -inum — search by inode number (as reported by stat / ls -i).
-  // NOTE: 27 is documents/notes.txt's inode in a FRESH FileSystem — inode
-  // numbers are assigned in file-creation order (see filesystem.js's
-  // _buildDefaultTree), so this literal must be re-verified (and this
-  // drill's `check` re-run) any time a file gets added/reordered earlier
-  // in that seed. `node test/run.js` catches a stale value immediately.
+  // The solution below deliberately AVOIDS hardcoding notes.txt's inode as
+  // a literal (that number is assigned by creation order in
+  // filesystem.js's _buildDefaultTree and shifts every time a seed file is
+  // added/reordered before it) — instead it looks the number up at replay
+  // time via command substitution, so this drill can never go stale.
   drills.push({
     id: 'p-search-find-inum',
     difficulty: 3,
     prompt: 'Подивись inode-номер файлу documents/notes.txt командою stat, а потім знайди цей самий файл у directory documents за цим inode-номером (find -inum).',
     hint: 'stat documents/notes.txt   (дивись рядок Inode: N) && find documents -inum N',
-    solution: 'find documents -inum 27',
+    solution: "find documents -inum $(stat documents/notes.txt | grep Inode | tr -d ' ' | cut -d: -f2)",
     xp: 30,
     check: (ctx) => h.stdoutTrim(ctx.result) === '/home/student/documents/notes.txt',
   });
