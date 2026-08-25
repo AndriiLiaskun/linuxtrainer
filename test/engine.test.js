@@ -449,4 +449,21 @@ check('fg %N targets a specific job by number', r.stdout, 'sleep 5\n');
 r = run(sh, 'fg');
 check('fg with nothing left running errors', r.stderr, 'fg: no current job\n');
 
+// --- hostname -i / last reboot ---
+sh = new Shell();
+check('hostname with no args prints the hostname', run(sh, 'hostname').stdout, 'devops-trainer\n');
+check('hostname -i prints an IP instead of the name', run(sh, 'hostname -i').stdout, '10.0.0.15\n');
+
+sh = new Shell();
+r = run(sh, 'last reboot');
+check('last reboot filters to ONLY the reboot line(s)', r.stdout.includes('still logged in'), false);
+check('last reboot still includes the reboot entry itself', r.stdout.includes('reboot'), true);
+r = run(sh, 'last');
+check('plain last (no filter) still shows full login history', r.stdout.includes('still logged in'), true);
+
+// --- lsof -u (was silently accepted and ignored before) ---
+sh = new Shell();
+check('lsof -u root shows the root-owned listening services', run(sh, 'lsof -u root').stdout.includes('sshd'), true);
+check('lsof -u student (nobody listens as student) shows just the header', run(sh, 'lsof -u student').stdout, 'COMMAND   PID  USER   FD   TYPE DEVICE SIZE/OFF NODE NAME\n');
+
 module.exports = { passed, failed, failures };

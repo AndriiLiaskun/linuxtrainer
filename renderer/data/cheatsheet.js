@@ -39,11 +39,12 @@ const CHEATSHEET = [
   { icon: '🔍', title: 'Пошук', cmds: [c('grep'), c('find'), c('locate'), c('updatedb')] },
   { icon: '⚙️', title: 'Обробка тексту', cmds: [c('sed'), c('awk'), c('sort'), c('cut'), c('tr'), c('xargs'), c('uniq'), c('tee')] },
   { icon: '📜', title: 'Скрипти', cmds: [c('echo'), c('export'), c('for'), c('if'), c('$(...)'), c('sleep'), c('history'), c('unalias'), c('man'), c('cal')] },
-  { icon: '⚡', title: 'Процеси', cmds: [c('ps'), c('top'), c('htop'), c('kill'), c('killall'), c('pkill'), c('pmap'), c('jobs'), c('fg'), c('free'), c('df'), c('du'), c('uptime'), c('watch'), c('lsof')] },
+  { icon: '⚡', title: 'Процеси', cmds: [c('ps'), c('top'), c('htop'), c('kill'), c('killall'), c('pkill'), c('pmap'), c('jobs'), c('fg'), c('free'), c('df'), c('du'), c('uptime'), c('watch'), c('lsof'), c('w'), c('finger')] },
   { icon: '🛠️', title: 'systemd', cmds: [c('systemctl'), c('journalctl')] },
   { icon: '🌐', title: 'Мережа', cmds: [c('ping'), c('curl'), c('wget'), c('ssh'), c('scp'), c('dig'), c('nslookup'), c('ss'), c('netstat'), c('ip'), c('rsync'), c('traceroute')] },
   { icon: '📦', title: 'Пакети', cmds: [c('apt'), c('yum'), c('dnf')] },
   { icon: '🖥️', title: 'Система', cmds: [c('whoami'), c('id'), c('hostname'), c('date'), c('uname')] },
+  { icon: '🔩', title: 'Апаратне забезпечення', cmds: [c('dmesg'), c('lspci'), c('lsusb'), c('lshal'), c('dmidecode'), c('hdparm'), c('badblocks')] },
   {
     icon: '🔧',
     title: 'Git',

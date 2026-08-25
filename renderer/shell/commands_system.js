@@ -185,6 +185,8 @@ function cmd_id(args, ctx) {
 }
 
 function cmd_hostname(args, ctx) {
+  const { flags } = parseFlags(args, ['i', 'I']);
+  if (flags.i || flags.I) return ok('10.0.0.15\n');
   return ok(ctx.state.network.hostname + '\n');
 }
 
@@ -958,22 +960,122 @@ function cmd_who() {
 }
 
 function cmd_last(args, ctx) {
-  return ok(
-    'student  pts/0        10.0.0.5         Sat Aug 22 12:00   still logged in\n' +
-      'student  pts/0        10.0.0.5         Fri Aug 21 09:15 - 10:42  (01:27)\n' +
-      'reboot   system boot  5.15.0-devops    Fri Aug 21 09:00\n' +
-      '\nwtmp begins Fri Aug 21 09:00:00 2026\n'
-  );
+  const lines = [
+    'student  pts/0        10.0.0.5         Sat Aug 22 12:00   still logged in',
+    'student  pts/0        10.0.0.5         Fri Aug 21 09:15 - 10:42  (01:27)',
+    'reboot   system boot  5.15.0-devops    Fri Aug 21 09:00',
+  ];
+  const filtered = args[0] === 'reboot' ? lines.filter((l) => l.startsWith('reboot')) : lines;
+  return ok(filtered.join('\n') + '\n\nwtmp begins Fri Aug 21 09:00:00 2026\n');
 }
 
 function cmd_lsof(args, ctx) {
-  const { flags } = parseFlags(args, ['i']);
+  const { flags } = parseFlags(args, ['i'], ['u']);
   const header = 'COMMAND   PID  USER   FD   TYPE DEVICE SIZE/OFF NODE NAME';
-  const rows = ctx.state.network.listeningPorts.map(
+  let ports = ctx.state.network.listeningPorts;
+  if (flags.u !== undefined) ports = ports.filter(() => flags.u === 'root');
+  const rows = ports.map(
     (p, i) =>
       `${p.process.padEnd(9)} ${String(100 + i).padStart(3)}  root   6u   IPv4  1234${i}      0t0  TCP ${p.local} (LISTEN)`
   );
   return ok([header, ...rows].join('\n') + '\n');
+}
+
+function cmd_w(args, ctx) {
+  return ok(
+    ' 12:00:00 up 3 days,  2:14,  1 user,  load average: 0.15, 0.22, 0.18\n' +
+      'USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT\n' +
+      'student  pts/0    10.0.0.5         12:00    0.00s  0.05s  0.01s w\n'
+  );
+}
+
+function cmd_finger(args, ctx) {
+  const name = args[0] || ctx.fs.currentUser;
+  if (!ctx.state.users.has(name)) return fail(`finger: ${name}: no such user\n`);
+  const fullName = name === 'root' ? 'System Administrator' : 'DevOps Student';
+  return ok(
+    `Login: ${name.padEnd(20)}Name: ${fullName}\n` +
+      `Directory: /home/${name}${' '.repeat(Math.max(1, 20 - `/home/${name}`.length))}Shell: /bin/bash\n` +
+      'On since Sat Aug 22 12:00 (UTC) on pts/0 from 10.0.0.5\n' +
+      'No mail.\n'
+  );
+}
+
+function cmd_dmesg(args, ctx) {
+  const lines = [
+    '[    0.000000] Linux version 5.15.0-devops (build@devops-trainer) #1 SMP',
+    '[    0.124532] Command line: BOOT_IMAGE=/boot/vmlinuz-5.15.0-devops root=/dev/sda1',
+    '[    1.203411] ACPI: Core revision 20210730',
+    '[    2.442017] e1000 0000:00:03.0 eth0: renamed from eth0',
+    '[    3.881234] eth0: link up, 1000 Mbps full duplex',
+    '[    5.102938] EXT4-fs (sda1): mounted filesystem with ordered data mode',
+    '[   12.334521] systemd[1]: Started Network Manager.',
+    '[   45.223198] sshd[118]: Server listening on 0.0.0.0 port 22.',
+  ];
+  return ok(lines.join('\n') + '\n');
+}
+
+function cmd_lspci(args, ctx) {
+  const lines = [
+    '00:00.0 Host bridge: Intel Corporation 440FX - 82441FX PMC [Natoma]',
+    '00:01.0 ISA bridge: Intel Corporation 82371SB PIIX3 ISA [Natoma/Triton II]',
+    '00:02.0 VGA compatible controller: Red Hat, Inc. Virtio GPU',
+    '00:03.0 Ethernet controller: Intel Corporation 82540EM Gigabit Ethernet Controller',
+    '00:04.0 SCSI storage controller: Red Hat, Inc. Virtio block device',
+  ];
+  return ok(lines.join('\n') + '\n');
+}
+
+function cmd_lsusb(args, ctx) {
+  const lines = [
+    'Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub',
+    'Bus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub',
+    'Bus 001 Device 002: ID 0627:0001 Adomax Technology Co., Ltd QEMU USB Tablet',
+  ];
+  return ok(lines.join('\n') + '\n');
+}
+
+function cmd_lshal(args, ctx) {
+  return ok(
+    "udi = '/org/freedesktop/Hal/devices/computer'\n" +
+      "  system.kernel.version = '5.15.0-devops'  (string)\n" +
+      "  system.hardware.vendor = 'QEMU'  (string)\n" +
+      "  system.hardware.product = 'Standard PC'  (string)\n\n" +
+      "udi = '/org/freedesktop/Hal/devices/net_eth0'\n" +
+      "  net.interface = 'eth0'  (string)\n" +
+      "  net.address = '52:54:00:12:34:56'  (string)\n"
+  );
+}
+
+function cmd_dmidecode(args, ctx) {
+  const { flags } = parseFlags(args, [], ['t']);
+  if (flags.t === 'system' || flags.t === '1') {
+    return ok(
+      'Handle 0x0100, DMI type 1, 27 bytes\nSystem Information\n' +
+        '\tManufacturer: QEMU\n\tProduct Name: Standard PC (i440FX + PIIX, 1996)\n\tSerial Number: Not Specified\n'
+    );
+  }
+  return ok(
+    '# dmidecode 3.3\nGetting SMBIOS data from sysfs.\nSMBIOS 2.8 present.\n8 structures occupying 1234 bytes.\nTable at 0x000F0000.\n'
+  );
+}
+
+function cmd_hdparm(args, ctx) {
+  const { rest } = parseFlags(args, ['I', 'i', 't', 'T']);
+  const dev = rest.find((a) => a.startsWith('/dev/'));
+  if (!dev) return fail('hdparm: missing device\n');
+  return ok(
+    `\n${dev}:\n` +
+      ' Timing cached reads:   18432 MB in  2.00 seconds = 9221.30 MB/sec\n' +
+      ' Timing buffered disk reads: 640 MB in  3.01 seconds = 212.45 MB/sec\n'
+  );
+}
+
+function cmd_badblocks(args, ctx) {
+  const { rest } = parseFlags(args, ['s', 'v', 'n', 'w']);
+  const dev = rest.find((a) => a.startsWith('/dev/'));
+  if (!dev) return fail('badblocks: missing device\n');
+  return ok('Checking for bad blocks (read-only test): done\nPass completed, 0 bad blocks found.\n');
 }
 
 function cmd_groupadd(args, ctx) {
@@ -1064,6 +1166,15 @@ module.exports = {
   cmd_who,
   cmd_last,
   cmd_lsof,
+  cmd_w,
+  cmd_finger,
+  cmd_dmesg,
+  cmd_lspci,
+  cmd_lsusb,
+  cmd_lshal,
+  cmd_dmidecode,
+  cmd_hdparm,
+  cmd_badblocks,
   cmd_groupadd,
   cmd_groupdel,
   cmd_updatedb,

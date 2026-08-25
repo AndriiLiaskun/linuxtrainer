@@ -59,7 +59,7 @@ const COMMAND_DOCS = {
   groupadd: { desc: 'Створює нову групу користувачів.', example: 'groupadd devops' },
   groupdel: { desc: 'Видаляє групу користувачів.', example: 'groupdel devops' },
   who: { desc: 'Показує, які користувачі зараз залогінені в системі.', example: 'who' },
-  last: { desc: 'Показує історію входів користувачів у систему.', example: 'last' },
+  last: { desc: 'Показує історію входів користувачів у систему.', opts: [['reboot', 'лише записи про перезавантаження системи', 'last reboot']], example: 'last' },
 
   grep: {
     desc: 'Шукає рядки за регулярним виразом (шаблон завжди розширений regex — дужки/+/{} не потребують екранування, як -E; alias: egrep = grep -E).',
@@ -120,7 +120,9 @@ const COMMAND_DOCS = {
   du: { desc: 'Розмір, який займає файл/директорія на диску.', opts: [['-h', 'у зручному для читання форматі', 'du -h projects/'], ['-s', 'лише підсумок, без деталей по вкладених', 'du -sh projects/']], example: 'du -sh projects/' },
   uptime: { desc: 'Час роботи системи без перезавантаження й середнє навантаження.', example: 'uptime' },
   watch: { desc: 'Періодично повторює виконання команди (тут — показує результат одного запуску з заголовком).', opts: [['-n SEC', 'інтервал у секундах', 'watch -n 5 df -h']], example: 'watch -n 5 df -h' },
-  lsof: { desc: "Показує відкриті файли/мережеві з'єднання процесів.", opts: [['-i', 'лише мережеві з\'єднання (порти)', 'lsof -i']], example: 'lsof -i' },
+  lsof: { desc: "Показує відкриті файли/мережеві з'єднання процесів.", opts: [['-i', 'лише мережеві з\'єднання (порти)', 'lsof -i'], ['-u user', 'лише файли, відкриті вказаним користувачем', 'lsof -u root']], example: 'lsof -i' },
+  w: { desc: 'Хто зараз залогінений і чим зайнятий (like who, але з навантаженням системи).', example: 'w' },
+  finger: { desc: "Детальна інформація про користувача (логін, домашня директорія, shell).", example: 'finger student' },
 
   systemctl: { desc: 'Керування сервісами systemd.', opts: [['start/stop/restart', 'керування станом', 'systemctl restart nginx'], ['enable/disable', 'автозапуск', 'systemctl enable nginx'], ['status', 'поточний стан', 'systemctl status nginx']], example: 'systemctl status nginx' },
   journalctl: { desc: 'Перегляд системних журналів (логів) systemd.', opts: [['-u', 'логи конкретного сервісу', 'journalctl -u nginx']], example: 'journalctl -u nginx' },
@@ -144,7 +146,14 @@ const COMMAND_DOCS = {
 
   whoami: { desc: "Виводить ім'я поточного користувача.", example: 'whoami' },
   id: { desc: 'Показує UID/GID та групи поточного користувача.', example: 'id' },
-  hostname: { desc: "Виводить ім'я хосту (комп'ютера/сервера).", example: 'hostname' },
+  hostname: { desc: "Виводить ім'я хосту (комп'ютера/сервера).", opts: [['-i', 'IP-адреса хосту замість імені', 'hostname -i']], example: 'hostname' },
+  dmesg: { desc: "Виводить повідомлення ядра (kernel ring buffer) — завантаження, драйвери, залізо.", example: 'dmesg' },
+  lspci: { desc: 'Список PCI-пристроїв (відео, мережа, контролери).', example: 'lspci' },
+  lsusb: { desc: 'Список USB-пристроїв, підключених до системи.', example: 'lsusb' },
+  lshal: { desc: 'Список апаратних пристроїв через застарілий HAL-демон (legacy).', example: 'lshal' },
+  dmidecode: { desc: "Виводить дані з DMI/SMBIOS — виробник, модель заліза тощо.", opts: [['-t system', 'лише інформація про систему', 'dmidecode -t system']], example: 'dmidecode -t system' },
+  hdparm: { desc: 'Показує/тестує параметри диска (швидкість читання).', example: 'hdparm -t /dev/sda' },
+  badblocks: { desc: 'Сканує пристрій на наявність пошкоджених блоків.', example: 'badblocks -sv /dev/sda1' },
   date: { desc: 'Показує поточну дату й час системи.', example: 'date' },
   uname: { desc: 'Показує інформацію про ядро й систему.', opts: [['-a', 'уся інформація', 'uname -a'], ['-r', 'версія ядра', 'uname -r'], ['-m', 'архітектура процесора', 'uname -m']], example: 'uname -a' },
 

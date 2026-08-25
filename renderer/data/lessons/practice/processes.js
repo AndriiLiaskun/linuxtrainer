@@ -253,6 +253,105 @@ function build() {
     check: (ctx) => h.stdoutIncludes(ctx.result, 'sleep 20') && ctx.state.backgroundJobs.length === 0,
   });
   drills.push({
+    id: 'p-proc-w',
+    difficulty: 1,
+    prompt: 'Перевір, хто зараз залогінений і яке навантаження системи (команда w).',
+    hint: 'w',
+    solution: 'w',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'load average'),
+  });
+  drills.push({
+    id: 'p-proc-finger',
+    difficulty: 1,
+    prompt: "Перевір детальну інформацію про поточного користувача (finger).",
+    hint: 'finger',
+    solution: 'finger',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Login:') && h.stdoutIncludes(ctx.result, 'student'),
+  });
+  drills.push({
+    id: 'p-proc-last-reboot',
+    difficulty: 2,
+    prompt: 'Перевір лише записи про перезавантаження системи (last reboot), без усієї історії входів.',
+    hint: 'last reboot',
+    solution: 'last reboot',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'reboot') && !h.stdoutIncludes(ctx.result, 'still logged in'),
+  });
+  drills.push({
+    id: 'p-proc-hostname-i',
+    difficulty: 2,
+    prompt: "Перевір IP-адресу цього хосту (не ім'я, а адресу) командою hostname з відповідним прапорцем.",
+    hint: 'hostname -i',
+    solution: 'hostname -i',
+    xp: 15,
+    check: (ctx) => /^\d+\.\d+\.\d+\.\d+$/.test(h.stdoutTrim(ctx.result)),
+  });
+  drills.push({
+    id: 'p-proc-dmesg',
+    difficulty: 1,
+    prompt: 'Перевір повідомлення ядра (kernel ring buffer) командою dmesg.',
+    hint: 'dmesg',
+    solution: 'dmesg',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Linux version'),
+  });
+  drills.push({
+    id: 'p-proc-lspci',
+    difficulty: 1,
+    prompt: 'Виведи список PCI-пристроїв системи.',
+    hint: 'lspci',
+    solution: 'lspci',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Ethernet controller'),
+  });
+  drills.push({
+    id: 'p-proc-lsusb',
+    difficulty: 1,
+    prompt: 'Виведи список USB-пристроїв системи.',
+    hint: 'lsusb',
+    solution: 'lsusb',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Bus'),
+  });
+  drills.push({
+    id: 'p-proc-lshal',
+    difficulty: 1,
+    prompt: 'Виведи список апаратних пристроїв через застарілий HAL-демон (lshal).',
+    hint: 'lshal',
+    solution: 'lshal',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'udi ='),
+  });
+  drills.push({
+    id: 'p-proc-dmidecode',
+    difficulty: 2,
+    prompt: "Дізнайся виробника й модель заліза системи (dmidecode, тип 'system').",
+    hint: 'dmidecode -t system',
+    solution: 'dmidecode -t system',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Manufacturer'),
+  });
+  drills.push({
+    id: 'p-proc-hdparm',
+    difficulty: 2,
+    prompt: 'Перевір швидкість читання диска /dev/sda командою hdparm.',
+    hint: 'hdparm -t /dev/sda',
+    solution: 'hdparm -t /dev/sda',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'MB/sec'),
+  });
+  drills.push({
+    id: 'p-proc-badblocks',
+    difficulty: 2,
+    prompt: 'Проскануй диск /dev/sda1 на пошкоджені блоки командою badblocks.',
+    hint: 'badblocks -sv /dev/sda1',
+    solution: 'badblocks -sv /dev/sda1',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'bad blocks'),
+  });
+  drills.push({
     id: 'p-proc-history',
     difficulty: 2,
     prompt: 'Виконай кілька команд (pwd, потім ls), а тоді перевір історію команд цієї сесії.',
