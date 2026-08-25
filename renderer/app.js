@@ -2,6 +2,7 @@
 
 const { Shell, REGISTRY } = require('./shell/shell.js');
 const lessons = require('./data/lessons/index.js');
+const PYTHON_LESSONS = require('./data/lessons-python/index.js');
 const { ProgressStore, levelFromXp, xpForLevel, BADGES } = require('./progress.js');
 const { DIFFICULTY } = require('./data/difficulty.js');
 const { feedbackFor, quizFeedbackFor } = require('./feedback.js');
@@ -30,6 +31,11 @@ let vimState = null; // active vimEditor state, or null when the terminal is sho
 let practiceFilterDifficulty = null; // null = all levels, else 1/2/3
 let practiceHistory = []; // drills shown this practice session, in order — lets Prev/Next browse back over completed ones
 let practiceHistoryPos = -1;
+
+let currentTrack = 'bash'; // 'bash' | 'python'
+let currentPyLesson = null;
+let currentPyDrillIndex = 0;
+let pyRevealState = {}; // drillId -> 'hint' | 'solution'
 
 // ---------------- DOM refs ----------------
 
@@ -107,6 +113,28 @@ const el = {
   updateBanner: $('update-banner'),
   updateBannerText: $('update-banner-text'),
   updateInstallBtn: $('update-install-btn'),
+  trackBtnBash: $('track-btn-bash'),
+  trackBtnPython: $('track-btn-python'),
+  pythonLessonScreen: $('python-lesson-screen'),
+  pyBackBtn: $('py-back-btn'),
+  pyRestartBtn: $('py-restart-btn'),
+  pyLessonProgressPill: $('py-lesson-progress-pill'),
+  pyLessonIcon: $('py-lesson-icon'),
+  pyLessonTitleText: $('py-lesson-title-text'),
+  pyLessonDots: $('py-lesson-dots'),
+  pyDrillIndex: $('py-drill-index'),
+  pyDifficultyBadge: $('py-difficulty-badge'),
+  pyHintBtn: $('py-hint-btn'),
+  pySolutionBtn: $('py-solution-btn'),
+  pyDrillPrompt: $('py-drill-prompt'),
+  pyDrillHint: $('py-drill-hint'),
+  pythonCodeInput: $('python-code-input'),
+  pythonRunBtn: $('python-run-btn'),
+  pythonOutput: $('python-output'),
+  pyFeedbackNote: $('py-feedback-note'),
+  pySuccessToast: $('py-success-toast'),
+  pySuccessSub: $('py-success-sub'),
+  pyNextBtn: $('py-next-btn'),
 };
 
 // ---------------- Header stats ----------------
@@ -127,11 +155,16 @@ function renderHeader() {
 
 function renderSidebar() {
   el.lessonList.innerHTML = '';
-  for (const lesson of lessons) {
+  const isBash = currentTrack === 'bash';
+  const list = isBash ? lessons : PYTHON_LESSONS;
+  const activeId = isBash ? currentLesson && currentLesson.id : currentPyLesson && currentPyLesson.id;
+  const openFn = isBash ? openLesson : openPythonLesson;
+
+  for (const lesson of list) {
     const done = progress.completedCountFor(lesson.id);
     const total = lesson.drills.length;
     const item = document.createElement('div');
-    item.className = 'lesson-item' + (currentLesson && currentLesson.id === lesson.id ? ' active' : '') + (done === total ? ' done' : '');
+    item.className = 'lesson-item' + (activeId === lesson.id ? ' active' : '') + (done === total ? ' done' : '');
 
     const icon = document.createElement('span');
     icon.className = 'lesson-item-icon';
@@ -158,10 +191,27 @@ function renderSidebar() {
     item.appendChild(icon);
     item.appendChild(body);
     item.appendChild(check);
-    item.addEventListener('click', () => openLesson(lesson));
+    item.addEventListener('click', () => openFn(lesson));
     el.lessonList.appendChild(item);
   }
 }
+
+function switchTrack(track) {
+  if (track === currentTrack) return;
+  currentTrack = track;
+  el.trackBtnBash.classList.toggle('active', track === 'bash');
+  el.trackBtnPython.classList.toggle('active', track === 'python');
+  currentLesson = null;
+  currentPyLesson = null;
+  el.lessonScreen.classList.add('hidden');
+  el.lessonCompleteScreen.classList.add('hidden');
+  el.pythonLessonScreen.classList.add('hidden');
+  el.welcomeScreen.classList.remove('hidden');
+  renderSidebar();
+}
+
+el.trackBtnBash.addEventListener('click', () => switchTrack('bash'));
+el.trackBtnPython.addEventListener('click', () => switchTrack('python'));
 
 // ---------------- Lesson session ----------------
 
@@ -952,6 +1002,228 @@ function showLessonComplete(lesson, alreadyKnew) {
     : `Ти успішно пройшов урок «${lesson.title}» і отримав ${sessionXp} XP за цю сесію.`;
   renderSidebar();
 }
+
+// ---------------- Python track (separate from the bash terminal) ----------------
+// Drills run through pythonWorker.js via IPC (real Pyodide execution, see
+// main.js/pythonRunner.js/pythonWorker.js) — no shared state with the bash
+// Shell engine. Each drill submission is independent: no filesystem-replay
+// resume like bash story mode, just "how many drills already completed".
+
+let ipcRenderer = null;
+try {
+  ipcRenderer = window.require('electron').ipcRenderer;
+} catch (e) {
+  // Running outside Electron (shouldn't happen in the packaged/dev app) —
+  // the Python track simply won't work; bash track is unaffected.
+}
+
+function openPythonLesson(lesson) {
+  currentPyLesson = lesson;
+  pyRevealState = {};
+
+  let resumeIndex = 0;
+  for (let i = 0; i < lesson.drills.length; i++) {
+    if (progress.isDrillCompleted(lesson.id, lesson.drills[i].id)) resumeIndex = i + 1;
+    else break;
+  }
+  currentPyDrillIndex = Math.min(resumeIndex, lesson.drills.length - 1);
+
+  renderSidebar();
+  el.welcomeScreen.classList.add('hidden');
+  el.pythonLessonScreen.classList.remove('hidden');
+  el.pyLessonIcon.textContent = lesson.icon;
+  el.pyLessonTitleText.textContent = lesson.title;
+
+  if (resumeIndex >= lesson.drills.length) {
+    showToast('🎉 Урок завершено', `Ти вже пройшов "${lesson.title}"`);
+  }
+  renderPythonDrill();
+}
+
+function currentPyDrill() {
+  return currentPyLesson.drills[currentPyDrillIndex];
+}
+
+function renderPythonDrill() {
+  const lesson = currentPyLesson;
+  const drill = currentPyDrill();
+  const done = progress.completedCountFor(lesson.id);
+  const total = lesson.drills.length;
+
+  el.pyLessonProgressPill.textContent = `${done} / ${total}`;
+  el.pyDrillIndex.textContent = `Завдання ${currentPyDrillIndex + 1} з ${total}`;
+  el.pyDrillPrompt.textContent = drill.prompt;
+  el.pyDrillHint.classList.add('hidden');
+  el.pyDrillHint.classList.remove('solution');
+  el.pyDrillHint.textContent = '';
+  el.pyFeedbackNote.classList.add('hidden');
+  el.pySuccessToast.classList.add('hidden');
+  el.pythonCodeInput.value = '';
+  el.pythonOutput.innerHTML = '';
+  const placeholder = document.createElement('div');
+  placeholder.className = 'py-placeholder';
+  placeholder.textContent = 'Натисни "▶ Виконати", щоб побачити результат.';
+  el.pythonOutput.appendChild(placeholder);
+
+  const diff = DIFFICULTY[drill.difficulty] || DIFFICULTY[1];
+  el.pyDifficultyBadge.textContent = diff.stars + ' ' + diff.label;
+  el.pyDifficultyBadge.style.color = diff.color;
+  el.pyDifficultyBadge.style.background = diff.color + '1a';
+  el.pyDifficultyBadge.style.border = '1px solid ' + diff.color + '55';
+
+  el.pyLessonDots.innerHTML = '';
+  lesson.drills.forEach((d, i) => {
+    const dot = document.createElement('span');
+    dot.className = 'lesson-dot';
+    if (progress.isDrillCompleted(lesson.id, d.id)) dot.classList.add('done');
+    if (i === currentPyDrillIndex) dot.classList.add('current');
+    el.pyLessonDots.appendChild(dot);
+  });
+
+  el.pythonCodeInput.focus();
+}
+
+function renderPythonOutput(result) {
+  el.pythonOutput.innerHTML = '';
+  if (result.stdout) {
+    for (const line of result.stdout.replace(/\n$/, '').split('\n')) {
+      const el2 = document.createElement('div');
+      el2.className = 'py-out-line';
+      el2.textContent = line;
+      el.pythonOutput.appendChild(el2);
+    }
+  }
+  if (!result.ok && result.error) {
+    const el2 = document.createElement('div');
+    el2.className = 'py-err-line';
+    el2.textContent = result.error;
+    el.pythonOutput.appendChild(el2);
+  }
+  if (!result.stdout && result.ok) {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'py-placeholder';
+    placeholder.textContent = '(немає виводу)';
+    el.pythonOutput.appendChild(placeholder);
+  }
+}
+
+async function runPythonCode() {
+  if (!ipcRenderer || !currentPyLesson) return;
+  const drill = currentPyDrill();
+  const code = el.pythonCodeInput.value;
+  el.pythonRunBtn.disabled = true;
+  el.pythonRunBtn.textContent = '⏳ Виконую…';
+  el.pyFeedbackNote.classList.add('hidden');
+
+  let result;
+  try {
+    result = await ipcRenderer.invoke('python:run', code);
+  } catch (e) {
+    result = { ok: false, stdout: '', stderr: '', error: 'internal error: ' + e.message };
+  }
+  el.pythonRunBtn.disabled = false;
+  el.pythonRunBtn.textContent = '▶ Виконати';
+  renderPythonOutput(result);
+
+  const ctx = { result, input: code };
+  let passed = false;
+  try {
+    passed = !!drill.check(ctx);
+  } catch (e) {
+    passed = false;
+  }
+
+  if (passed) {
+    onPyDrillPassed(drill);
+  } else {
+    const msg = result.ok
+      ? 'Код виконався, але результат не відповідає завданню. Спробуй ще раз.'
+      : result.timedOut
+        ? result.error
+        : 'Код завершився з помилкою — перевір вивід нижче.';
+    el.pyFeedbackNote.textContent = '🤔 ' + msg;
+    el.pyFeedbackNote.classList.remove('hidden');
+  }
+}
+
+el.pythonRunBtn.addEventListener('click', () => runPythonCode());
+el.pythonCodeInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    runPythonCode();
+  }
+});
+
+function onPyDrillPassed(drill) {
+  el.pyFeedbackNote.classList.add('hidden');
+  const lessonId = currentPyLesson.id;
+  const alreadyDone = progress.isDrillCompleted(lessonId, drill.id);
+
+  let effectiveXp = drill.xp;
+  if (pyRevealState[drill.id] === 'solution') effectiveXp = Math.round(drill.xp * 0.3);
+  else if (pyRevealState[drill.id] === 'hint') effectiveXp = Math.round(drill.xp * 0.7);
+
+  const outcome = progress.completeDrill(lessonId, drill.id, effectiveXp, PYTHON_LESSONS);
+  progress.save();
+  sessionXp += outcome.xpGained;
+
+  renderHeader();
+  renderSidebar();
+
+  el.pySuccessSub.textContent = alreadyDone ? 'вже виконано раніше' : `+${outcome.xpGained} XP`;
+  el.pySuccessToast.classList.remove('hidden');
+
+  el.pyLessonDots.children[currentPyDrillIndex] && el.pyLessonDots.children[currentPyDrillIndex].classList.add('done');
+  el.pyLessonProgressPill.textContent = `${progress.completedCountFor(lessonId)} / ${currentPyLesson.drills.length}`;
+
+  for (const badge of outcome.newBadges) {
+    showToast(`${badge.icon} Нова відзнака: ${badge.title}`, badge.desc);
+  }
+  if (outcome.leveledUp) {
+    showToast('⭐ Новий рівень!', `Ти досяг рівня ${outcome.newLevel}`);
+  }
+}
+
+el.pyNextBtn.addEventListener('click', () => {
+  currentPyDrillIndex++;
+  if (currentPyDrillIndex >= currentPyLesson.drills.length) {
+    showToast('🎉 Урок завершено', `Ти пройшов "${currentPyLesson.title}"!`);
+    currentPyDrillIndex = currentPyLesson.drills.length - 1;
+    renderPythonDrill();
+    return;
+  }
+  renderPythonDrill();
+});
+
+el.pyHintBtn.addEventListener('click', () => {
+  const drill = currentPyDrill();
+  if (!pyRevealState[drill.id]) pyRevealState[drill.id] = 'hint';
+  el.pyDrillHint.textContent = '💡 ' + drill.hint;
+  el.pyDrillHint.classList.remove('hidden', 'solution');
+});
+
+el.pySolutionBtn.addEventListener('click', () => {
+  const drill = currentPyDrill();
+  pyRevealState[drill.id] = 'solution';
+  el.pythonCodeInput.value = drill.solution;
+  el.pyDrillHint.classList.add('hidden');
+});
+
+el.pyRestartBtn.addEventListener('click', () => {
+  if (!currentPyLesson) return;
+  currentPyDrillIndex = 0;
+  pyRevealState = {};
+  renderPythonDrill();
+});
+
+function pyBackToLessons() {
+  currentPyLesson = null;
+  el.pythonLessonScreen.classList.add('hidden');
+  el.welcomeScreen.classList.remove('hidden');
+  renderSidebar();
+}
+
+el.pyBackBtn.addEventListener('click', () => pyBackToLessons());
 
 // ---------------- Hint / Solution ----------------
 

@@ -31,6 +31,11 @@
         <div class="xp-caption" id="xp-caption">0 / 100 XP</div>
       </div>
 
+      <div class="track-switch" id="track-switch">
+        <button class="track-btn active" id="track-btn-bash" data-track="bash">🐧 Bash/DevOps</button>
+        <button class="track-btn" id="track-btn-python" data-track="python">🐍 Python for DevOps</button>
+      </div>
+
       <nav class="lesson-list" id="lesson-list"></nav>
 
       <button class="badges-btn" id="badges-btn">🏅 Досягнення</button>
@@ -165,6 +170,52 @@
             <div class="success-sub" id="success-sub">+10 XP</div>
           </div>
           <button class="next-btn" id="next-btn">Далі →</button>
+        </div>
+      </section>
+
+      <section id="python-lesson-screen" class="lesson-screen hidden">
+        <header class="lesson-header">
+          <div class="lesson-header-top">
+            <button class="back-btn" id="py-back-btn">← Уроки</button>
+            <div class="lesson-header-right">
+              <button class="restart-btn" id="py-restart-btn" title="Скинути прогрес цього уроку і почати спочатку">↺ Почати спочатку</button>
+              <div class="lesson-progress-pill" id="py-lesson-progress-pill">0 / 0</div>
+            </div>
+          </div>
+          <h1 id="py-lesson-title"><span id="py-lesson-icon"></span> <span id="py-lesson-title-text"></span></h1>
+          <div class="lesson-dots" id="py-lesson-dots"></div>
+        </header>
+
+        <div class="drill-card">
+          <div class="drill-prompt-row">
+            <span class="drill-index" id="py-drill-index">Завдання 1</span>
+            <span class="difficulty-badge" id="py-difficulty-badge"></span>
+            <button class="hint-btn" id="py-hint-btn">💡 Підказка</button>
+            <button class="solution-btn" id="py-solution-btn">🔓 Відповідь</button>
+          </div>
+          <p class="drill-prompt" id="py-drill-prompt">—</p>
+          <p class="drill-hint hidden" id="py-drill-hint"></p>
+        </div>
+
+        <div class="terminal python-editor">
+          <div class="terminal-titlebar">
+            <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+            <span class="terminal-title" id="py-editor-title">script.py</span>
+            <button class="python-run-btn" id="python-run-btn">▶ Виконати</button>
+          </div>
+          <textarea class="python-code-input" id="python-code-input" spellcheck="false" autocomplete="off"></textarea>
+          <div class="python-output" id="python-output"></div>
+        </div>
+
+        <p class="feedback-note hidden" id="py-feedback-note"></p>
+
+        <div class="success-toast hidden" id="py-success-toast">
+          <div class="success-icon">✔</div>
+          <div class="success-text">
+            <div class="success-title">Правильно!</div>
+            <div class="success-sub" id="py-success-sub">+10 XP</div>
+          </div>
+          <button class="next-btn" id="py-next-btn">Далі →</button>
         </div>
       </section>
 

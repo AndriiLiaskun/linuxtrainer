@@ -112,6 +112,33 @@ html, body {
   text-align: right;
 }
 
+.track-switch {
+  display: flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 3px;
+  margin-bottom: 10px;
+}
+.track-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 7px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--sans);
+  white-space: nowrap;
+}
+.track-btn.active {
+  background: var(--accent);
+  color: #04160b;
+}
+
 .lesson-list {
   flex: 1;
   display: flex;
@@ -883,6 +910,56 @@ html, body {
   top: 0;
   left: 0;
 }
+
+/* Python lesson editor (separate from the bash terminal — a plain code
+   textarea + run button + output pane, no readline/vim/history needed). */
+.python-editor .terminal-titlebar { gap: 10px; }
+.python-run-btn {
+  margin-left: auto;
+  background: var(--accent);
+  color: #04160b;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--sans);
+}
+.python-run-btn:hover { filter: brightness(1.08); }
+.python-run-btn:disabled { opacity: 0.5; cursor: default; }
+.python-code-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: vertical;
+  padding: 14px 16px;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+  min-height: 160px;
+  caret-color: var(--accent);
+  border-bottom: 1px solid var(--border-soft);
+}
+.python-output {
+  padding: 12px 16px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 60px;
+  max-height: 30vh;
+  overflow-y: auto;
+  color: var(--text-dim);
+}
+.python-output .py-out-line { color: var(--text-dim); }
+.python-output .py-err-line { color: var(--red); }
+.python-output .py-placeholder { color: var(--text-faint); font-style: italic; }
 .vim-filename {
   padding: 6px 16px;
   color: var(--text-faint);
