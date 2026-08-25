@@ -26,14 +26,21 @@
     "sharp": "^0.35.3"
   },
   "dependencies": {
-    "electron-updater": "^6.8.9"
+    "electron-updater": "^6.8.9",
+    "pyodide": "^314.0.6"
   },
   "build": {
     "appId": "com.andriiliaskun.linuxtrainer",
     "productName": "LinuxTrainer",
     "icon": "assets/icon.ico",
-    "directories": { "output": "dist" },
-    "files": ["main.js", "renderer/**/*", "package.json"],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "renderer/**/*",
+      "package.json"
+    ],
     "win": {
       "target": "nsis",
       "icon": "assets/icon.ico"
