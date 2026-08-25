@@ -408,9 +408,14 @@ html, body {
   border-color: var(--accent-dim);
 }
 .cheatsheet-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 8px;
+  /* Masonry-style columns instead of a strict grid: cards vary a lot in
+     height (a 5-command category next to a 15-command one), and a strict
+     grid forces every card in a row to match the tallest one, leaving
+     large empty gaps under the shorter cards. column-width packs cards
+     top-to-bottom per column instead, so uneven heights stay tidy without
+     needing the category *content* to stay balanced to look good. */
+  column-width: 220px;
+  column-gap: 8px;
 }
 .cheatsheet-card {
   background: var(--bg-card);
@@ -419,6 +424,10 @@ html, body {
   padding: 10px 13px;
   text-align: left;
   scroll-margin-top: 16px;
+  break-inside: avoid;
+  margin-bottom: 8px;
+  display: inline-block;
+  width: 100%;
 }
 .cheatsheet-card-title {
   font-size: 13.5px;
