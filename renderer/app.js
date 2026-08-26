@@ -1410,14 +1410,13 @@ function renderCheatsheet() {
     title.addEventListener('click', () => showCategoryDoc(entry));
     const cmds = document.createElement('div');
     cmds.className = 'cheatsheet-card-cmds';
-    entry.cmds.forEach((cmd, i) => {
+    entry.cmds.forEach((cmd) => {
       const doc = COMMAND_DOCS[cmd.key] || {};
       const token = document.createElement('span');
       token.className = 'cmd-token';
       token.textContent = cmd.label;
       token.addEventListener('click', () => showCommandDoc(cmd.label, cmd.key));
       cmds.appendChild(token);
-      if (i < entry.cmds.length - 1) cmds.appendChild(document.createTextNode(', '));
 
       cheatsheetIndex.push({
         label: cmd.label,

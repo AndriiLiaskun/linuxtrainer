@@ -414,7 +414,7 @@ html, body {
      large empty gaps under the shorter cards. column-width packs cards
      top-to-bottom per column instead, so uneven heights stay tidy without
      needing the category *content* to stay balanced to look good. */
-  column-width: 220px;
+  column-width: 240px;
   column-gap: 8px;
 }
 .cheatsheet-card {
@@ -430,28 +430,32 @@ html, body {
   width: 100%;
 }
 .cheatsheet-card-title {
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   cursor: pointer;
   width: fit-content;
 }
 .cheatsheet-card-title:hover { color: var(--accent); }
 .cheatsheet-card-cmds {
   font-family: var(--mono);
-  font-size: 13px;
-  line-height: 1.7;
+  font-size: 15px;
+  display: flex;
+  flex-direction: column;
 }
 .cmd-token {
   color: var(--accent);
   cursor: pointer;
-  border-bottom: 1px dotted var(--accent-dim);
+  padding: 3px 4px;
+  margin: 0 -4px;
+  border-radius: 4px;
+  width: fit-content;
+  max-width: 100%;
 }
 .cmd-token:hover {
   color: var(--text);
   background: rgba(63, 214, 122, 0.12);
-  border-radius: 3px;
 }
 
 /* Keyboard shortcuts */
