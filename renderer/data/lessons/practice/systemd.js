@@ -126,6 +126,46 @@ function build() {
     check: (ctx) => h.stdoutIncludes(ctx.result, 'nginx') && h.stdoutIncludes(ctx.result, 'sshd'),
   });
 
+  const MASK_TARGETS = ['postgresql', 'app.service', 'docker'];
+  MASK_TARGETS.forEach((name, idx) => {
+    drills.push({
+      id: `p-sysd-mask-${idx}`,
+      difficulty: 2,
+      prompt: `Повністю заблокуй запуск сервісу ${name} командою systemctl mask (сильніше за disable).`,
+      hint: `systemctl mask ${name}`,
+      solution: `systemctl mask ${name}`,
+      xp: 20,
+      check: (ctx) => ctx.state.services[name].masked === true,
+    });
+  });
+  drills.push({
+    id: 'p-sysd-mask-blocks-start',
+    difficulty: 3,
+    prompt: "Заблокуй сервіс postgresql командою mask, а потім спробуй запустити його — переконайся, що навіть ручний запуск відхилено (на відміну від disable).",
+    hint: 'systemctl mask postgresql && systemctl start postgresql',
+    solution: 'systemctl mask postgresql && systemctl start postgresql',
+    xp: 25,
+    check: (ctx) => (ctx.result.stderr || '').includes('is masked'),
+  });
+  drills.push({
+    id: 'p-sysd-unmask',
+    difficulty: 2,
+    prompt: 'Заблокуй сервіс postgresql (mask), а потім зніми блокування (unmask) і переконайся, що тепер його можна запустити.',
+    hint: 'systemctl mask postgresql && systemctl unmask postgresql && systemctl start postgresql',
+    solution: 'systemctl mask postgresql && systemctl unmask postgresql && systemctl start postgresql',
+    xp: 30,
+    check: (ctx) => ctx.state.services.postgresql.masked === false && ctx.state.services.postgresql.active === true,
+  });
+  drills.push({
+    id: 'p-sysd-is-enabled-masked',
+    difficulty: 2,
+    prompt: 'Заблокуй сервіс app.service (mask), а потім перевір його стан автозапуску командою is-enabled — зверни увагу, що він показує "masked", а не "disabled".',
+    hint: 'systemctl mask app.service && systemctl is-enabled app.service',
+    solution: 'systemctl mask app.service && systemctl is-enabled app.service',
+    xp: 25,
+    check: (ctx) => h.stdoutTrim(ctx.result).endsWith('masked'),
+  });
+
   return drills;
 }
 

@@ -132,7 +132,7 @@ const COMMAND_DOCS = {
   w: { desc: 'Хто зараз залогінений і чим зайнятий (like who, але з навантаженням системи).', example: 'w' },
   finger: { desc: "Детальна інформація про користувача (логін, домашня директорія, shell).", example: 'finger student' },
 
-  systemctl: { desc: 'Керування сервісами systemd.', opts: [['start/stop/restart', 'керування станом', 'systemctl restart nginx'], ['reload', 'перечитати конфіг БЕЗ повного рестарту', 'systemctl reload nginx'], ['enable/disable', 'автозапуск', 'systemctl enable nginx'], ['status', 'поточний стан', 'systemctl status nginx']], example: 'systemctl status nginx' },
+  systemctl: { desc: 'Керування сервісами systemd.', opts: [['start/stop/restart', 'керування станом', 'systemctl restart nginx'], ['reload', 'перечитати конфіг БЕЗ повного рестарту', 'systemctl reload nginx'], ['enable/disable', 'автозапуск при завантаженні (не впливає на ПОТОЧНИЙ стан)', 'systemctl enable nginx'], ['mask', 'ПОВНІСТЮ заблокувати запуск (сильніше за disable — навіть вручну не запустиш)', 'systemctl mask nginx'], ['unmask', 'зняти блокування mask', 'systemctl unmask nginx'], ['status', 'поточний стан', 'systemctl status nginx']], example: 'systemctl status nginx' },
   journalctl: { desc: 'Перегляд системних журналів (логів) systemd.', opts: [['-u', 'логи конкретного сервісу', 'journalctl -u nginx']], example: 'journalctl -u nginx' },
 
   ping: { desc: 'Перевіряє доступність хосту через ICMP.', opts: [['-c N', 'кількість пакетів', 'ping -c 4 example.com']], example: 'ping -c 4 example.com' },
@@ -296,7 +296,15 @@ const COMMAND_DOCS = {
   zip: { desc: 'Створює .zip-архів.', opts: [['-r', 'рекурсивно (для директорій)', 'zip -r archive.zip dir/']], example: 'zip -r archive.zip dir/' },
   unzip: { desc: 'Розпаковує .zip-архів.', example: 'unzip archive.zip' },
 
-  crontab: { desc: 'Керує розкладом регулярних завдань.', opts: [['-l', 'показати поточний розклад', 'crontab -l']], example: 'crontab -l' },
+  crontab: {
+    desc: 'Керує розкладом регулярних завдань (без інтерактивного редактора — тут завдання встановлюють через stdin).',
+    opts: [
+      ['-l', 'показати поточний розклад', 'crontab -l'],
+      ['-', 'встановити НОВИЙ розклад з stdin (замінює старий повністю)', 'echo "30 3 * * * backup.sh" | crontab -'],
+      ['-r', 'видалити ВСІ завдання розкладу', 'crontab -r'],
+    ],
+    example: 'echo "30 3 * * * backup.sh" | crontab -',
+  },
 };
 
 module.exports = { COMMAND_DOCS };

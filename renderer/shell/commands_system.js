@@ -243,10 +243,11 @@ function cmd_systemctl(args, ctx) {
     const name = resolveName(svcName);
     const svc = services[name];
     if (!svc) return fail(`Unit ${svcName}.service could not be found.\n`);
-    const activeStr = svc.active ? 'active (running)' : 'inactive (dead)';
+    const activeStr = svc.masked ? 'inactive (dead)' : svc.active ? 'active (running)' : 'inactive (dead)';
+    const loadedStr = svc.masked ? 'masked (/dev/null; masked)' : `loaded (/lib/systemd/system/${name}; ${svc.enabled ? 'enabled' : 'disabled'})`;
     return ok(
       `● ${name} - ${svc.description}\n` +
-        `     Loaded: loaded (/lib/systemd/system/${name}; ${svc.enabled ? 'enabled' : 'disabled'})\n` +
+        `     Loaded: ${loadedStr}\n` +
         `     Active: ${activeStr}\n`
     );
   }
@@ -254,11 +255,29 @@ function cmd_systemctl(args, ctx) {
     const name = resolveName(svcName);
     const svc = services[name];
     if (!svc) return fail(`Unit ${svcName}.service could not be found.\n`);
+    // A masked unit refuses every activation path (start/restart/reload/
+    // enable) — that's the whole point of mask vs plain disable, which
+    // only blocks autostart-at-boot but still allows a manual start.
+    if (svc.masked && action !== 'stop' && action !== 'disable') {
+      return fail(`Failed to ${action} ${name}: Unit ${name} is masked.\n`);
+    }
     if (action === 'start' || action === 'restart' || action === 'reload' || action === 'reload-or-restart') svc.active = true;
     if (action === 'stop') svc.active = false;
     if (action === 'enable') svc.enabled = true;
     if (action === 'disable') svc.enabled = false;
     return ok('');
+  }
+  if (action === 'mask' || action === 'unmask') {
+    const name = resolveName(svcName);
+    const svc = services[name];
+    if (!svc) return fail(`Unit ${svcName}.service could not be found.\n`);
+    if (action === 'mask') {
+      svc.masked = true;
+      svc.active = false;
+      return ok(`Created symlink /etc/systemd/system/${name} → /dev/null.\n`);
+    }
+    svc.masked = false;
+    return ok(`Removed "/etc/systemd/system/${name}".\n`);
   }
   if (action === 'list-units' || action === 'list-unit-files') {
     const rows = Object.entries(services).map(
@@ -274,6 +293,7 @@ function cmd_systemctl(args, ctx) {
   if (action === 'is-enabled') {
     const svc = services[resolveName(svcName)];
     if (!svc) return fail('unknown\n', 4);
+    if (svc.masked) return { stdout: 'masked\n', stderr: '', code: 1 };
     return { stdout: (svc.enabled ? 'enabled' : 'disabled') + '\n', stderr: '', code: svc.enabled ? 0 : 1 };
   }
   if (action === 'daemon-reload') return ok('');
@@ -1010,15 +1030,26 @@ function cmd_docker_compose(args, ctx) {
 // ---------------------------------------------------------------------
 
 function cmd_crontab(args, ctx) {
-  const { flags } = parseFlags(args, ['l', 'r']);
+  const { flags, rest } = parseFlags(args, ['l', 'r']);
   if (flags.l) {
-    return ok(ctx.state.cronJobs.join('\n') + (ctx.state.cronJobs.length ? '\n' : ''));
+    if (!ctx.state.cronJobs.length) return fail('no crontab for student\n');
+    return ok(ctx.state.cronJobs.join('\n') + '\n');
   }
   if (flags.r) {
     ctx.state.cronJobs = [];
     return ok('');
   }
-  return fail('crontab: interactive editing is not supported in this sandbox; use --add via the drill checker\n');
+  // crontab - (reading stdin) installs a NEW crontab, replacing the old one
+  // wholesale — the standard non-interactive way to manage cron jobs from
+  // a script, since there's no real $EDITOR to open here for -e.
+  if (rest[0] === '-') {
+    const text = ctx.stdin || '';
+    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (!lines.length) return fail('crontab: empty crontab, nothing installed\n');
+    ctx.state.cronJobs = lines;
+    return ok('');
+  }
+  return fail('crontab: interactive editing (-e) is not supported in this sandbox; pipe a new crontab instead: `echo "* * * * * cmd" | crontab -`\n');
 }
 
 // ---------------------------------------------------------------------

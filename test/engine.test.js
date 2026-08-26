@@ -626,4 +626,26 @@ check('git config --list shows both set values', run(sh, 'git config --list').st
 check('git config <key> reads a single value back', run(sh, 'git config user.name').stdout, 'Andrii\n');
 check('git config on an unset key exits 1 (matches real git)', run(sh, 'git config user.nosuchkey').code, 1);
 
+// --- systemctl mask/unmask (stronger than disable — blocks manual start too) ---
+sh = new Shell();
+run(sh, 'systemctl mask nginx');
+r = run(sh, 'systemctl start nginx');
+check('a masked unit refuses even a manual start', r.code, 1);
+check('...with the right error message', r.stderr, 'Failed to start nginx: Unit nginx is masked.\n');
+check('is-enabled reports "masked", not "disabled", for a masked unit', run(sh, 'systemctl is-enabled nginx').stdout, 'masked\n');
+run(sh, 'systemctl unmask nginx');
+check('after unmask, start works again', run(sh, 'systemctl start nginx').code, 0);
+
+// --- crontab (previously had NO way to actually install a job at all) ---
+sh = new Shell();
+r = run(sh, 'crontab -l');
+check('crontab -l with nothing installed fails, matching real cron (not silently empty)', r.code, 1);
+check('...with the real "no crontab for" message', r.stderr, 'no crontab for student\n');
+run(sh, 'echo "30 3 * * * backup.sh" | crontab -');
+check('piping into crontab - actually installs the job', sh.state.cronJobs, ['30 3 * * * backup.sh']);
+r = run(sh, 'crontab -l');
+check('crontab -l now succeeds and shows the installed job', r.stdout, '30 3 * * * backup.sh\n');
+run(sh, 'crontab -r');
+check('crontab -r clears every job', sh.state.cronJobs.length, 0);
+
 module.exports = { passed, failed, failures };
