@@ -1,4 +1,5 @@
 'use strict';
+const h = require('../helpers');
 
 const REPOS = ['myapp', 'billing-service', 'infra-tools', 'auth-api'];
 const COMMIT_MSGS = ['Initial commit', 'Fix bug in parser', 'Add health check endpoint', 'Update dependencies'];
@@ -391,6 +392,163 @@ function build() {
     solution: 'mkdir demo && cd demo && git init && git remote add origin https://github.com/student/demo.git && git push',
     xp: 25,
     check: (ctx) => (ctx.result.stdout || '').includes('up-to-date'),
+  });
+
+  BRANCHES.forEach((branch, i) => {
+    const repo = REPOS[i % REPOS.length];
+    drills.push({
+      id: `p-git-branch-delete-${i}`,
+      difficulty: 2,
+      prompt: `У новому репозиторії ${repo}: створи гілку ${branch}, а потім видали її командою git branch -d.`,
+      hint: `mkdir ${repo} && cd ${repo} && git init && git branch ${branch} && git branch -d ${branch}`,
+      solution: `mkdir ${repo} && cd ${repo} && git init && git branch ${branch} && git branch -d ${branch}`,
+      xp: 25,
+      check: (ctx) => {
+        const r = ctx.state.gitRepos.get(ctx.fs.normalize(`/home/student/${repo}`));
+        return !!r && !r.branches.includes(branch);
+      },
+    });
+  });
+  drills.push({
+    id: 'p-git-branch-delete-checked-out-fails',
+    difficulty: 3,
+    prompt: 'У репозиторії demo: спробуй видалити ПОТОЧНУ гілку (main) і зверни увагу на помилку — git не дозволяє видалити гілку, на якій зараз стоїш.',
+    hint: 'mkdir demo && cd demo && git init && git branch -d main',
+    solution: 'mkdir demo && cd demo && git init && git branch -d main',
+    xp: 25,
+    check: (ctx) => (ctx.result.stderr || '').includes('checked out'),
+  });
+
+  BRANCHES.forEach((branch, i) => {
+    const repo = REPOS[i % REPOS.length];
+    const renamed = branch.replace('/', '-') + '-v2';
+    drills.push({
+      id: `p-git-branch-rename-${i}`,
+      difficulty: 2,
+      prompt: `У новому репозиторії ${repo}: створи гілку ${branch}, а потім перейменуй її на ${renamed} командою git branch -m.`,
+      hint: `mkdir ${repo} && cd ${repo} && git init && git branch ${branch} && git branch -m ${branch} ${renamed}`,
+      solution: `mkdir ${repo} && cd ${repo} && git init && git branch ${branch} && git branch -m ${branch} ${renamed}`,
+      xp: 25,
+      check: (ctx) => {
+        const r = ctx.state.gitRepos.get(ctx.fs.normalize(`/home/student/${repo}`));
+        return !!r && !r.branches.includes(branch) && r.branches.includes(renamed);
+      },
+    });
+  });
+  drills.push({
+    id: 'p-git-branch-rename-current',
+    difficulty: 2,
+    prompt: "У репозиторії demo: перейменуй ПОТОЧНУ гілку (main) на trunk одним аргументом (без вказання старої назви) командою git branch -M.",
+    hint: 'mkdir demo && cd demo && git init && git branch -M trunk',
+    solution: 'mkdir demo && cd demo && git init && git branch -M trunk',
+    xp: 25,
+    check: (ctx) => {
+      const r = ctx.state.gitRepos.get(ctx.fs.normalize('/home/student/demo'));
+      return !!r && r.currentBranch === 'trunk' && r.branches.includes('trunk') && !r.branches.includes('main');
+    },
+  });
+
+  drills.push({
+    id: 'p-git-branch-copy',
+    difficulty: 3,
+    prompt: "У репозиторії demo: створи гілку feature-a, а потім скопіюй її під назвою feature-a-backup командою git branch -c (оригінал feature-a має лишитись на місці).",
+    hint: 'mkdir demo && cd demo && git init && git branch feature-a && git branch -c feature-a feature-a-backup',
+    solution: 'mkdir demo && cd demo && git init && git branch feature-a && git branch -c feature-a feature-a-backup',
+    xp: 30,
+    check: (ctx) => {
+      const r = ctx.state.gitRepos.get(ctx.fs.normalize('/home/student/demo'));
+      return !!r && r.branches.includes('feature-a') && r.branches.includes('feature-a-backup');
+    },
+  });
+  drills.push({
+    id: 'p-git-branch-duplicate-name-fails',
+    difficulty: 2,
+    prompt: 'У репозиторії demo: створи гілку feature-a, а потім спробуй створити гілку з такою ж назвою ще раз — переконайся, що це помилка (git не дозволяє дублікати).',
+    hint: 'mkdir demo && cd demo && git init && git branch feature-a && git branch feature-a',
+    solution: 'mkdir demo && cd demo && git init && git branch feature-a && git branch feature-a',
+    xp: 20,
+    check: (ctx) => (ctx.result.stderr || '').includes('already exists'),
+  });
+
+  const CLONE_BRANCHES = ['develop', 'staging', 'release-2.0'];
+  CLONE_BRANCHES.forEach((branch, i) => {
+    drills.push({
+      id: `p-git-clone-branch-${i}`,
+      difficulty: 2,
+      prompt: `Клонуй репозиторій https://github.com/student/svc.git одразу на гілку ${branch} (не на main).`,
+      hint: `git clone -b ${branch} https://github.com/student/svc.git`,
+      solution: `git clone -b ${branch} https://github.com/student/svc.git`,
+      xp: 25,
+      check: (ctx) => {
+        const r = ctx.state.gitRepos.get(ctx.fs.normalize('/home/student/svc'));
+        return !!r && r.currentBranch === branch;
+      },
+    });
+  });
+
+  drills.push({
+    id: 'p-git-status-short',
+    difficulty: 2,
+    prompt: 'У репозиторії demo: застейдж файл config.yml, а потім перевір статус у КОРОТКОМУ форматі (git status -s).',
+    hint: 'mkdir demo && cd demo && git init && touch config.yml && git add config.yml && git status -s',
+    solution: 'mkdir demo && cd demo && git init && touch config.yml && git add config.yml && git status -s',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'A  config.yml'),
+  });
+
+  const ADD_ALL_SETS = [
+    ['a.txt', 'b.txt'],
+    ['index.html', 'style.css', 'app.js'],
+  ];
+  ADD_ALL_SETS.forEach((files, i) => {
+    drills.push({
+      id: `p-git-add-all-${i}`,
+      difficulty: 2,
+      prompt: `У репозиторії demo${i}: створи файли ${files.join(', ')}, а потім застейдж УСІ одразу командою git add -A.`,
+      hint: `mkdir demo${i} && cd demo${i} && git init && touch ${files.join(' ')} && git add -A`,
+      solution: `mkdir demo${i} && cd demo${i} && git init && touch ${files.join(' ')} && git add -A`,
+      xp: 25,
+      check: (ctx) => {
+        const r = ctx.state.gitRepos.get(ctx.fs.normalize(`/home/student/demo${i}`));
+        return !!r && r.staged.size > 0;
+      },
+    });
+  });
+
+  drills.push({
+    id: 'p-git-remote-verbose',
+    difficulty: 2,
+    prompt: "У репозиторії demo: додай remote origin, а потім перевір URL-адреси всіх remote'ів командою git remote -v.",
+    hint: 'mkdir demo && cd demo && git init && git remote add origin https://github.com/student/demo.git && git remote -v',
+    solution: 'mkdir demo && cd demo && git init && git remote add origin https://github.com/student/demo.git && git remote -v',
+    xp: 25,
+    check: (ctx) => h.stdoutIncludes(ctx.result, '(fetch)') && h.stdoutIncludes(ctx.result, '(push)'),
+  });
+
+  drills.push({
+    id: 'p-git-push-set-upstream',
+    difficulty: 3,
+    prompt: "У репозиторії demo: додай remote origin, а потім відправ поточну гілку і одразу запам'ятай її як типову для майбутніх push командою git push -u.",
+    hint: 'mkdir demo && cd demo && git init && git remote add origin https://github.com/student/demo.git && git push -u origin main',
+    solution: 'mkdir demo && cd demo && git init && git remote add origin https://github.com/student/demo.git && git push -u origin main',
+    xp: 30,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'set up to track'),
+  });
+
+  const CACHED_FILES = ['secret.env', 'credentials.json', '.env.local'];
+  CACHED_FILES.forEach((file, i) => {
+    drills.push({
+      id: `p-git-rm-cached-${i}`,
+      difficulty: 3,
+      prompt: `У новому репозиторії demo-cached-${i}: створи й застейдж файл ${file}, а потім прибери його з відстеження git командою git rm --cached, НЕ видаляючи сам файл з диска.`,
+      hint: `mkdir demo-cached-${i} && cd demo-cached-${i} && git init && touch ${file} && git add ${file} && git rm --cached ${file}`,
+      solution: `mkdir demo-cached-${i} && cd demo-cached-${i} && git init && touch ${file} && git add ${file} && git rm --cached ${file}`,
+      xp: 30,
+      check: (ctx) => {
+        const r = ctx.state.gitRepos.get(ctx.fs.normalize(`/home/student/demo-cached-${i}`));
+        return !!r && !r.tracked.has(file) && ctx.fs.exists(`/home/student/demo-cached-${i}/${file}`);
+      },
+    });
   });
 
   return drills;

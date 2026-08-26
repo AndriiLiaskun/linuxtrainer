@@ -648,4 +648,75 @@ check('crontab -l now succeeds and shows the installed job', r.stdout, '30 3 * *
 run(sh, 'crontab -r');
 check('crontab -r clears every job', sh.state.cronJobs.length, 0);
 
+// --- git branch -d/-D/-m/-M/-c/-C (previously ALL silently created a new
+// branch with that name instead of deleting/renaming/copying — branch()
+// never called parseFlags at all) ---
+sh = new Shell();
+run(sh, 'git init');
+run(sh, 'git branch feature-x');
+run(sh, 'git branch -d feature-x');
+check('git branch -d actually deletes the branch', sh.state.gitRepos.get('/home/student').branches.includes('feature-x'), false);
+r = run(sh, 'git branch -d feature-x');
+check('deleting an already-gone branch fails cleanly', r.code, 1);
+run(sh, 'git branch feature-y');
+r = run(sh, 'git branch -d main');
+check('deleting the CURRENTLY CHECKED OUT branch is refused', r.stderr.includes('checked out'), true);
+run(sh, 'git branch -m feature-y renamed-y');
+let repo = sh.state.gitRepos.get('/home/student');
+check('git branch -m renames (old name gone)', repo.branches.includes('feature-y'), false);
+check('git branch -m renames (new name present)', repo.branches.includes('renamed-y'), true);
+run(sh, 'git branch -M trunk'); // 1-arg form renames the CURRENT branch
+repo = sh.state.gitRepos.get('/home/student');
+check('git branch -M with one arg renames the current branch', repo.currentBranch, 'trunk');
+run(sh, 'git branch -c renamed-y renamed-y-copy');
+repo = sh.state.gitRepos.get('/home/student');
+check('git branch -c copies (original still present)', repo.branches.includes('renamed-y'), true);
+check('git branch -c copies (copy present too)', repo.branches.includes('renamed-y-copy'), true);
+r = run(sh, 'git branch renamed-y-copy');
+check('creating a branch with a name that already exists now fails (used to silently no-op)', r.stderr, "fatal: A branch named 'renamed-y-copy' already exists.\n");
+
+// --- git clone -b (was completely broken: -b would be read as the URL) ---
+sh = new Shell();
+run(sh, 'git clone -b develop https://github.com/x/y.git');
+check('git clone -b checks out the given branch, not main', sh.state.gitRepos.get('/home/student/y').currentBranch, 'develop');
+
+// --- git status -s / git add -A ---
+sh = new Shell();
+run(sh, 'git init');
+run(sh, 'touch a.txt');
+run(sh, 'git add a.txt');
+check('git status -s uses the short A-prefix format', run(sh, 'git status -s').stdout, 'A  a.txt\n');
+sh = new Shell();
+run(sh, 'git init');
+r = run(sh, 'git add -A');
+check('git add -A does not crash and stages something', r.code, 0);
+
+// --- git remote -v ---
+sh = new Shell();
+run(sh, 'git init');
+run(sh, 'git remote add origin https://github.com/x/y.git');
+check('git remote -v shows fetch/push URLs', run(sh, 'git remote -v').stdout, 'origin\thttps://github.com/x/y.git (fetch)\norigin\thttps://github.com/x/y.git (push)\n');
+check('bare git remote still shows just names', run(sh, 'git remote').stdout, 'origin\n');
+
+// --- git push -u ---
+sh = new Shell();
+run(sh, 'git init');
+run(sh, 'git remote add origin https://github.com/x/y.git');
+check('git push -u reports the tracking setup', run(sh, 'git push -u origin main').stdout.includes('set up to track'), true);
+
+// --- git rm --cached (untrack without deleting the file) ---
+sh = new Shell();
+run(sh, 'git init');
+run(sh, 'touch secret.env');
+run(sh, 'git add secret.env');
+run(sh, 'git rm --cached secret.env');
+check('git rm --cached untracks the file', sh.state.gitRepos.get('/home/student').tracked.has('secret.env'), false);
+check('git rm --cached leaves the file on disk', sh.fs.exists('/home/student/secret.env'), true);
+sh = new Shell();
+run(sh, 'git init');
+run(sh, 'touch other.txt');
+run(sh, 'git add other.txt');
+run(sh, 'git rm other.txt'); // without --cached, still deletes for real
+check('plain git rm (no --cached) still deletes the file', sh.fs.exists('/home/student/other.txt'), false);
+
 module.exports = { passed, failed, failures };

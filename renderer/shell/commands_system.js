@@ -674,13 +674,15 @@ function cmd_git(args, ctx) {
     // Like `init`, clone must work OUTSIDE any existing repo — that's the
     // whole point of it (real git refuses to nest a clone target inside
     // one, but never requires the CURRENT directory to already be a repo).
-    const url = rest[0];
+    const { flags, rest: cloneRest } = parseFlags(rest, [], ['b', 'branch', 'depth']);
+    const url = cloneRest[0];
     if (!url) return fail('usage: git clone <repository> [<directory>]\n');
-    const name = rest[1] || url.split('/').pop().replace(/\.git$/, '');
+    const name = cloneRest[1] || url.split('/').pop().replace(/\.git$/, '');
+    const initialBranch = flags.b || flags.branch || 'main';
     ctx.fs.mkdir(ctx.fs.cwd + '/' + name, { parents: true });
     repos.set(ctx.fs.normalize(ctx.fs.cwd + '/' + name), {
-      branches: ['main'],
-      currentBranch: 'main',
+      branches: [initialBranch],
+      currentBranch: initialBranch,
       staged: new Set(),
       tracked: new Set(),
       commits: [],
@@ -696,6 +698,11 @@ function cmd_git(args, ctx) {
   const repo = repos.get(root);
 
   if (sub === 'status') {
+    const { flags } = parseFlags(rest, ['s', 'short']);
+    if (flags.s || flags.short) {
+      // Short format: "A  <file>" per staged entry, nothing at all when clean.
+      return ok(Array.from(repo.staged).map((f) => `A  ${f}`).join('\n') + (repo.staged.size ? '\n' : ''));
+    }
     const lines = [`On branch ${repo.currentBranch}`];
     if (repo.staged.size) {
       lines.push('Changes to be committed:');
@@ -706,7 +713,11 @@ function cmd_git(args, ctx) {
     return ok(lines.join('\n') + '\n');
   }
   if (sub === 'add') {
-    const targets = rest.length ? rest : ['.'];
+    // -A/--all is the common "stage everything" flag; without it, any bare
+    // flag argument (e.g. a typo) used to get staged as a literal FILENAME
+    // because this never called parseFlags at all.
+    const { flags, rest: rest2 } = parseFlags(rest, ['A', 'all']);
+    const targets = flags.A || flags.all || !rest2.length ? ['.'] : rest2;
     for (const t of targets) {
       repo.staged.add(t);
       repo.tracked.add(t);
@@ -732,11 +743,50 @@ function cmd_git(args, ctx) {
     return ok(lines.join(flags.oneline ? '\n' : '\n') + '\n');
   }
   if (sub === 'branch') {
-    if (!rest.length) {
+    const { flags, rest: rest2 } = parseFlags(rest, ['d', 'D', 'delete', 'm', 'M', 'move', 'c', 'C', 'copy']);
+    const del = flags.d || flags.D || flags.delete;
+    const move = flags.m || flags.M || flags.move;
+    const copy = flags.c || flags.C || flags.copy;
+    const force = flags.D || flags.M || flags.C;
+
+    if (del) {
+      if (!rest2.length) return fail('fatal: branch name required\n');
+      const out = [];
+      for (const name of rest2) {
+        if (!repo.branches.includes(name)) return fail(`error: branch '${name}' not found.\n`);
+        if (name === repo.currentBranch) return fail(`error: Cannot delete branch '${name}' checked out\n`);
+        repo.branches = repo.branches.filter((b) => b !== name);
+        const lastHash = repo.commits.length ? repo.commits[repo.commits.length - 1].hash : '0000000';
+        out.push(`Deleted branch ${name} (was ${lastHash}).`);
+      }
+      return ok(out.join('\n') + '\n');
+    }
+    if (move || copy) {
+      // One arg renames/copies the CURRENT branch; two args are <old> <new>.
+      const [a, b] = rest2;
+      const oldName = b ? a : repo.currentBranch;
+      const newName = b || a;
+      if (!newName) return fail('fatal: branch name required\n');
+      if (!repo.branches.includes(oldName)) return fail(`error: refname refs/heads/${oldName} not found\n`);
+      if (repo.branches.includes(newName) && !force) return fail(`fatal: A branch named '${newName}' already exists.\n`);
+      if (move) {
+        // Force-renaming ONTO an existing name replaces it — drop the old
+        // target entry first so it doesn't end up duplicated in the list.
+        repo.branches = repo.branches.filter((br) => br !== newName);
+        repo.branches = repo.branches.map((br) => (br === oldName ? newName : br));
+        if (repo.currentBranch === oldName) repo.currentBranch = newName;
+        for (const c of repo.commits) if (c.branch === oldName) c.branch = newName;
+      } else if (!repo.branches.includes(newName)) {
+        repo.branches.push(newName);
+      }
+      return ok('');
+    }
+    if (!rest2.length) {
       return ok(repo.branches.map((b) => (b === repo.currentBranch ? '* ' + b : '  ' + b)).join('\n') + '\n');
     }
-    const name = rest.find((a) => !a.startsWith('-'));
-    if (!repo.branches.includes(name)) repo.branches.push(name);
+    const name = rest2[0];
+    if (repo.branches.includes(name)) return fail(`fatal: A branch named '${name}' already exists.\n`);
+    repo.branches.push(name);
     return ok('');
   }
   if (sub === 'checkout') {
@@ -768,14 +818,26 @@ function cmd_git(args, ctx) {
     return ok('');
   }
   if (sub === 'remote') {
-    if (rest[0] === 'add') {
-      repo.remotes[rest[1]] = rest[2];
+    const { flags, rest: rest2 } = parseFlags(rest, ['v', 'verbose']);
+    if (rest2[0] === 'add') {
+      repo.remotes[rest2[1]] = rest2[2];
       return ok('');
     }
-    return ok(Object.keys(repo.remotes).join('\n') + (Object.keys(repo.remotes).length ? '\n' : ''));
+    const names = Object.keys(repo.remotes);
+    if (flags.v || flags.verbose) {
+      const lines = names.flatMap((n) => [`${n}\t${repo.remotes[n]} (fetch)`, `${n}\t${repo.remotes[n]} (push)`]);
+      return ok(lines.join('\n') + (lines.length ? '\n' : ''));
+    }
+    return ok(names.join('\n') + (names.length ? '\n' : ''));
   }
   if (sub === 'push') {
+    const { flags, rest: rest2 } = parseFlags(rest, ['u', 'set-upstream']);
     if (!Object.keys(repo.remotes).length) return fail('fatal: No configured push destination.\n');
+    if (flags.u || flags['set-upstream']) {
+      const remoteName = rest2[0] || 'origin';
+      const branchName = rest2[1] || repo.currentBranch;
+      return ok(`Branch '${branchName}' set up to track remote branch '${branchName}' from '${remoteName}'.\nEverything up-to-date\n`);
+    }
     return ok(`Everything up-to-date\n`);
   }
   if (sub === 'pull') {
@@ -838,17 +900,23 @@ function cmd_git(args, ctx) {
     return ok(`commit ${commit.hash}\nAuthor: student <student@example.com>\n\n    ${commit.message}\n`);
   }
   if (sub === 'rm') {
-    if (!rest.length) return fail('fatal: No pathspec was given.\n');
-    for (const f of rest) {
-      try {
-        ctx.fs.remove(f, { force: true });
-      } catch (e) {
-        // ignore — still untrack it below
+    // --cached untracks the file WITHOUT deleting it from disk — the
+    // standard fix for "I accidentally committed .env", since it keeps
+    // the local file but stops git from tracking it going forward.
+    const { flags, rest: rmRest } = parseFlags(rest, ['cached', 'f', 'force']);
+    if (!rmRest.length) return fail('fatal: No pathspec was given.\n');
+    for (const f of rmRest) {
+      if (!flags.cached) {
+        try {
+          ctx.fs.remove(f, { force: true });
+        } catch (e) {
+          // ignore — still untrack it below
+        }
+        repo.staged.add(f);
       }
-      repo.staged.add(f);
       repo.tracked.delete(f);
     }
-    return ok(rest.map((f) => `rm '${f}'`).join('\n') + '\n');
+    return ok(rmRest.map((f) => `rm '${f}'`).join('\n') + '\n');
   }
   return fail(`git: '${sub}' is not a git command.\n`);
 }
