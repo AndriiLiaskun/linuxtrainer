@@ -89,10 +89,13 @@ function cmd_kubectl(args, ctx) {
   }
 
   if (sub === 'logs') {
-    const target = rest[0];
+    const { flags, rest: rest2 } = parseFlags(rest, ['f'], ['tail']);
+    const target = rest2[0];
     const pod = k8s.pods.find((p) => p.name === target);
     if (!pod) return fail(`Error from server (NotFound): pods "${target}" not found\n`);
-    return ok(`[${pod.name}] server listening on :8080\n[${pod.name}] ready to accept connections\n`);
+    const lines = [`[${pod.name}] starting up...`, `[${pod.name}] server listening on :8080`, `[${pod.name}] ready to accept connections`];
+    const n = flags.tail ? parseInt(flags.tail, 10) : lines.length;
+    return ok(lines.slice(-n).join('\n') + '\n');
   }
 
   if (sub === 'exec') {
@@ -324,7 +327,16 @@ function cmd_kubectl(args, ctx) {
 
   if (sub === 'config') {
     if (rest[0] === 'current-context') return ok('devops-trainer-cluster\n');
-    return ok('');
+    if (rest[0] === 'get-contexts') {
+      return ok('CURRENT   NAME                      CLUSTER                 AUTHINFO\n*         devops-trainer-cluster   devops-trainer-cluster   student\n');
+    }
+    if (rest[0] === 'use-context') {
+      const name = rest[1];
+      if (!name) return fail('error: you must specify a context\n');
+      if (name !== 'devops-trainer-cluster') return fail(`error: no context exists with the name: "${name}"\n`);
+      return ok(`Switched to context "${name}".\n`);
+    }
+    return fail(`error: unknown command "${rest[0]}" for "kubectl config"\n`);
   }
 
   return fail(`error: unknown command "${sub}" for "kubectl"\n`);

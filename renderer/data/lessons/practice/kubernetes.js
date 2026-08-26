@@ -292,6 +292,44 @@ function build() {
     check: (ctx) => h.stdoutIncludes(ctx.result, 'devops-trainer-cluster'),
   });
 
+  drills.push({
+    id: 'p-k8s-logs-tail',
+    difficulty: 2,
+    prompt: 'Перевір лише ОСТАННІЙ рядок логів пода redis-0 (--tail 1).',
+    hint: 'kubectl logs --tail 1 redis-0',
+    solution: 'kubectl logs --tail 1 redis-0',
+    xp: 20,
+    check: (ctx) => h.stdoutLines(ctx.result).filter(Boolean).length === 1,
+  });
+  drills.push({
+    id: 'p-k8s-logs-follow',
+    difficulty: 2,
+    prompt: 'Перевір логи пода redis-0 у режимі стеження (-f).',
+    hint: 'kubectl logs -f redis-0',
+    solution: 'kubectl logs -f redis-0',
+    xp: 20,
+    check: (ctx) => h.succeeded(ctx.result) && ctx.input.includes('-f') && h.stdoutIncludes(ctx.result, 'redis-0'),
+  });
+
+  drills.push({
+    id: 'p-k8s-config-get-contexts',
+    difficulty: 1,
+    prompt: 'Перевір список усіх доступних kubectl-контекстів.',
+    hint: 'kubectl config get-contexts',
+    solution: 'kubectl config get-contexts',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'devops-trainer-cluster'),
+  });
+  drills.push({
+    id: 'p-k8s-config-use-context',
+    difficulty: 2,
+    prompt: 'Перемкнись на контекст devops-trainer-cluster командою kubectl config use-context.',
+    hint: 'kubectl config use-context devops-trainer-cluster',
+    solution: 'kubectl config use-context devops-trainer-cluster',
+    xp: 20,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Switched to context'),
+  });
+
   return drills;
 }
 

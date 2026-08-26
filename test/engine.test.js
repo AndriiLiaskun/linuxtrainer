@@ -719,4 +719,31 @@ run(sh, 'git add other.txt');
 run(sh, 'git rm other.txt'); // without --cached, still deletes for real
 check('plain git rm (no --cached) still deletes the file', sh.fs.exists('/home/student/other.txt'), false);
 
+// --- docker images -q / logs --tail-F / exec on a stopped container / network+volume rm ---
+sh = new Shell();
+check('docker images -q shows only IDs', run(sh, 'docker images -q').stdout.includes('REPOSITORY'), false);
+run(sh, 'docker run -d --name web nginx');
+check('docker logs --tail 1 shows exactly one line', run(sh, 'docker logs --tail 1 web').stdout, '[web] ready to accept connections\n');
+run(sh, 'docker stop web');
+r = run(sh, 'docker exec web ls');
+check('docker exec on a stopped container is refused', r.code, 1);
+run(sh, 'docker network create mynet');
+run(sh, 'docker network rm mynet');
+check('docker network rm actually removes it', sh.state.docker.networks.some((n) => n.name === 'mynet'), false);
+run(sh, 'docker volume create mydata');
+run(sh, 'docker volume rm mydata');
+check('docker volume rm actually removes it', sh.state.docker.volumes.some((v) => v.name === 'mydata'), false);
+
+// --- kubectl logs -f (was completely broken: -f got read AS the pod name) ---
+sh = new Shell();
+r = run(sh, 'kubectl logs -f redis-0');
+check('kubectl logs -f actually finds the pod instead of treating -f as its name', r.code, 0);
+check('kubectl logs --tail 1 shows exactly one line', run(sh, 'kubectl logs --tail 1 redis-0').stdout, '[redis-0] ready to accept connections\n');
+
+// --- kubectl config get-contexts / use-context ---
+sh = new Shell();
+check('kubectl config get-contexts lists the cluster', run(sh, 'kubectl config get-contexts').stdout.includes('devops-trainer-cluster'), true);
+check('kubectl config use-context on the real cluster succeeds', run(sh, 'kubectl config use-context devops-trainer-cluster').code, 0);
+check('kubectl config use-context on an unknown cluster fails cleanly', run(sh, 'kubectl config use-context nosuch').code, 1);
+
 module.exports = { passed, failed, failures };

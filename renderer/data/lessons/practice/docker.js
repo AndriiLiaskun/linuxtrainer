@@ -332,6 +332,55 @@ function build() {
     check: (ctx) => h.stdoutIncludes(ctx.result, 'redis'),
   });
 
+  drills.push({
+    id: 'p-docker-images-quiet',
+    difficulty: 2,
+    prompt: 'Виведи ЛИШЕ ID усіх локальних образів (без таблиці) командою docker images -q.',
+    hint: 'docker images -q',
+    solution: 'docker images -q',
+    xp: 20,
+    check: (ctx) => h.stdoutLines(ctx.result).length >= 2 && !h.stdoutIncludes(ctx.result, 'REPOSITORY'),
+  });
+
+  drills.push({
+    id: 'p-docker-logs-tail',
+    difficulty: 2,
+    prompt: 'Запусти контейнер web з образу nginx, а потім перевір лише ОСТАННІЙ рядок його логів (--tail 1).',
+    hint: 'docker run -d --name web nginx && docker logs --tail 1 web',
+    solution: 'docker run -d --name web nginx && docker logs --tail 1 web',
+    xp: 25,
+    check: (ctx) => h.stdoutLines(ctx.result).filter(Boolean).pop() === '[web] ready to accept connections',
+  });
+
+  drills.push({
+    id: 'p-docker-exec-stopped-fails',
+    difficulty: 3,
+    prompt: 'Запусти контейнер web, зупини його, а потім спробуй виконати команду всередині (docker exec) — переконайся, що це помилка (не можна exec у зупинений контейнер).',
+    hint: 'docker run -d --name web nginx && docker stop web && docker exec web ls',
+    solution: 'docker run -d --name web nginx && docker stop web && docker exec web ls',
+    xp: 25,
+    check: (ctx) => (ctx.result.stderr || '').includes('is not running'),
+  });
+
+  drills.push({
+    id: 'p-docker-network-rm',
+    difficulty: 2,
+    prompt: "Створи мережу mynet, а потім видали її командою docker network rm.",
+    hint: 'docker network create mynet && docker network rm mynet',
+    solution: 'docker network create mynet && docker network rm mynet',
+    xp: 20,
+    check: (ctx) => !ctx.state.docker.networks.some((n) => n.name === 'mynet'),
+  });
+  drills.push({
+    id: 'p-docker-volume-rm',
+    difficulty: 2,
+    prompt: 'Створи том mydata, а потім видали його командою docker volume rm.',
+    hint: 'docker volume create mydata && docker volume rm mydata',
+    solution: 'docker volume create mydata && docker volume rm mydata',
+    xp: 20,
+    check: (ctx) => !ctx.state.docker.volumes.some((v) => v.name === 'mydata'),
+  });
+
   return drills;
 }
 

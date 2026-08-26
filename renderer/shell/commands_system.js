@@ -931,6 +931,10 @@ function cmd_docker(args, ctx) {
   if (!sub) return fail('docker: missing command\n');
 
   if (sub === 'images') {
+    const { flags } = parseFlags(rest, ['a', 'q']);
+    if (flags.q) {
+      return ok(docker.images.map((i) => i.id.slice(0, 12)).join('\n') + (docker.images.length ? '\n' : ''));
+    }
     const header = 'REPOSITORY   TAG        IMAGE ID       SIZE';
     const rows = docker.images.map((i) => `${i.repo.padEnd(12)} ${i.tag.padEnd(10)} ${i.id.slice(0, 12)}   ${i.size}`);
     return ok([header, ...rows].join('\n') + '\n');
@@ -1041,6 +1045,14 @@ function cmd_docker(args, ctx) {
       const lines = docker.networks.map((n) => `${Math.random().toString(16).slice(2, 14).padEnd(14)} ${n.name.padEnd(9)} ${n.driver}`);
       return ok([header, ...lines].join('\n') + '\n');
     }
+    if (action === 'rm') {
+      const name = rest[1];
+      const idx = docker.networks.findIndex((n) => n.name === name);
+      if (idx === -1) return fail(`Error: No such network: ${name}\n`);
+      if (name === 'bridge') return fail(`Error response from daemon: bridge is a pre-defined network and cannot be removed\n`);
+      docker.networks.splice(idx, 1);
+      return ok(name + '\n');
+    }
     return fail(`docker network: unknown subcommand '${action}'\n`);
   }
   if (sub === 'volume') {
@@ -1058,16 +1070,35 @@ function cmd_docker(args, ctx) {
       const lines = docker.volumes.map((v) => `local     ${v.name}`);
       return ok([header, ...lines].join('\n') + '\n');
     }
+    if (action === 'rm') {
+      const name = rest[1];
+      const idx = docker.volumes.findIndex((v) => v.name === name);
+      if (idx === -1) return fail(`Error: No such volume: ${name}\n`);
+      docker.volumes.splice(idx, 1);
+      return ok(name + '\n');
+    }
     return fail(`docker volume: unknown subcommand '${action}'\n`);
   }
   if (sub === 'exec') {
+    const { rest: rest2 } = parseFlags(rest, ['i', 't', 'it']);
+    const target = rest2[0];
+    const c = docker.containers.find((c) => c.id.startsWith(target) || c.name === target);
+    if (!c) return fail(`Error: No such container: ${target}\n`);
+    if (c.status !== 'Up') return fail(`Error response from daemon: Container ${c.id} is not running\n`);
     return ok('(simulated exec output)\n');
   }
   if (sub === 'logs') {
-    const target = rest[rest.length - 1];
+    const { flags, rest: rest2 } = parseFlags(rest, ['f'], ['tail']);
+    const target = rest2[0];
     const c = docker.containers.find((c) => c.id.startsWith(target) || c.name === target);
     if (!c) return fail(`Error: No such container: ${target}\n`);
-    return ok(`[${c.name}] service started on port 8080\n`);
+    const lines = [
+      `[${c.name}] Starting up...`,
+      `[${c.name}] service started on port 8080`,
+      `[${c.name}] ready to accept connections`,
+    ];
+    const n = flags.tail ? parseInt(flags.tail, 10) : lines.length;
+    return ok(lines.slice(-n).join('\n') + '\n');
   }
   if (sub === 'build') {
     const { flags } = parseFlags(rest, [], ['t']);
