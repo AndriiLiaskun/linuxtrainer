@@ -408,32 +408,27 @@ html, body {
   border-color: var(--accent-dim);
 }
 .cheatsheet-grid {
-  /* Masonry-style columns instead of a strict grid: cards vary a lot in
-     height (a 5-command category next to a 15-command one), and a strict
-     grid forces every card in a row to match the tallest one, leaving
-     large empty gaps under the shorter cards. column-width packs cards
-     top-to-bottom per column instead, so uneven heights stay tidy without
-     needing the category *content* to stay balanced to look good. */
-  column-width: 240px;
-  column-gap: 8px;
+  /* One category per full-width row, stacked top to bottom — not a
+     multi-column grid. Reading a reference top-to-bottom, one topic at a
+     time, is easier to scan than hunting across side-by-side columns. */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .cheatsheet-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 10px 13px;
+  padding: 12px 16px;
   text-align: left;
   scroll-margin-top: 16px;
-  break-inside: avoid;
-  margin-bottom: 8px;
-  display: inline-block;
   width: 100%;
 }
 .cheatsheet-card-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   cursor: pointer;
   width: fit-content;
 }
@@ -442,20 +437,23 @@ html, body {
   font-family: var(--mono);
   font-size: 15px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px 6px;
 }
 .cmd-token {
   color: var(--accent);
   cursor: pointer;
-  padding: 3px 4px;
-  margin: 0 -4px;
-  border-radius: 4px;
+  padding: 3px 8px;
+  border: 1px solid var(--border-soft);
+  border-radius: 5px;
   width: fit-content;
   max-width: 100%;
 }
 .cmd-token:hover {
   color: var(--text);
   background: rgba(63, 214, 122, 0.12);
+  border-color: var(--accent-dim);
 }
 
 /* Keyboard shortcuts */
