@@ -170,7 +170,7 @@ html, body {
 .lesson-item-icon { font-size: 16px; width: 20px; text-align: center; }
 .lesson-item-body { flex: 1; min-width: 0; }
 .lesson-item-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -268,7 +268,11 @@ html, body {
 .hidden { display: none !important; }
 
 .welcome-screen {
-  max-width: 900px;
+  /* Was a hard 900px regardless of window size — on a maximized/large
+     monitor that left most of the window as dead space to the right.
+     A generous cap still keeps line lengths sane on ultrawide displays,
+     but scales up to actually use normal/large windows. */
+  max-width: 1600px;
   color: var(--text-dim);
   padding-top: 6vh;
 }
@@ -469,7 +473,7 @@ html, body {
   padding: 10px 12px;
 }
 .shortcut-card-title {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text);
   margin-bottom: 7px;
@@ -482,14 +486,14 @@ html, body {
 }
 .shortcut-keys {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--yellow);
   white-space: nowrap;
   flex-shrink: 0;
   min-width: 78px;
 }
 .shortcut-desc {
-  font-size: 11.5px;
+  font-size: 12.5px;
   color: var(--text-dim);
 }
 
