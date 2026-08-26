@@ -271,6 +271,128 @@ function build() {
     });
   });
 
+  const CONFIG_NAMES = ['Andrii', 'Olena', 'Dmytro'];
+  CONFIG_NAMES.forEach((name, i) => {
+    drills.push({
+      id: `p-git-config-${i}`,
+      difficulty: 1,
+      prompt: `Встанови глобальне ім'я користувача git на "${name}".`,
+      hint: `git config --global user.name "${name}"`,
+      solution: `git config --global user.name "${name}"`,
+      xp: 15,
+      check: (ctx) => ctx.state.gitConfig['user.name'] === name,
+    });
+  });
+  drills.push({
+    id: 'p-git-config-list',
+    difficulty: 2,
+    prompt: "Встанови user.name та user.email глобально, а потім перевір усі налаштування списком.",
+    hint: 'git config --global user.name "Student" && git config --global user.email student@example.com && git config --list',
+    solution: 'git config --global user.name "Student" && git config --global user.email student@example.com && git config --list',
+    xp: 25,
+    check: (ctx) => (ctx.result.stdout || '').includes('user.name=Student') && (ctx.result.stdout || '').includes('user.email=student@example.com'),
+  });
+
+  const CLONE_TARGETS = [
+    { url: 'https://github.com/student/api-service.git', name: 'api-service' },
+    { url: 'https://github.com/student/frontend.git', name: 'frontend' },
+    { url: 'https://github.com/student/infra-tools.git', name: 'infra-tools' },
+  ];
+  CLONE_TARGETS.forEach(({ url, name }, i) => {
+    drills.push({
+      id: `p-git-clone-${i}`,
+      difficulty: 2,
+      prompt: `Клонуй репозиторій ${url} у поточну директорію.`,
+      hint: `git clone ${url}`,
+      solution: `git clone ${url}`,
+      xp: 25,
+      check: (ctx) => {
+        const r = ctx.state.gitRepos.get(ctx.fs.normalize(`/home/student/${name}`));
+        return !!r && r.remotes.origin === url;
+      },
+    });
+  });
+
+  drills.push({
+    id: 'p-git-diff-basic',
+    difficulty: 1,
+    prompt: 'У репозиторії demo: застейдж файл і перевір різницю командою git diff.',
+    hint: 'mkdir demo && cd demo && git init && touch a.txt && git add a.txt && git diff',
+    solution: 'mkdir demo && cd demo && git init && touch a.txt && git add a.txt && git diff',
+    xp: 20,
+    check: (ctx) => ctx.input.includes('git diff') && ctx.result.code === 0,
+  });
+  drills.push({
+    id: 'p-git-diff-staged',
+    difficulty: 2,
+    prompt: 'У репозиторії demo: застейдж файл і перевір, що саме буде закомічено, командою git diff --staged.',
+    hint: 'mkdir demo && cd demo && git init && touch a.txt && git add a.txt && git diff --staged',
+    solution: 'mkdir demo && cd demo && git init && touch a.txt && git add a.txt && git diff --staged',
+    xp: 20,
+    check: (ctx) => ctx.input.includes('--staged') && ctx.result.code === 0,
+  });
+
+  BRANCHES.forEach((branch, i) => {
+    const repo = REPOS[i % REPOS.length];
+    drills.push({
+      id: `p-git-switch-${i}`,
+      difficulty: 2,
+      prompt: `У новому репозиторії ${repo}: створи гілку ${branch} і одразу перейди на неї командою git switch -c.`,
+      hint: `mkdir ${repo} && cd ${repo} && git init && git switch -c ${branch}`,
+      solution: `mkdir ${repo} && cd ${repo} && git init && git switch -c ${branch}`,
+      xp: 25,
+      check: (ctx) => {
+        const r = ctx.state.gitRepos.get(ctx.fs.normalize(`/home/student/${repo}`));
+        return !!r && r.currentBranch === branch;
+      },
+    });
+  });
+
+  BRANCHES.forEach((branch, i) => {
+    const repo = REPOS[i % REPOS.length];
+    drills.push({
+      id: `p-git-merge-${i}`,
+      difficulty: 3,
+      prompt: `У новому репозиторії ${repo}: створи гілку ${branch}, а потім злий її у поточну гілку (main).`,
+      hint: `mkdir ${repo} && cd ${repo} && git init && git branch ${branch} && git merge ${branch}`,
+      solution: `mkdir ${repo} && cd ${repo} && git init && git branch ${branch} && git merge ${branch}`,
+      xp: 30,
+      check: (ctx) => (ctx.result.stdout || '').includes('Merge made'),
+    });
+  });
+
+  const PULL_REPOS = ['service-a', 'service-b'];
+  PULL_REPOS.forEach((repo, i) => {
+    drills.push({
+      id: `p-git-pull-${i}`,
+      difficulty: 2,
+      prompt: `У репозиторії ${repo}: додай remote origin і виконай git pull.`,
+      hint: `mkdir ${repo} && cd ${repo} && git init && git remote add origin https://github.com/student/${repo}.git && git pull`,
+      solution: `mkdir ${repo} && cd ${repo} && git init && git remote add origin https://github.com/student/${repo}.git && git pull`,
+      xp: 25,
+      check: (ctx) => (ctx.result.stdout || '').includes('up to date'),
+    });
+  });
+
+  drills.push({
+    id: 'p-git-push-no-remote',
+    difficulty: 2,
+    prompt: 'У новому репозиторії demo (без remote): спробуй git push і зверни увагу на помилку.',
+    hint: 'mkdir demo && cd demo && git init && git push',
+    solution: 'mkdir demo && cd demo && git init && git push',
+    xp: 20,
+    check: (ctx) => (ctx.result.stderr || '').includes('No configured push destination'),
+  });
+  drills.push({
+    id: 'p-git-push-with-remote',
+    difficulty: 2,
+    prompt: 'У репозиторії demo: додай remote origin і виконай git push.',
+    hint: 'mkdir demo && cd demo && git init && git remote add origin https://github.com/student/demo.git && git push',
+    solution: 'mkdir demo && cd demo && git init && git remote add origin https://github.com/student/demo.git && git push',
+    xp: 25,
+    check: (ctx) => (ctx.result.stdout || '').includes('up-to-date'),
+  });
+
   return drills;
 }
 

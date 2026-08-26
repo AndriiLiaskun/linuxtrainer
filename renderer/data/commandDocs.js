@@ -191,9 +191,35 @@ const COMMAND_DOCS = {
   uname: { desc: 'Показує інформацію про ядро й систему.', opts: [['-a', 'уся інформація', 'uname -a'], ['-r', 'версія ядра', 'uname -r'], ['-m', 'архітектура процесора', 'uname -m']], example: 'uname -a' },
 
   'git:init': { desc: 'Ініціалізує новий git-репозиторій у поточній директорії.', example: 'git init' },
+  'git:config': {
+    desc: "Налаштовує git (ім'я, email тощо) — зазвичай перше, що роблять на новій машині.",
+    opts: [
+      ['--global', 'застосувати до ВСІХ репозиторіїв цього користувача', 'git config --global user.name "Andrii"'],
+      ['--list', 'показати всі поточні налаштування', 'git config --list'],
+    ],
+    example: 'git config --global user.email you@example.com',
+  },
+  'git:clone': { desc: 'Копіює (клонує) віддалений репозиторій у нову локальну директорію.', example: 'git clone https://github.com/user/repo.git' },
   'git:add': { desc: 'Додає файл(и) в область підготовлених змін (staging).', example: 'git add file.txt' },
+  'git:status': { desc: 'Показує стан робочої директорії: що змінено, підготовлено (staged), або ще не відстежується.', example: 'git status' },
+  'git:diff': {
+    desc: 'Показує РІЗНИЦЮ у файлах — детальніше за status (сам вміст змін).',
+    opts: [['--staged / --cached', 'зміни, вже додані в staging (не в робочій директорії)', 'git diff --staged']],
+    example: 'git diff',
+  },
   'git:commit': { desc: 'Зберігає підготовлені зміни як новий коміт.', opts: [['-m', 'повідомлення коміту', 'git commit -m "Fix bug"']], example: 'git commit -m "Fix bug"' },
   'git:branch': { desc: 'Створює гілку або виводить список гілок.', example: 'git branch feature/login' },
+  'git:checkout': {
+    desc: 'Перемикається на іншу гілку (або відновлює файли) — класична команда, частково замінена switch/restore.',
+    opts: [['-b', 'створити НОВУ гілку й одразу перейти на неї', 'git checkout -b feature/login']],
+    example: 'git checkout feature/login',
+  },
+  'git:switch': {
+    desc: "Сучасна, простіша альтернатива checkout САМЕ для перемикання гілок (не для файлів).",
+    opts: [['-c', 'створити НОВУ гілку й одразу перейти на неї', 'git switch -c feature/login']],
+    example: 'git switch main',
+  },
+  'git:merge': { desc: 'Зливає вказану гілку в поточну.', example: 'git merge feature/login' },
   'git:log': { desc: 'Показує історію комітів.', opts: [['--oneline', 'компактний однорядковий формат', 'git log --oneline']], example: 'git log --oneline' },
   'git:stash': {
     desc: 'Тимчасово ховає незакомічені зміни, щоб повернутись до чистої робочої директорії.',
@@ -207,7 +233,10 @@ const COMMAND_DOCS = {
   },
   'git:tag': { desc: 'Створює мітку (tag) на поточному коміті — часто для позначення релізів.', opts: [['-a', 'анотована мітка', 'git tag -a v1.0 -m "Release 1.0"'], ['-m', 'повідомлення до анотованої мітки', 'git tag -a v1.0 -m "Release 1.0"']], example: 'git tag -a v1.0 -m "Release 1.0"' },
   'git:reset': { desc: 'Скасовує staged-зміни або відкочує HEAD до попереднього коміту.', opts: [['--soft', 'лишити зміни в staging', 'git reset --soft HEAD~1'], ['--mixed', 'зняти зі staging, лишити у файлах (типово)', 'git reset HEAD~1'], ['--hard', 'повністю відкинути зміни', 'git reset --hard HEAD~1']], example: 'git reset --hard HEAD' },
+  'git:remote': { desc: "Керує посиланнями на віддалені репозиторії (наприклад GitHub).", opts: [['add', "додати нове віддалене посилання (типово ім'я — origin)", 'git remote add origin https://github.com/user/repo.git']], example: 'git remote add origin https://github.com/user/repo.git' },
   'git:fetch': { desc: 'Завантажує нові дані з віддаленого репозиторію без злиття з поточною гілкою.', example: 'git fetch origin' },
+  'git:pull': { desc: 'Завантажує ТА одразу зливає зміни з віддаленого репозиторію (= fetch + merge).', example: 'git pull origin main' },
+  'git:push': { desc: 'Відправляє локальні коміти у віддалений репозиторій.', example: 'git push origin main' },
   'git:show': { desc: 'Показує деталі конкретного коміту (автор, повідомлення, зміни).', example: 'git show HEAD' },
   'git:rm': { desc: 'Видаляє файл і одразу готує це видалення до коміту.', example: 'git rm old-file.txt' },
 

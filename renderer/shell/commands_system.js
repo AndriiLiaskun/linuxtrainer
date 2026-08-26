@@ -630,6 +630,47 @@ function cmd_git(args, ctx) {
     return ok(`Initialized empty Git repository in ${ctx.fs.cwd}/.git/\n`);
   }
 
+  if (sub === 'config') {
+    // --global/--local both write to the same session-wide store here —
+    // a real per-repo vs user-level split isn't modeled, since this
+    // sandbox never has more than one "real" identity to configure.
+    const { flags, rest: rest2 } = parseFlags(rest, ['global', 'local', 'list', 'l']);
+    if (flags.list || flags.l) {
+      const entries = Object.entries(ctx.state.gitConfig);
+      return ok(entries.map(([k, v]) => `${k}=${v}`).join('\n') + (entries.length ? '\n' : ''));
+    }
+    const key = rest2[0];
+    if (!key) return fail('usage: git config [--global] <key> <value>\n');
+    if (rest2.length < 2) {
+      const val = ctx.state.gitConfig[key];
+      if (val === undefined) return { stdout: '', stderr: '', code: 1 };
+      return ok(val + '\n');
+    }
+    ctx.state.gitConfig[key] = rest2.slice(1).join(' ');
+    return ok('');
+  }
+
+  if (sub === 'clone') {
+    // Like `init`, clone must work OUTSIDE any existing repo — that's the
+    // whole point of it (real git refuses to nest a clone target inside
+    // one, but never requires the CURRENT directory to already be a repo).
+    const url = rest[0];
+    if (!url) return fail('usage: git clone <repository> [<directory>]\n');
+    const name = rest[1] || url.split('/').pop().replace(/\.git$/, '');
+    ctx.fs.mkdir(ctx.fs.cwd + '/' + name, { parents: true });
+    repos.set(ctx.fs.normalize(ctx.fs.cwd + '/' + name), {
+      branches: ['main'],
+      currentBranch: 'main',
+      staged: new Set(),
+      tracked: new Set(),
+      commits: [],
+      remotes: { origin: url },
+      stashes: [],
+      tags: {},
+    });
+    return ok(`Cloning into '${name}'...\ndone.\n`);
+  }
+
   const root = findRepoRoot(ctx);
   if (!root) return fail('fatal: not a git repository (or any of the parent directories): .git\n');
   const repo = repos.get(root);
@@ -719,22 +760,6 @@ function cmd_git(args, ctx) {
   }
   if (sub === 'pull') {
     return ok('Already up to date.\n');
-  }
-  if (sub === 'clone') {
-    const url = rest[0];
-    const name = rest[1] || url.split('/').pop().replace(/\.git$/, '');
-    ctx.fs.mkdir(ctx.fs.cwd + '/' + name, { parents: true });
-    repos.set(ctx.fs.normalize(ctx.fs.cwd + '/' + name), {
-      branches: ['main'],
-      currentBranch: 'main',
-      staged: new Set(),
-      tracked: new Set(),
-      commits: [],
-      remotes: { origin: url },
-      stashes: [],
-      tags: {},
-    });
-    return ok(`Cloning into '${name}'...\ndone.\n`);
   }
   if (sub === 'stash') {
     const action = rest[0];

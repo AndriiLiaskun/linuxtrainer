@@ -103,6 +103,7 @@ class SessionState {
     this.docker = freshDocker();
     this.k8s = freshK8s();
     this.gitRepos = freshGitRepos();
+    this.gitConfig = {}; // user-level `git config --global` key/value store
     this.network = freshNetwork();
     this.cronJobs = [];
     this.lastExitCode = 0;

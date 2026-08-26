@@ -611,4 +611,19 @@ check('/proc/meminfo exists and is readable', run(sh, 'cat /proc/meminfo').stdou
 check('/proc/interrupts exists and is readable', run(sh, 'cat /proc/interrupts').stdout.includes('IO-APIC'), true);
 check('/proc/uptime exists and is readable', /^\d+\.\d+/.test(run(sh, 'cat /proc/uptime').stdout), true);
 
+// --- git clone (was gated behind "must already be inside a repo" — backwards) ---
+sh = new Shell();
+r = run(sh, 'git clone https://github.com/student/demo.git');
+check('git clone works from OUTSIDE any existing repo (that is the normal case)', r.code, 0);
+check('git clone creates the target directory', sh.fs.isDir('/home/student/demo'), true);
+check('git clone registers the new repo with origin set', sh.state.gitRepos.get('/home/student/demo').remotes.origin, 'https://github.com/student/demo.git');
+
+// --- git config (previously did not exist at all) ---
+sh = new Shell();
+run(sh, 'git config --global user.name "Andrii"');
+run(sh, 'git config --global user.email andrii@example.com');
+check('git config --list shows both set values', run(sh, 'git config --list').stdout, 'user.name=Andrii\nuser.email=andrii@example.com\n');
+check('git config <key> reads a single value back', run(sh, 'git config user.name').stdout, 'Andrii\n');
+check('git config on an unset key exits 1 (matches real git)', run(sh, 'git config user.nosuchkey').code, 1);
+
 module.exports = { passed, failed, failures };
