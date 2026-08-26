@@ -60,6 +60,16 @@ html, body {
   align-items: center;
   gap: 10px;
   padding: 4px 6px 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s;
+  width: fit-content;
+}
+.brand:hover {
+  background: rgba(63, 214, 122, 0.08);
+}
+.brand:hover .brand-name {
+  color: var(--accent);
 }
 .brand-glyph {
   font-family: var(--mono);

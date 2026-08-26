@@ -440,6 +440,26 @@ class FileSystem {
     );
     this.writeFile('/etc/hostname', 'devops-trainer\n');
     this.writeFile('/etc/motd', 'Welcome to the LinuxTrainer sandbox.\n');
+    // The sandbox commits to ONE concrete distro identity (Ubuntu 22.04
+    // LTS) so /etc/os-release, uname, and paths like /var/log/syslog (a
+    // Debian/Ubuntu convention — RHEL uses /var/log/messages) are mutually
+    // consistent, matching a real machine — even though yum/dnf/rpm (a
+    // DIFFERENT distro family's tools) are still available for teaching,
+    // same as how this sandbox already lets you practice both worlds.
+    this.writeFile(
+      '/etc/os-release',
+      'PRETTY_NAME="Ubuntu 22.04.4 LTS"\n' +
+        'NAME="Ubuntu"\n' +
+        'VERSION_ID="22.04"\n' +
+        'VERSION="22.04.4 LTS (Jammy Jellyfish)"\n' +
+        'VERSION_CODENAME=jammy\n' +
+        'ID=ubuntu\n' +
+        'ID_LIKE=debian\n' +
+        'HOME_URL="https://www.ubuntu.com/"\n' +
+        'SUPPORT_URL="https://help.ubuntu.com/"\n' +
+        'BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"\n' +
+        'UBUNTU_CODENAME=jammy\n'
+    );
     const sudoers = this.writeFile(
       '/etc/sudoers',
       "# /etc/sudoers\n#\n# This file MUST be edited with the 'visudo' command as root.\n\n" +

@@ -746,4 +746,34 @@ check('kubectl config get-contexts lists the cluster', run(sh, 'kubectl config g
 check('kubectl config use-context on the real cluster succeeds', run(sh, 'kubectl config use-context devops-trainer-cluster').code, 0);
 check('kubectl config use-context on an unknown cluster fails cleanly', run(sh, 'kubectl config use-context nosuch').code, 1);
 
+// --- distro identity: /etc/os-release, uname, useradd -m / userdel -r ---
+sh = new Shell();
+check('/etc/os-release identifies a real, concrete distro', run(sh, 'cat /etc/os-release').stdout.includes('ID=ubuntu'), true);
+check('uname -a kernel string is consistent with that Ubuntu identity', run(sh, 'uname -a').stdout.includes('Ubuntu'), true);
+
+sh = new Shell();
+run(sh, 'useradd deploy');
+check('useradd WITHOUT -m does not create a home dir (real Debian/Ubuntu default)', sh.fs.exists('/home/deploy'), false);
+run(sh, 'useradd -m deploy2');
+check('useradd -m DOES create the home dir', sh.fs.isDir('/home/deploy2'), true);
+check('the new home dir is owned by the new user, not root/whoever ran useradd', sh.fs.getNode('/home/deploy2').owner, 'deploy2');
+run(sh, 'userdel -r deploy2');
+check('userdel -r removes the home dir along with the account', sh.fs.exists('/home/deploy2'), false);
+
+// --- ufw (Ubuntu) vs firewall-cmd (RHEL) — two DIFFERENT real tools ---
+sh = new Shell();
+check('ufw is inactive by default (matches a fresh Ubuntu install)', run(sh, 'ufw status').stdout, 'Status: inactive\n');
+run(sh, 'ufw enable');
+run(sh, 'ufw allow 22');
+check('ufw allow actually adds a visible rule', run(sh, 'ufw status').stdout.includes('22'), true);
+run(sh, 'ufw delete allow 22');
+check('ufw delete allow actually removes it', run(sh, 'ufw status').stdout.includes('22'), false);
+
+sh = new Shell();
+check('firewalld is ACTIVE by default (matches a fresh RHEL/CentOS install, unlike ufw)', run(sh, 'firewall-cmd --state').stdout, 'running\n');
+run(sh, 'firewall-cmd --add-port=8080/tcp');
+check('firewall-cmd --add-port is reflected in --list-all', run(sh, 'firewall-cmd --list-all').stdout.includes('8080/tcp'), true);
+run(sh, 'firewall-cmd --remove-port=8080/tcp');
+check('firewall-cmd --remove-port removes it again', run(sh, 'firewall-cmd --list-all').stdout.includes('8080/tcp'), false);
+
 module.exports = { passed, failed, failures };

@@ -104,6 +104,12 @@ class SessionState {
     this.k8s = freshK8s();
     this.gitRepos = freshGitRepos();
     this.gitConfig = {}; // user-level `git config --global` key/value store
+    // Two DIFFERENT distro-specific firewall front-ends, kept as separate
+    // state since they're genuinely different tools in reality (Ubuntu
+    // ships ufw; RHEL/CentOS ships firewalld) — matches how yum/rpm and
+    // apt/dpkg already coexist here for teaching both distro families.
+    this.ufw = { active: false, rules: [] };
+    this.firewalld = { active: true, zone: 'public', ports: [] };
     this.network = freshNetwork();
     this.cronJobs = [];
     this.lastExitCode = 0;

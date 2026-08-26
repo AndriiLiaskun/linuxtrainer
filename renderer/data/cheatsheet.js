@@ -42,7 +42,7 @@ const CHEATSHEET = [
   { icon: '⚡', title: 'Процеси', cmds: [c('ps'), c('top'), c('htop'), c('kill'), c('killall'), c('pkill'), c('pmap'), c('jobs'), c('fg')] },
   { icon: '📊', title: 'Ресурси та диск', cmds: [c('free'), c('df'), c('du'), c('fdisk'), c('mount'), c('uptime'), c('watch'), c('lsof'), c('vmstat'), c('mpstat'), c('iostat')] },
   { icon: '🛠️', title: 'systemd', cmds: [c('systemctl'), c('journalctl')] },
-  { icon: '🌐', title: 'Мережа', cmds: [c('ping'), c('curl'), c('wget'), c('ssh'), c('telnet'), c('scp'), c('dig'), c('nslookup'), c('ss'), c('netstat'), c('ip'), c('rsync'), c('traceroute'), c('tcpdump')] },
+  { icon: '🌐', title: 'Мережа', cmds: [c('ping'), c('curl'), c('wget'), c('ssh'), c('telnet'), c('scp'), c('dig'), c('nslookup'), c('ss'), c('netstat'), c('ip'), c('rsync'), c('traceroute'), c('tcpdump'), c('ufw'), c('firewall-cmd')] },
   { icon: '📦', title: 'Пакети', cmds: [c('apt'), c('yum'), c('dnf'), c('rpm'), c('dpkg')] },
   { icon: '🖥️', title: 'Система та сесії', cmds: [c('whoami'), c('id'), c('hostname'), c('date'), c('uname'), c('who'), c('last'), c('w'), c('finger')] },
   { icon: '🔩', title: 'Апаратне забезпечення', cmds: [c('dmesg'), c('lspci'), c('lsusb'), c('lshal'), c('dmidecode'), c('hdparm'), c('badblocks')] },

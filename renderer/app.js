@@ -46,6 +46,7 @@ const el = {
   levelValue: $('level-value'),
   xpBarFill: $('xp-bar-fill'),
   xpCaption: $('xp-caption'),
+  brand: $('brand'),
   lessonList: $('lesson-list'),
   badgesBtn: $('badges-btn'),
   welcomeScreen: $('welcome-screen'),
@@ -195,6 +196,21 @@ function renderSidebar() {
     el.lessonList.appendChild(item);
   }
 }
+
+function goHome() {
+  // Return to the welcome/reference screen from wherever the user
+  // currently is, without switching track or losing lesson progress
+  // (progress is saved per-drill as you go, not on exit).
+  currentLesson = null;
+  currentPyLesson = null;
+  el.lessonScreen.classList.add('hidden');
+  el.lessonCompleteScreen.classList.add('hidden');
+  el.pythonLessonScreen.classList.add('hidden');
+  el.welcomeScreen.classList.remove('hidden');
+  renderSidebar();
+}
+
+el.brand.addEventListener('click', goHome);
 
 function switchTrack(track) {
   if (track === currentTrack) return;

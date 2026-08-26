@@ -218,6 +218,77 @@ function build() {
     check: (ctx) => h.stdoutIncludes(ctx.result, 'IUse%'),
   });
 
+  drills.push({
+    id: 'p-net-ufw-enable',
+    difficulty: 1,
+    prompt: 'Увімкни файрвол ufw (типово вимкнений на свіжому Ubuntu).',
+    hint: 'ufw enable',
+    solution: 'ufw enable',
+    xp: 15,
+    check: (ctx) => ctx.state.ufw.active === true,
+  });
+  const UFW_PORTS = ['22', '80', '443'];
+  UFW_PORTS.forEach((port, i) => {
+    drills.push({
+      id: `p-net-ufw-allow-${i}`,
+      difficulty: 2,
+      prompt: `Дозволь вхідні з'єднання на порт ${port} через ufw.`,
+      hint: `ufw allow ${port}`,
+      solution: `ufw allow ${port}`,
+      xp: 20,
+      check: (ctx) => ctx.state.ufw.rules.some((r) => r.port === port && r.action === 'ALLOW'),
+    });
+  });
+  drills.push({
+    id: 'p-net-ufw-deny',
+    difficulty: 2,
+    prompt: 'Заборони порт 23 (telnet — небезпечний, незашифрований) через ufw.',
+    hint: 'ufw deny 23',
+    solution: 'ufw deny 23',
+    xp: 20,
+    check: (ctx) => ctx.state.ufw.rules.some((r) => r.port === '23' && r.action === 'DENY'),
+  });
+  drills.push({
+    id: 'p-net-ufw-status',
+    difficulty: 2,
+    prompt: "Увімкни ufw, дозволь порт 22, а потім перевір поточний стан і правила командою ufw status.",
+    hint: 'ufw enable && ufw allow 22 && ufw status',
+    solution: 'ufw enable && ufw allow 22 && ufw status',
+    xp: 25,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'Status: active') && h.stdoutIncludes(ctx.result, 'ALLOW'),
+  });
+
+  drills.push({
+    id: 'p-net-firewalld-state',
+    difficulty: 1,
+    prompt: 'Перевір, чи запущений firewalld (RHEL/CentOS-файрвол — інший інструмент, ніж ufw).',
+    hint: 'firewall-cmd --state',
+    solution: 'firewall-cmd --state',
+    xp: 15,
+    check: (ctx) => h.stdoutTrim(ctx.result) === 'running',
+  });
+  const FIREWALLD_PORTS = ['8080/tcp', '5432/tcp', '9090/tcp'];
+  FIREWALLD_PORTS.forEach((port, i) => {
+    drills.push({
+      id: `p-net-firewalld-addport-${i}`,
+      difficulty: 2,
+      prompt: `Дозволь порт ${port} через firewalld.`,
+      hint: `firewall-cmd --add-port=${port}`,
+      solution: `firewall-cmd --add-port=${port}`,
+      xp: 20,
+      check: (ctx) => ctx.state.firewalld.ports.includes(port),
+    });
+  });
+  drills.push({
+    id: 'p-net-firewalld-list-all',
+    difficulty: 2,
+    prompt: 'Дозволь порт 8080/tcp через firewalld, а потім перевір усі правила поточної зони командою --list-all.',
+    hint: 'firewall-cmd --add-port=8080/tcp && firewall-cmd --list-all',
+    solution: 'firewall-cmd --add-port=8080/tcp && firewall-cmd --list-all',
+    xp: 25,
+    check: (ctx) => h.stdoutIncludes(ctx.result, '8080/tcp'),
+  });
+
   return drills;
 }
 

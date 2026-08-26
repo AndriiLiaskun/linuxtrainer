@@ -88,6 +88,8 @@ const REGISTRY = {
   dnf: sys.pkgManager('dnf'),
   rpm: sys.cmd_rpm,
   dpkg: sys.cmd_dpkg,
+  ufw: sys.cmd_ufw,
+  'firewall-cmd': sys.cmd_firewall_cmd,
   ping: sys.cmd_ping,
   curl: sys.cmd_curl,
   wget: sys.cmd_wget,

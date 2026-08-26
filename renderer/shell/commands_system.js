@@ -582,7 +582,7 @@ function cmd_vmstat(args, ctx) {
 
 function cmd_mpstat(args, ctx) {
   return ok(
-    'Linux 5.15.0-devops (devops-trainer)   08/22/2026  _x86_64_ (4 CPU)\n\n' +
+    'Linux 5.15.0-91-generic (devops-trainer)   08/22/2026  _x86_64_ (4 CPU)\n\n' +
       '12:00:00 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest   %idle\n' +
       '12:00:00 PM  all    3.20    0.00    1.10    0.05    0.00    0.10    0.00    0.00   95.55\n'
   );
@@ -590,7 +590,7 @@ function cmd_mpstat(args, ctx) {
 
 function cmd_iostat(args, ctx) {
   return ok(
-    'Linux 5.15.0-devops (devops-trainer)   08/22/2026  _x86_64_ (4 CPU)\n\n' +
+    'Linux 5.15.0-91-generic (devops-trainer)   08/22/2026  _x86_64_ (4 CPU)\n\n' +
       'avg-cpu:  %user   %nice %system %iowait  %steal   %idle\n' +
       '           3.20    0.00    1.10    0.05    0.00   95.65\n\n' +
       'Device             tps    kB_read/s    kB_wrtn/s    kB_read    kB_wrtn\n' +
@@ -1177,22 +1177,39 @@ function cmd_su(args, ctx) {
 }
 
 function cmd_useradd(args, ctx) {
-  const name = args.find((a) => !a.startsWith('-'));
+  // This sandbox's identity is Ubuntu (see filesystem.js's /etc/os-release)
+  // — real Debian/Ubuntu useradd does NOT create a home directory unless
+  // -m is given (RHEL/CentOS's useradd DOES create it automatically; that
+  // difference is exactly why -m matters and is worth modeling for real,
+  // not just documenting).
+  const { flags, rest } = parseFlags(args, ['m']);
+  const name = rest[0];
   if (!name) return fail('useradd: missing user name\n');
   if (ctx.state.users.has(name)) return fail(`useradd: user '${name}' already exists\n`);
   ctx.state.users.add(name);
   ctx.state.uids.set(name, ctx.state.nextUid++);
+  if (flags.m) {
+    const homeDir = ctx.fs.mkdir(`/home/${name}`, { parents: true });
+    // mkdir() owns new dirs by whoever RAN the command (root, via sudo) —
+    // a real home directory is owned by the new user themselves.
+    homeDir.owner = name;
+    homeDir.group = name;
+  }
   return ok('');
 }
 
 function cmd_userdel(args, ctx) {
-  const name = args.find((a) => !a.startsWith('-'));
+  const { flags, rest } = parseFlags(args, ['r']);
+  const name = rest[0];
   if (!name) return fail('userdel: missing user name\n');
   if (!ctx.state.users.has(name)) return fail(`userdel: user '${name}' does not exist\n`);
   if (name === 'root' || name === 'student') return fail(`userdel: cannot remove the '${name}' account\n`);
   ctx.state.users.delete(name);
   ctx.state.uids.delete(name);
   ctx.state.userGroups.delete(name);
+  if (flags.r && ctx.fs.exists(`/home/${name}`)) {
+    ctx.fs.remove(`/home/${name}`, { recursive: true, force: true });
+  }
   return ok('');
 }
 
@@ -1215,6 +1232,68 @@ function cmd_usermod(args, ctx) {
   return ok('');
 }
 
+function cmd_ufw(args, ctx) {
+  // Ubuntu/Debian's firewall front-end — inactive by default on a fresh
+  // install, matching this sandbox's chosen Ubuntu identity.
+  const fw = ctx.state.ufw;
+  const action = args[0];
+  if (action === 'status') {
+    if (!fw.active) return ok('Status: inactive\n');
+    const header = 'Status: active\n\nTo                         Action      From\n--                         ------      ----';
+    const lines = fw.rules.map((r) => `${r.port.padEnd(26)} ${r.action.padEnd(11)} Anywhere`);
+    return ok(header + (lines.length ? '\n' + lines.join('\n') : '') + '\n');
+  }
+  if (action === 'enable') {
+    fw.active = true;
+    return ok('Firewall is active and enabled on system startup\n');
+  }
+  if (action === 'disable') {
+    fw.active = false;
+    return ok('Firewall stopped and disabled on system startup\n');
+  }
+  if (action === 'allow' || action === 'deny') {
+    const port = args[1];
+    if (!port) return fail(`ufw: missing port/service for ${action}\n`);
+    fw.rules.push({ port, action: action.toUpperCase() });
+    return ok('Rule added\n');
+  }
+  if (action === 'delete') {
+    const ruleAction = args[1];
+    const port = args[2];
+    const idx = fw.rules.findIndex((r) => r.port === port && r.action === (ruleAction || '').toUpperCase());
+    if (idx === -1) return fail('Could not delete non-existent rule\n');
+    fw.rules.splice(idx, 1);
+    return ok('Rule deleted\n');
+  }
+  return fail(`ufw: unknown command '${action}'\n`);
+}
+
+function cmd_firewall_cmd(args, ctx) {
+  // RHEL/CentOS/Fedora's firewall front-end — a genuinely different tool
+  // from ufw, running (active) by default on a fresh install, unlike ufw.
+  const fw = ctx.state.firewalld;
+  if (args.includes('--state')) {
+    return { stdout: (fw.active ? 'running' : 'not running') + '\n', stderr: '', code: fw.active ? 0 : 1 };
+  }
+  if (args.includes('--reload')) return ok('success\n');
+  if (args.includes('--list-all')) {
+    return ok(`${fw.zone} (active)\n  target: default\n  services: ssh dhcpv6-client\n  ports: ${fw.ports.join(' ')}\n`);
+  }
+  const addPortArg = args.find((a) => a.startsWith('--add-port='));
+  if (addPortArg) {
+    const port = addPortArg.split('=')[1];
+    if (!fw.ports.includes(port)) fw.ports.push(port);
+    return ok('success\n');
+  }
+  const removePortArg = args.find((a) => a.startsWith('--remove-port='));
+  if (removePortArg) {
+    const port = removePortArg.split('=')[1];
+    fw.ports = fw.ports.filter((p) => p !== port);
+    return ok('success\n');
+  }
+  return fail('firewall-cmd: unknown option\n');
+}
+
 function cmd_passwd(args, ctx) {
   const name = args[0] || ctx.fs.currentUser;
   if (!ctx.state.users.has(name)) return fail(`passwd: user '${name}' does not exist\n`);
@@ -1222,9 +1301,11 @@ function cmd_passwd(args, ctx) {
 }
 
 function cmd_uname(args, ctx) {
+  // Kernel string matches a real Ubuntu 22.04 LTS build (-generic, #NNN-Ubuntu)
+  // so this stays consistent with /etc/os-release's Ubuntu identity.
   const { flags } = parseFlags(args, ['a', 's', 'r', 'n', 'm', 'o']);
-  if (flags.a) return ok('Linux devops-trainer 5.15.0-devops #1 SMP x86_64 GNU/Linux\n');
-  if (flags.r) return ok('5.15.0-devops\n');
+  if (flags.a) return ok('Linux devops-trainer 5.15.0-91-generic #101-Ubuntu SMP Tue Nov 14 13:30:08 UTC 2023 x86_64 x86_64 x86_64 GNU/Linux\n');
+  if (flags.r) return ok('5.15.0-91-generic\n');
   if (flags.n) return ok('devops-trainer\n');
   if (flags.m || flags.o) return ok('x86_64\n');
   return ok('Linux\n');
@@ -1323,7 +1404,7 @@ function cmd_last(args, ctx) {
   const lines = [
     'student  pts/0        10.0.0.5         Sat Aug 22 12:00   still logged in',
     'student  pts/0        10.0.0.5         Fri Aug 21 09:15 - 10:42  (01:27)',
-    'reboot   system boot  5.15.0-devops    Fri Aug 21 09:00',
+    'reboot   system boot  5.15.0-91-generic    Fri Aug 21 09:00',
   ];
   const filtered = args[0] === 'reboot' ? lines.filter((l) => l.startsWith('reboot')) : lines;
   return ok(filtered.join('\n') + '\n\nwtmp begins Fri Aug 21 09:00:00 2026\n');
@@ -1363,8 +1444,8 @@ function cmd_finger(args, ctx) {
 
 function cmd_dmesg(args, ctx) {
   const lines = [
-    '[    0.000000] Linux version 5.15.0-devops (build@devops-trainer) #1 SMP',
-    '[    0.124532] Command line: BOOT_IMAGE=/boot/vmlinuz-5.15.0-devops root=/dev/sda1',
+    '[    0.000000] Linux version 5.15.0-91-generic (build@devops-trainer) #1 SMP',
+    '[    0.124532] Command line: BOOT_IMAGE=/boot/vmlinuz-5.15.0-91-generic root=/dev/sda1',
     '[    1.203411] ACPI: Core revision 20210730',
     '[    2.442017] e1000 0000:00:03.0 eth0: renamed from eth0',
     '[    3.881234] eth0: link up, 1000 Mbps full duplex',
@@ -1398,7 +1479,7 @@ function cmd_lsusb(args, ctx) {
 function cmd_lshal(args, ctx) {
   return ok(
     "udi = '/org/freedesktop/Hal/devices/computer'\n" +
-      "  system.kernel.version = '5.15.0-devops'  (string)\n" +
+      "  system.kernel.version = '5.15.0-91-generic'  (string)\n" +
       "  system.hardware.vendor = 'QEMU'  (string)\n" +
       "  system.hardware.product = 'Standard PC'  (string)\n\n" +
       "udi = '/org/freedesktop/Hal/devices/net_eth0'\n" +
@@ -1494,6 +1575,8 @@ module.exports = {
   cmd_tcpdump,
   cmd_rpm,
   cmd_dpkg,
+  cmd_ufw,
+  cmd_firewall_cmd,
   cmd_uptime,
   cmd_whoami,
   cmd_id,

@@ -315,6 +315,28 @@ const COMMAND_DOCS = {
     ],
     example: 'echo "30 3 * * * backup.sh" | crontab -',
   },
+
+  ufw: {
+    desc: 'Файрвол Ubuntu/Debian (Uncomplicated Firewall) — простіша обгортка над iptables.',
+    opts: [
+      ['status', 'показати стан і поточні правила', 'ufw status'],
+      ['enable / disable', 'увімкнути / вимкнути файрвол', 'ufw enable'],
+      ['allow <порт>', 'дозволити порт/сервіс', 'ufw allow 22'],
+      ['deny <порт>', 'заборонити порт', 'ufw deny 23'],
+    ],
+    example: 'ufw allow 22',
+  },
+  'firewall-cmd': {
+    desc: 'Файрвол RHEL/CentOS/Fedora (firewalld) — ІНШИЙ інструмент, ніж ufw (Ubuntu).',
+    opts: [
+      ['--state', 'показати, чи запущений firewalld', 'firewall-cmd --state'],
+      ['--add-port=П/tcp', 'дозволити порт (в поточній сесії)', 'firewall-cmd --add-port=8080/tcp'],
+      ['--remove-port=П/tcp', 'прибрати дозвіл на порт', 'firewall-cmd --remove-port=8080/tcp'],
+      ['--list-all', 'показати всі правила поточної зони', 'firewall-cmd --list-all'],
+      ['--reload', 'застосувати збережені (permanent) зміни', 'firewall-cmd --reload'],
+    ],
+    example: 'firewall-cmd --add-port=8080/tcp',
+  },
 };
 
 module.exports = { COMMAND_DOCS };
