@@ -247,6 +247,51 @@ function build() {
     });
   });
 
+  const LOG_PODS = ['redis-0', 'web-deployment-7c9f8b6d-a1b2c', 'web-deployment-7c9f8b6d-x9y8z'];
+  LOG_PODS.forEach((pod, i) => {
+    drills.push({
+      id: `p-k8s-logs-${i}`,
+      difficulty: 1,
+      prompt: `Перевір логи пода ${pod}.`,
+      hint: `kubectl logs ${pod}`,
+      solution: `kubectl logs ${pod}`,
+      xp: 15,
+      check: (ctx) => h.stdoutIncludes(ctx.result, pod),
+    });
+  });
+  drills.push({
+    id: 'p-k8s-logs-not-found',
+    difficulty: 2,
+    prompt: 'Спробуй переглянути логи пода, якого не існує (nosuchpod), і зверни увагу на помилку.',
+    hint: 'kubectl logs nosuchpod',
+    solution: 'kubectl logs nosuchpod',
+    xp: 15,
+    check: (ctx) => (ctx.result.stderr || '').includes('NotFound'),
+  });
+
+  const NAMESPACE_NAMES = ['staging', 'qa', 'monitoring'];
+  NAMESPACE_NAMES.forEach((ns, i) => {
+    drills.push({
+      id: `p-k8s-create-ns-${i}`,
+      difficulty: 1,
+      prompt: `Створи новий namespace з ім'ям ${ns}.`,
+      hint: `kubectl create namespace ${ns}`,
+      solution: `kubectl create namespace ${ns}`,
+      xp: 15,
+      check: (ctx) => ctx.state.k8s.namespaces.includes(ns),
+    });
+  });
+
+  drills.push({
+    id: 'p-k8s-config-current-context',
+    difficulty: 1,
+    prompt: 'Перевір, з яким кластером (контекстом) зараз з\'єднаний kubectl.',
+    hint: 'kubectl config current-context',
+    solution: 'kubectl config current-context',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'devops-trainer-cluster'),
+  });
+
   return drills;
 }
 

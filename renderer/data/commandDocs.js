@@ -240,6 +240,8 @@ const COMMAND_DOCS = {
   'git:show': { desc: 'Показує деталі конкретного коміту (автор, повідомлення, зміни).', example: 'git show HEAD' },
   'git:rm': { desc: 'Видаляє файл і одразу готує це видалення до коміту.', example: 'git rm old-file.txt' },
 
+  'docker:images': { desc: 'Список локально завантажених образів.', example: 'docker images' },
+  'docker:pull': { desc: 'Завантажує образ з реєстру (Docker Hub тощо) без запуску.', example: 'docker pull nginx:latest' },
   'docker:run': { desc: 'Запускає контейнер з образу.', opts: [['-d', 'у фоновому режимі', 'docker run -d nginx'], ['--name', "ім'я контейнера", 'docker run --name web nginx']], example: 'docker run -d --name web nginx' },
   'docker:ps': { desc: 'Список запущених контейнерів.', opts: [['-a', 'разом із зупиненими', 'docker ps -a']], example: 'docker ps' },
   'docker:start': { desc: 'Запускає раніше зупинений контейнер.', example: 'docker start web' },
@@ -255,9 +257,12 @@ const COMMAND_DOCS = {
   'docker:push': { desc: 'Завантажує образ у віддалений реєстр (Docker Hub тощо).', example: 'docker push myrepo/nginx:v1' },
   'docker:network': { desc: 'Керує мережами Docker.', opts: [['create', 'створити нову мережу', 'docker network create mynet'], ['ls', 'список мереж', 'docker network ls']], example: 'docker network create mynet' },
   'docker:volume': { desc: 'Керує томами Docker (постійне сховище даних).', opts: [['create', 'створити новий том', 'docker volume create mydata'], ['ls', 'список томів', 'docker volume ls']], example: 'docker volume create mydata' },
-  'docker-compose': { desc: 'Керує кількома контейнерами одразу за конфігурацією.', opts: [['up', 'запустити всі сервіси', 'docker-compose up'], ['down', 'зупинити й прибрати', 'docker-compose down']], example: 'docker-compose up' },
+  'docker-compose': { desc: 'Керує кількома контейнерами одразу за конфігурацією.', opts: [['up', 'запустити всі сервіси', 'docker-compose up'], ['down', 'зупинити й прибрати', 'docker-compose down'], ['ps', 'список контейнерів, керованих compose', 'docker-compose ps']], example: 'docker-compose up' },
 
   'k8s:get': { desc: 'Виводить список ресурсів кластера (поди, деплойменти, сервіси…).', example: 'kubectl get pods' },
+  'k8s:logs': { desc: 'Показує логи контейнера в поді.', example: 'kubectl logs web-abc123' },
+  'k8s:create': { desc: 'Створює ресурс напряму (без YAML-маніфесту) — найчастіше namespace.', opts: [['namespace', 'створити новий namespace', 'kubectl create namespace staging']], example: 'kubectl create namespace staging' },
+  'k8s:config': { desc: 'Керує kubeconfig — контекстами й доступом до кластерів.', opts: [['current-context', "показати активний контекст (кластер)", 'kubectl config current-context']], example: 'kubectl config current-context' },
   'k8s:apply': { desc: 'Застосовує YAML-маніфест до кластера.', opts: [['-f', 'шлях до файлу маніфесту', 'kubectl apply -f deployment.yaml']], example: 'kubectl apply -f deployment.yaml' },
   'k8s:scale': { desc: 'Змінює кількість реплік деплойменту.', opts: [['--replicas=N', 'бажана кількість реплік', 'kubectl scale deployment web --replicas=5']], example: 'kubectl scale deployment web --replicas=5' },
   'k8s:describe': { desc: 'Детальна інформація про конкретний ресурс.', example: 'kubectl describe pod web-abc123' },

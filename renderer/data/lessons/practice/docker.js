@@ -297,6 +297,41 @@ function build() {
     check: (ctx) => h.stdoutIncludes(ctx.result, 'cache-data'),
   });
 
+  drills.push({
+    id: 'p-docker-images-list',
+    difficulty: 1,
+    prompt: 'Переглянь список локально завантажених образів.',
+    hint: 'docker images',
+    solution: 'docker images',
+    xp: 15,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'nginx'),
+  });
+
+  const PULL_IMAGES = ['redis:7', 'postgres:16', 'python:3.12-slim'];
+  PULL_IMAGES.forEach((image, i) => {
+    drills.push({
+      id: `p-docker-pull-${i}`,
+      difficulty: 2,
+      prompt: `Завантаж образ ${image} з реєстру, не запускаючи контейнер.`,
+      hint: `docker pull ${image}`,
+      solution: `docker pull ${image}`,
+      xp: 20,
+      check: (ctx) => {
+        const [repo, tag] = image.split(':');
+        return ctx.state.docker.images.some((im) => im.repo === repo && im.tag === tag);
+      },
+    });
+  });
+  drills.push({
+    id: 'p-docker-pull-then-images',
+    difficulty: 2,
+    prompt: 'Завантаж образ redis:7, а потім перевір, що він з\'явився у списку локальних образів.',
+    hint: 'docker pull redis:7 && docker images',
+    solution: 'docker pull redis:7 && docker images',
+    xp: 25,
+    check: (ctx) => h.stdoutIncludes(ctx.result, 'redis'),
+  });
+
   return drills;
 }
 
